@@ -90,12 +90,14 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
         if line.IsLinearMove() {
             // feedrates
             if f, ok := line.Params["f"]; ok {
-                f64 := float64(f)
-                if f64 < minFeedrate {
-                    minFeedrate = f64
-                }
-                if f64 > maxFeedrate {
-                    maxFeedrate = f64
+                if _, ok := line.Params["e"]; ok {
+                    f64 := float64(f)
+                    if f64 < minFeedrate {
+                        minFeedrate = f64
+                    }
+                    if f64 > maxFeedrate {
+                        maxFeedrate = f64
+                    }
                 }
             }
         } else if line.Command == "M104" || line.Command == "M109" {
