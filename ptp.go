@@ -88,7 +88,7 @@ func generateToolpath(argv []string) {
     // TODO: set these bounds from actual information
     writer.SetFeedrateBounds(0, 9000)
     writer.SetTemperatureBounds(0, 300)
-    writer.SetLayerHeightBounds(0.2, 0.3)
+    writer.SetLayerHeightBounds(0.2, 0.4)
     if err := writer.Initialize(); err != nil {
         log.Fatalln(err)
     }

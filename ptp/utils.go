@@ -48,7 +48,7 @@ func directionallyCollinear(ax, ay, az, bx, by, bz, cx, cy, cz float32) bool {
 
 func floatsToHex(r, g, b float32) string {
     rInt := uint8(r * 255); gInt := uint8(g * 255); bInt := uint8(b * 255)
-    return fmt.Sprintf("#%02q%02q%02q", rInt, gInt, bInt)
+    return fmt.Sprintf("#%02x%02x%02x", rInt, gInt, bInt)
 }
 
 func sortFloat32Slice(floats []float32) {
