@@ -9,6 +9,7 @@ import (
     "math"
     "os"
     "sort"
+    "strconv"
 )
 
 func lerp(minVal, maxVal, t float32) float32 {
@@ -103,13 +104,19 @@ func concatOntoWriter(w *Writer, writername, filename string) error {
     return nil
 }
 
-func writeUint32LE (writer *bufio.Writer, val uint32) error {
+func writeUint32LE(writer *bufio.Writer, val uint32) error {
     buf := make([]byte, 4)
     binary.LittleEndian.PutUint32(buf, val)
     _, err := writer.Write(buf)
     return err
 }
 
-func writeFloat32LE (writer *bufio.Writer, val float32) error {
+func writeFloat32LE(writer *bufio.Writer, val float32) error {
     return writeUint32LE(writer, math.Float32bits(val))
+}
+
+func prepareFloatForJSON(val float32, maxDecimals int) string {
+    roundingFactor := math.Pow(10, float64(maxDecimals))
+    val64 := math.Round(float64(val) * roundingFactor) / roundingFactor
+    return strconv.FormatFloat(val64, 'f', -1, 64)
 }

@@ -7,6 +7,13 @@ import (
     "sort"
 )
 
+const (
+    maxDecimalsFeedrate = 1
+    maxDecimalsFanSpeed = 0
+    maxDecimalsTemperature = 1
+    maxDecimalsLayerHeight = 4
+)
+
 type bufferData struct {
     Offset int `json:"offset"`
     Size int `json:"size"`
@@ -152,7 +159,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
             g := lerp(feedrateColorMin[1], feedrateColorMax[1], t)
             b := lerp(feedrateColorMin[2], feedrateColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f mm/min", feedrate),
+                Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(feedrate, maxDecimalsFeedrate)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -165,12 +172,12 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
            g := lerp(feedrateColorMin[1], feedrateColorMax[1], t)
            b := lerp(feedrateColorMin[2], feedrateColorMax[2], t)
            legend = append(legend, legendEntry{
-               Label: fmt.Sprintf("%f mm/min", feedrate),
+               Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(feedrate, maxDecimalsFeedrate)),
                Color: floatsToHex(r, g, b),
            })
        }
         legend = append(legend, legendEntry{
-            Label: fmt.Sprintf("%f mm/min", w.maxFeedrate),
+            Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(w.maxFeedrate, maxDecimalsFeedrate)),
             Color: floatsToHex(feedrateColorMax[0], feedrateColorMax[1], feedrateColorMax[2]),
         })
     }
@@ -200,7 +207,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             g := lerp(fanColorMin[1], fanColorMax[1], t)
             b := lerp(fanColorMin[2], fanColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f%", percent),
+                Label: fmt.Sprintf("%s%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -214,7 +221,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             g := lerp(fanColorMin[1], fanColorMax[1], t)
             b := lerp(fanColorMin[2], fanColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f%", percent),
+                Label: fmt.Sprintf("%s%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -241,7 +248,7 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
             g := lerp(temperatureColorMin[1], temperatureColorMax[1], t)
             b := lerp(temperatureColorMin[2], temperatureColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f °C", temperature),
+                Label: fmt.Sprintf("%s °C", prepareFloatForJSON(temperature, maxDecimalsTemperature)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -254,12 +261,12 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
             g := lerp(temperatureColorMin[1], temperatureColorMax[1], t)
             b := lerp(temperatureColorMin[2], temperatureColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f °C", temperature),
+                Label: fmt.Sprintf("%s °C", prepareFloatForJSON(temperature, maxDecimalsTemperature)),
                 Color: floatsToHex(r, g, b),
             })
         }
         legend = append(legend, legendEntry{
-            Label: fmt.Sprintf("%f °C", w.maxTemperature),
+            Label: fmt.Sprintf("%s °C", prepareFloatForJSON(w.maxTemperature, maxDecimalsTemperature)),
             Color: floatsToHex(temperatureColorMax[0], temperatureColorMax[1], temperatureColorMax[2]),
         })
     }
@@ -281,7 +288,7 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
             g := lerp(layerHeightColorMin[1], layerHeightColorMax[1], t)
             b := lerp(layerHeightColorMin[2], layerHeightColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f mm", layerHeight),
+                Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeight, maxDecimalsLayerHeight)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -294,12 +301,12 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
             g := lerp(layerHeightColorMin[1], layerHeightColorMax[1], t)
             b := lerp(layerHeightColorMin[2], layerHeightColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%f mm", layerHeight),
+                Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeight, maxDecimalsLayerHeight)),
                 Color: floatsToHex(r, g, b),
             })
         }
         legend = append(legend, legendEntry{
-            Label: fmt.Sprintf("%f mm", w.maxLayerHeight),
+            Label: fmt.Sprintf("%s mm", prepareFloatForJSON(w.maxLayerHeight, maxDecimalsLayerHeight)),
             Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
         })
     }
