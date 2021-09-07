@@ -8,7 +8,7 @@ const (
 )
 
 // segments with all dimension deltas smaller than this will be skipped
-const skipThreshold = 0.01;
+const skipThreshold = 0.01
 
 // tolerance used by collinearity-checking functions
 const collinearityEpsilon = 10e-5

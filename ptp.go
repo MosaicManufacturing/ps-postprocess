@@ -137,7 +137,7 @@ func generateToolpath(argv []string) {
                     // add retract point regardless of there being X/Y/Z movement as well
                     writer.AddRetract()
                 }
-                currentE = e;
+                currentE = e
             }
             if f, ok := line.Params["f"]; ok {
                 writer.SetFeedrate(f)
