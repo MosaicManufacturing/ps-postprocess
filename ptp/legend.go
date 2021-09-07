@@ -207,7 +207,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             g := lerp(fanColorMin[1], fanColorMax[1], t)
             b := lerp(fanColorMin[2], fanColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%s%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
+                Label: fmt.Sprintf("%s%%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
                 Color: floatsToHex(r, g, b),
             })
         }
@@ -221,7 +221,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             g := lerp(fanColorMin[1], fanColorMax[1], t)
             b := lerp(fanColorMin[2], fanColorMax[2], t)
             legend = append(legend, legendEntry{
-                Label: fmt.Sprintf("%s%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
+                Label: fmt.Sprintf("%s%%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
                 Color: floatsToHex(r, g, b),
             })
         }
