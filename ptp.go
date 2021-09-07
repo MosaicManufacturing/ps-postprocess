@@ -5,6 +5,7 @@ import (
     "./ptp"
     "errors"
     "log"
+    "math"
     "strconv"
     "strings"
 )
@@ -71,6 +72,70 @@ func convertPathType(hint string) ptp.PathType {
     return ptp.PathTypeUnknown
 }
 
+type ptpPreflight struct {
+    minFeedrate float32
+    maxFeedrate float32
+    minTemperature float32
+    maxTemperature float32
+    minLayerHeight float32
+    maxLayerHeight float32
+}
+
+func toolpathPreflight(inpath string) (ptpPreflight, error) {
+    minFeedrate := math.Inf(1); maxFeedrate := math.Inf(-1)
+    minTemperature := math.Inf(1); maxTemperature := math.Inf(-1)
+    minLayerHeight := math.Inf(1); maxLayerHeight := math.Inf(-1)
+
+    err := gcode.ReadByLine(inpath, func(line gcode.Command) {
+        if line.IsLinearMove() {
+            // feedrates
+            if f, ok := line.Params["f"]; ok {
+                f64 := float64(f)
+                if f64 < minFeedrate {
+                    minFeedrate = f64
+                }
+                if f64 > maxFeedrate {
+                    maxFeedrate = f64
+                }
+            }
+        } else if line.Command == "M104" || line.Command == "M109" {
+            // temperatures
+            if temp, ok := line.Params["s"]; ok {
+                temp64 := float64(temp)
+                if temp64 < minTemperature {
+                    minTemperature = temp64
+                }
+                if temp64 > maxTemperature {
+                    maxTemperature = temp64
+                }
+            }
+        } else if line.Comment != "" &&  strings.HasPrefix(line.Comment, "HEIGHT:") {
+            // layer heights
+            height, err := strconv.ParseFloat(line.Comment[7:], 64)
+            if err == nil {
+                if height < minLayerHeight {
+                    minLayerHeight = height
+                }
+                if height > maxLayerHeight {
+                    maxLayerHeight = height
+                }
+            }
+        }
+    })
+    if err != nil {
+        return ptpPreflight{}, err
+    }
+    results := ptpPreflight{
+        minFeedrate:    float32(minFeedrate),
+        maxFeedrate:    float32(maxFeedrate),
+        minTemperature: float32(minTemperature),
+        maxTemperature: float32(maxTemperature),
+        minLayerHeight: float32(minLayerHeight),
+        maxLayerHeight: float32(maxLayerHeight),
+    }
+    return results, err
+}
+
 func generateToolpath(argv []string) {
     argc := len(argv)
 
@@ -84,11 +149,15 @@ func generateToolpath(argv []string) {
     if err != nil {
         log.Fatalln(err)
     }
+    preflight, err := toolpathPreflight(inpath)
+    if err != nil {
+        log.Fatalln(err)
+    }
+
     writer := ptp.NewWriter(outpath, brimIsSkirt, toolColors)
-    // TODO: set these bounds from actual information
-    writer.SetFeedrateBounds(0, 9000)
-    writer.SetTemperatureBounds(0, 300)
-    writer.SetLayerHeightBounds(0.2, 0.4)
+    writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
+    writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
+    writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
     if err := writer.Initialize(); err != nil {
         log.Fatalln(err)
     }
