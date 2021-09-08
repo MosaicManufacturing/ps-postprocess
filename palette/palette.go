@@ -28,8 +28,9 @@ type Palette struct {
 
     // output settings
     PrintExtruder int
-    FirmwarePurge float32
-    BowdenTubeLength float32
+    FirmwarePurge float32 // mm
+    BowdenTubeLength float32 // mm
+    TransitionTarget float32 // 0..100
 
     // P2/P3 settings
     PrinterID string
