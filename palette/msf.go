@@ -232,7 +232,7 @@ func (msf *MSF) GetMSF2Header(filename string) string {
     return header
 }
 
-func (msf *MSF) getMSF2PingLine(ping Ping) string {
+func getMSF2PingLine(ping Ping) string {
     line := "O31 D" + floatToHexString(ping.Length)
     if ping.Extrusion > 0 {
         line += " D" + floatToHexString(ping.Extrusion)
@@ -241,7 +241,7 @@ func (msf *MSF) getMSF2PingLine(ping Ping) string {
     return line
 }
 
-func (msf *MSF) getMSF3PingLine(ping Ping) string {
+func getMSF3PingLine(ping Ping) string {
     if ping.Extrusion > 0 {
         return fmt.Sprintf("O31 L%.2f E%.2f%s", ping.Length, ping.Extrusion, EOL)
     }
@@ -254,19 +254,19 @@ func (msf *MSF) GetConnectedPingLine() string {
         return ""
     }
     if msf.Palette.Type == TypeP2 {
-        return msf.getMSF2PingLine(msf.PingList[pingCount-1])
+        return getMSF2PingLine(msf.PingList[pingCount-1])
     }
-    return msf.getMSF3PingLine(msf.PingList[pingCount-1])
+    return getMSF3PingLine(msf.PingList[pingCount-1])
 }
 
 func (msf *MSF) createMSF1() string {
-    const VERSION = "1.4"
+    const Version = "1.4"
     numInputs := msf.Palette.GetInputCount()
     algorithmList := msf.GetOutputAlgorithmsList()
     pulsesPerMM := msf.Palette.GetPulsesPerMM()
     loadingOffset := msf.Palette.LoadingOffset
 
-    str := "MSF" + VERSION + EOL
+    str := "MSF" + Version + EOL
 
     // drives used
     str += "cu:"
@@ -320,8 +320,73 @@ func (msf *MSF) createMSF1() string {
 }
 
 func (msf *MSF) createMSF2() string {
-    // todo
-    return ""
+    const VersionMajor = 2
+    const VersionMinor = 0
+    numInputs := msf.Palette.GetInputCount()
+    algorithmList := msf.GetOutputAlgorithmsList()
+
+    // MSF version
+    str := msfVersionToO21(VersionMajor, VersionMinor)
+
+    // printer profile identifier
+    str += "O22 D" + msf.Palette.PrinterID + EOL
+
+    // style profile identifier (unused)
+    str += "O23 D0001" + EOL
+
+    // adjusted PPM (0 for now)
+    str += "O24 D0000" + EOL
+
+    // materials used
+    str += "O25"
+    for drive := 0; drive < numInputs; drive++ {
+        material := msf.Palette.MaterialMeta[drive]
+        str += " D"
+        str += intToHexString(uint(material.Index), 1)
+        if material.Index > 0 {
+            str += material.Color
+            str += replaceSpaces(truncate(material.Name, charLimitMSF2))
+        }
+    }
+    str += EOL
+
+    // number of splices
+    str += "O26 D" + intToHexString(uint(len(msf.SpliceList)), 4) + EOL
+
+    // number of pings
+    str += "O27 D" + intToHexString(uint(len(msf.PingList)), 4) + EOL
+
+    // number of algorithms
+    str += "O28 D" + intToHexString(uint(len(algorithmList)), 4) + EOL
+
+    // number of hot swaps (0 for now)
+    str += "O29 D0000" + EOL
+
+    // splice data
+    for _, splice := range msf.SpliceList {
+        str += "O30 D" + intToHexString(uint(splice.Drive), 1)
+        str += " D" + floatToHexString(splice.Length) + EOL
+    }
+
+    // ping data
+    if !msf.Palette.ConnectedMode {
+        for _, ping := range msf.PingList {
+            str += getMSF2PingLine(ping)
+        }
+    }
+
+    // algorithm data
+    for _, alg := range algorithmList {
+        str += "O32 D" + intToHexString(uint(alg.Ingoing), 1) + intToHexString(uint(alg.Outgoing), 1)
+        str += " D" + int16ToHexString(int16(alg.HeatFactor))
+        str += " D" + int16ToHexString(int16(alg.CompressionFactor))
+        str += " D" + int16ToHexString(int16(alg.CoolingFactor))
+        str += EOL
+    }
+
+    // hot swap data (nonexistent for now)
+
+    return str
 }
 
 func (msf *MSF) createMSF3() string {
