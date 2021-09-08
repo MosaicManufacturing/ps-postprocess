@@ -108,7 +108,8 @@ func (gcc Command) ToString() string {
 	return line
 }
 
-type LineCallback func(Command)
+type LineCallback func(Command) error
+// if callback returns an error, reading will stop
 
 func ReadByLine (path string, callback LineCallback) (err error) {
 	infile, openErr := os.Open(path)
@@ -146,7 +147,11 @@ func ReadByLine (path string, callback LineCallback) (err error) {
 			}
 		}
 		gcode := ParseLine(string(line))
-		callback(gcode)
+		cbErr := callback(gcode)
+		if cbErr != nil {
+			err = cbErr
+			return
+		}
 	}
 	return nil
 }

@@ -86,7 +86,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
     minTemperature := math.Inf(1); maxTemperature := math.Inf(-1)
     minLayerHeight := math.Inf(1); maxLayerHeight := math.Inf(-1)
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command) {
+    err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
         if line.IsLinearMove() {
             // feedrates
             if f, ok := line.Params["f"]; ok {
@@ -114,15 +114,17 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
         } else if line.Comment != "" &&  strings.HasPrefix(line.Comment, "HEIGHT:") {
             // layer heights
             height, err := strconv.ParseFloat(line.Comment[7:], 64)
-            if err == nil {
-                if height < minLayerHeight {
-                    minLayerHeight = height
-                }
-                if height > maxLayerHeight {
-                    maxLayerHeight = height
-                }
+            if err != nil {
+                return err
+            }
+            if height < minLayerHeight {
+                minLayerHeight = height
+            }
+            if height > maxLayerHeight {
+                maxLayerHeight = height
             }
         }
+        return nil
     })
     if err != nil {
         return ptpPreflight{}, err
@@ -166,7 +168,7 @@ func generateToolpath(argv []string) {
 
     currentE := float32(0)
     relativeE := false
-    err = gcode.ReadByLine(inpath, func(line gcode.Command) {
+    err = gcode.ReadByLine(inpath, func(line gcode.Command) error {
         isSetExtrusionMode, isRelativeE := line.IsSetExtrusionMode()
         if isSetExtrusionMode {
             relativeE = isRelativeE
@@ -233,7 +235,7 @@ func generateToolpath(argv []string) {
         } else if len(line.Command) > 1 && line.Command[0] == 'T' {
             tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
             if err != nil {
-                log.Fatalln(err)
+                return err
             }
             writer.SetTool(int(tool))
         } else if line.Command == "M135" {
@@ -249,18 +251,19 @@ func generateToolpath(argv []string) {
                 // extrusion width hints
                 width, err := strconv.ParseFloat(line.Comment[6:], 32)
                 if err != nil {
-                    log.Fatalln(err)
+                    return err
                 }
                 writer.SetExtrusionWidth(float32(width))
             } else if strings.HasPrefix(line.Comment, "HEIGHT:") {
                 // layer height hints
                 height, err := strconv.ParseFloat(line.Comment[7:], 32)
                 if err != nil {
-                    log.Fatalln(err)
+                    return err
                 }
                 writer.SetLayerHeight(float32(height))
             }
         }
+        return nil
     })
     if err != nil {
         log.Fatalln(err)
