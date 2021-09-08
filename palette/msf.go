@@ -260,8 +260,63 @@ func (msf *MSF) GetConnectedPingLine() string {
 }
 
 func (msf *MSF) createMSF1() string {
-    // todo
-    return ""
+    const VERSION = "1.4"
+    numInputs := msf.Palette.GetInputCount()
+    algorithmList := msf.GetOutputAlgorithmsList()
+    pulsesPerMM := msf.Palette.GetPulsesPerMM()
+    loadingOffset := msf.Palette.LoadingOffset
+
+    str := "MSF" + VERSION + EOL
+
+    // drives used
+    str += "cu:"
+    for drive := 0; drive < numInputs; drive++ {
+        material := msf.Palette.MaterialMeta[drive]
+        str += strconv.Itoa(material.Index)
+        if material.Index > 0 {
+            str += truncate(material.Name, charLimitMSF1)
+        }
+        str += ";"
+    }
+    str += EOL
+
+    // pulses per MM
+    str += "ppm:" + floatToHexString(pulsesPerMM) + EOL
+    // loading offset
+    str += "lo:" + intToHexString(uint(loadingOffset), 4) + EOL
+    // number of splices
+    str += "ns:" + intToHexString(uint(len(msf.SpliceList)), 4) + EOL
+    // number of pings
+    str += "np:" + intToHexString(uint(len(msf.PingList)), 4) + EOL
+    // number of hot swaps (always 0)
+    str += "nh:" + intToHexString(0, 4) + EOL
+    // number of algorithms
+    str += "na:" + intToHexString(uint(len(algorithmList)), 4) + EOL
+
+    // splice list
+    for _, splice := range msf.SpliceList {
+        str += "(" + intToHexString(uint(splice.Drive), 2) + "," + floatToHexString(splice.Length) + ")" + EOL
+    }
+
+    // ping list
+    for _, ping := range msf.PingList {
+        str += "(64," + floatToHexString(ping.Length) + ")" + EOL
+    }
+
+    // algorithm list
+    for _, alg := range algorithmList {
+        str += "(" + strconv.Itoa(alg.Ingoing) + strconv.Itoa(alg.Outgoing) + ","
+        str += floatToHexString(alg.HeatFactor) + ","
+        str += floatToHexString(alg.CompressionFactor) + ","
+        if alg.Reverse {
+            str += "1"
+        } else {
+            str += "0"
+        }
+        str += ")" + EOL
+    }
+
+    return str
 }
 
 func (msf *MSF) createMSF2() string {
