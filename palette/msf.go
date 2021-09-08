@@ -389,17 +389,79 @@ func (msf *MSF) createMSF2() string {
     return str
 }
 
-func (msf *MSF) createMSF3() string {
-    // todo
-    return ""
+func (msf *MSF) createMSF3() (string, error) {
+    const Version = "3.0"
+
+    numInputs := msf.Palette.GetInputCount()
+    algorithmList := msf.Palette.SpliceSettings
+    numSplices := len(msf.SpliceList)
+    numPings := len(msf.PingList)
+    numAlgorithms := len(algorithmList)
+
+    json := palette3Json{
+        Version: Version,
+        Drives: make([]int, numInputs),
+        Splices: make([]palette3Splice, 0, numSplices),
+        Pings: make([]palette3Ping, 0, numPings),
+        Algorithms: make([]palette3Algorithm, 0, numAlgorithms),
+    }
+
+    // materials used
+    for drive := 0; drive < numInputs; drive++ {
+        if msf.DrivesUsed[drive] {
+            material := msf.Palette.MaterialMeta[drive]
+            json.Drives[drive] = material.Index
+        }
+    }
+
+    // splice data
+    for _, splice := range msf.SpliceList {
+        material := msf.Palette.MaterialMeta[splice.Drive]
+        jsonSplice := palette3Splice{
+            ID:     material.Index,
+            Length: splice.Length,
+        }
+        json.Splices = append(json.Splices, jsonSplice)
+    }
+
+    // ping data
+    for _, ping := range msf.PingList {
+        jsonPing := palette3Ping{
+            Length:    ping.Length,
+            Extrusion: ping.Extrusion,
+        }
+        json.Pings = append(json.Pings, jsonPing)
+    }
+
+    // algorithm data
+    for _, alg := range algorithmList {
+        iid, err := strconv.Atoi(alg.IngoingID)
+        if err != nil {
+            return "", err
+        }
+        oid, err := strconv.Atoi(alg.OutgoingID)
+        if err != nil {
+            return "", err
+        }
+        jsonAlgorithm := palette3Algorithm{
+            IngoingID:   iid,
+            OutgoingID:  oid,
+            Heat:        alg.HeatFactor,
+            Compression: alg.CompressionFactor,
+            Cooling:     alg.CoolingFactor,
+        }
+        json.Algorithms = append(json.Algorithms, jsonAlgorithm)
+    }
+
+    return json.marshal(msf.Palette.ConnectedMode)
 }
 
-func (msf *MSF) CreateMSF() string {
+func (msf *MSF) CreateMSF() (string, error) {
     if msf.Palette.Type == TypeP1 {
-        return msf.createMSF1()
+        return msf.createMSF1(), nil
     }
     if msf.Palette.Type == TypeP2 {
-        return msf.createMSF2()
+        return msf.createMSF2(), nil
     }
     return msf.createMSF3()
 }
