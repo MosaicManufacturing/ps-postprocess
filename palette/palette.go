@@ -34,6 +34,7 @@ type Palette struct {
     PrintExtruder int `json:"printExtruder"`
     FirmwarePurge float32 `json:"firmwarePurge"` // mm
     BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
+    TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
     // P2/P3 settings

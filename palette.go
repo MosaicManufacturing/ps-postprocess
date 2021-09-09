@@ -31,7 +31,6 @@ type bbox struct {
 type msfPreflight struct {
     drivesUsed []bool
     transitionStarts []float32
-    transitionEnds []float32
     pingStarts []float32
     boundingBox bbox
 }
@@ -40,7 +39,6 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
     results := msfPreflight{
         drivesUsed:       make([]bool, pal.GetInputCount()),
         transitionStarts: make([]float32, 0),
-        transitionEnds:   make([]float32, 0),
         pingStarts:       make([]float32, 0),
         boundingBox:      bbox{
             min: [3]float32{float32(math.Inf(1)), float32(math.Inf(1)), float32(math.Inf(1))},
@@ -127,7 +125,6 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
             } else if onWipeTower && !startWipeTower {
                 // end of the actual transition being printed
                 if currentlyTransitioning {
-                    results.transitionEnds = append(results.transitionEnds, eTracker.TotalExtrusion)
                     currentlyTransitioning = false
                     // if we're in the middle of an accessory ping, cancel it -- too late to finish
                     currentlyPinging = false
@@ -138,9 +135,6 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
 
         return nil
     })
-    if len(results.transitionStarts) != len(results.transitionEnds) {
-        return results, errors.New("mismatch between transition starts and ends")
-    }
     if results.boundingBox.min[2] > 0 {
         results.boundingBox.min[2] = 0
     }
@@ -284,8 +278,7 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                     return err
                 }
             } else {
-                currentTransitionIdx := len(msf.SpliceList)
-                currentTransitionLength := preflight.transitionEnds[currentTransitionIdx] - preflight.transitionStarts[currentTransitionIdx]
+                currentTransitionLength := pal.TransitionLengths[tool][currentTool]
                 spliceOffset := currentTransitionLength * (pal.TransitionTarget / 100)
                 if err := msf.AddSplice(currentTool, eTracker.TotalExtrusion + spliceOffset); err != nil {
                    return err
