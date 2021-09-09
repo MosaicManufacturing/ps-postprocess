@@ -1,14 +1,14 @@
 package gcode
 
 type ExtrusionTracker struct {
-    RelativeExtrusion bool
-    TotalExtrusion float32
-    CurrentExtrusionValue float32
-    PreviousExtrusionValue float32
-    LastExtrudeWasRetract bool
-    LastRetractDistance float32
-    CurrentRetraction float32
-    LastCommandWasG92 bool
+    RelativeExtrusion bool // true == relative, false == absolute
+    TotalExtrusion float32 // total filament consumption -- never decreases
+    CurrentExtrusionValue float32 // current position of the E axis
+    PreviousExtrusionValue float32 // last position of the E axis
+    LastExtrudeWasRetract bool // true == last E movement was negative, false == positive E
+    LastRetractDistance float32 // most recent E axis value of negative E
+    CurrentRetraction float32 // current total retraction (negative, need this much positive E to be primed)
+    LastCommandWasG92 bool // true if the last E modification was a manual position being set
 }
 
 func (et *ExtrusionTracker) TrackInstruction(instruction Command) {
