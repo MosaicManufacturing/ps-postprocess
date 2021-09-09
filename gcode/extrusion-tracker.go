@@ -8,7 +8,6 @@ type ExtrusionTracker struct {
     LastExtrudeWasRetract bool
     LastRetractDistance float32
     CurrentRetraction float32
-    ExtrusionResetValue float32
     LastCommandWasG92 bool
 }
 
@@ -65,22 +64,17 @@ func (et *ExtrusionTracker) TrackInstruction(instruction Command) {
         if hasParamsOrFlags {
             if eValue, ok := instruction.Params["e"]; ok {
                 et.LastCommandWasG92 = true
-                et.ExtrusionResetValue = eValue
                 et.CurrentExtrusionValue = eValue
             } else if aValue, ok := instruction.Params["a"]; ok {
                 et.LastCommandWasG92 = true
-                et.ExtrusionResetValue = aValue
                 et.CurrentExtrusionValue = aValue
             } else if bValue, ok := instruction.Params["b"]; ok {
                 et.LastCommandWasG92 = true
-                et.ExtrusionResetValue = bValue
                 et.CurrentExtrusionValue = bValue
             }
         } else {
             et.LastCommandWasG92 = true
-            et.ExtrusionResetValue = 0
             et.CurrentExtrusionValue = 0
         }
     }
 }
-
