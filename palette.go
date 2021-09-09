@@ -52,6 +52,8 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
     currentY := float32(0)
     currentZ := float32(0)
     eTracker := gcode.ExtrusionTracker{}
+    // account for a firmware purge (not part of G-code) once
+    eTracker.TotalExtrusion += pal.FirmwarePurge
 
     currentlyTransitioning := false
     onWipeTower := false
@@ -189,6 +191,8 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
     firstToolChange := true // don't treat the first T command as a toolchange
     currentTool := 0
     eTracker := gcode.ExtrusionTracker{}
+    // account for a firmware purge (not part of G-code) once
+    eTracker.TotalExtrusion += pal.FirmwarePurge
 
     currentlyTransitioning := false
     onWipeTower := false
