@@ -631,7 +631,7 @@ func (w *Writer) outputPrintLine() {
     dirX := w.state.currentX - w.state.prevX
     dirY := w.state.currentY - w.state.prevY
     dirZ := w.state.currentZ - w.state.prevZ
-    dirSize := float32(math.Sqrt(float64(dirX * dirX)) + float64(dirY * dirY) + float64(dirZ * dirZ)))
+    dirSize := float32(math.Sqrt(float64(dirX * dirX) + float64(dirY * dirY) + float64(dirZ * dirZ)))
     dirX /= dirSize
     dirY /= dirSize
     dirZ /= dirSize
