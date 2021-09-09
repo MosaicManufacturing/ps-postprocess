@@ -1,4 +1,4 @@
-package palette
+package msf
 
 type Type string
 type Model string

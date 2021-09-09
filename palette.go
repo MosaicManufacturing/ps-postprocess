@@ -2,7 +2,7 @@ package main
 
 import (
     "./gcode"
-    "./palette"
+    "./msf"
     "bufio"
     "errors"
     "fmt"
@@ -35,9 +35,9 @@ type msfPreflight struct {
     boundingBox bbox
 }
 
-func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error) {
+func palettePreflight(inpath string, palette *msf.Palette) (msfPreflight, error) {
     results := msfPreflight{
-        drivesUsed:       make([]bool, pal.GetInputCount()),
+        drivesUsed:       make([]bool, palette.GetInputCount()),
         transitionStarts: make([]float32, 0),
         pingStarts:       make([]float32, 0),
         boundingBox:      bbox{
@@ -53,13 +53,13 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
     currentZ := float32(0)
     eTracker := gcode.ExtrusionTracker{}
     // account for a firmware purge (not part of G-code) once
-    eTracker.TotalExtrusion += pal.FirmwarePurge
+    eTracker.TotalExtrusion += palette.FirmwarePurge
 
     currentlyTransitioning := false
     onWipeTower := false
-    pingExtrusionMM := float32(palette.PingExtrusion)
-    if pal.Type == palette.TypeP1 {
-        pingExtrusionMM = palette.PingExtrusionCounts / pal.GetPulsesPerMM()
+    pingExtrusionMM := float32(msf.PingExtrusion)
+    if palette.Type == msf.TypeP1 {
+        pingExtrusionMM = msf.PingExtrusionCounts / palette.GetPulsesPerMM()
     }
     lastPingStart := float32(0)
     currentlyPinging := false
@@ -93,11 +93,11 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                         lastPingStart = currentPingStart
                         currentlyPinging = false
                     }
-                } else if eTracker.TotalExtrusion >= lastPingStart + palette.PingMinSpacing {
+                } else if eTracker.TotalExtrusion >= lastPingStart + msf.PingMinSpacing {
                     // attempt to start a ping sequence
                     //  - connected pings: guaranteed to finish
                     //  - accessory pings: may be "cancelled" if near the end of the transition
-                    if pal.ConnectedMode {
+                    if palette.ConnectedMode {
                         results.pingStarts = append(results.pingStarts, eTracker.TotalExtrusion)
                         lastPingStart = eTracker.TotalExtrusion
                     } else {
@@ -143,18 +143,18 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
     return results, err
 }
 
-func getPingRetract(pal *palette.Palette) (bool, string) {
-    if pal.PingRetractDistance == 0 {
+func getPingRetract(palette *msf.Palette) (bool, string) {
+    if palette.PingRetractDistance == 0 {
         return false, ""
     }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", -pal.PingRetractDistance, pal.PingRetractFeedrate)
+    return true, fmt.Sprintf("G1 E%.5f F%.1f", -palette.PingRetractDistance, palette.PingRetractFeedrate)
 }
 
-func getPingRestart(pal *palette.Palette) (bool, string) {
-    if pal.PingRestartDistance == 0 {
+func getPingRestart(palette *msf.Palette) (bool, string) {
+    if palette.PingRestartDistance == 0 {
         return false, ""
     }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", pal.PingRestartDistance, pal.PingRestartFeedrate)
+    return true, fmt.Sprintf("G1 E%.5f F%.1f", palette.PingRestartDistance, palette.PingRestartFeedrate)
 }
 
 func getDwellPause(durationMS int) string {
@@ -182,7 +182,7 @@ func writeLines(writer *bufio.Writer, lines string) error {
     return err
 }
 
-func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, preflight *msfPreflight) (err error) {
+func paletteOutput(inpath, outpath, msfpath string, palette *msf.Palette, preflight *msfPreflight) (err error) {
     // todo: P2 will need a temp file so the final MSF can be prepended
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
@@ -200,19 +200,19 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
             err = flushErr
         }
     }()
-    msf := palette.NewMSF(pal)
+    msfOut := msf.NewMSF(palette)
 
     firstToolChange := true // don't treat the first T command as a toolchange
     currentTool := 0
     eTracker := gcode.ExtrusionTracker{}
     // account for a firmware purge (not part of G-code) once
-    eTracker.TotalExtrusion += pal.FirmwarePurge
+    eTracker.TotalExtrusion += palette.FirmwarePurge
 
     currentlyTransitioning := false
     onWipeTower := false
-    pingExtrusionMM := float32(palette.PingExtrusion)
-    if pal.Type == palette.TypeP1 {
-        pingExtrusionMM = palette.PingExtrusionCounts / pal.GetPulsesPerMM()
+    pingExtrusionMM := float32(msf.PingExtrusion)
+    if palette.Type == msf.TypeP1 {
+        pingExtrusionMM = msf.PingExtrusionCounts / palette.GetPulsesPerMM()
     }
     lastPingStart := float32(0)
     nextPingStart := float32(math.Inf(1))
@@ -233,27 +233,27 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                     // currentlyPinging == true implies accessory mode
                     if eTracker.TotalExtrusion >= lastPingStart + pingExtrusionMM {
                         // finish the accessory ping sequence
-                        comment := fmt.Sprintf("; Ping %d pause 2", len(msf.PingList) + 1)
+                        comment := fmt.Sprintf("; Ping %d pause 2", len(msfOut.PingList) + 1)
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        if useRetract, retract := getPingRetract(pal); useRetract {
+                        if useRetract, retract := getPingRetract(palette); useRetract {
                             if err := writeLine(writer, retract); err != nil {
                                 return err
                             }
                         }
-                        pauseSequence := getDwellPause(palette.Ping2PauseLength)
+                        pauseSequence := getDwellPause(msf.Ping2PauseLength)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
                         actualPingExtrusion := eTracker.TotalExtrusion - lastPingStart
-                        msf.AddPingWithExtrusion(lastPingStart, actualPingExtrusion)
-                        if len(msf.PingList) < len(preflight.pingStarts) {
-                            nextPingStart = preflight.pingStarts[len(msf.PingList)]
+                        msfOut.AddPingWithExtrusion(lastPingStart, actualPingExtrusion)
+                        if len(msfOut.PingList) < len(preflight.pingStarts) {
+                            nextPingStart = preflight.pingStarts[len(msfOut.PingList)]
                         } else {
                             nextPingStart = float32(math.Inf(1))
                         }
-                        if useRestart, restart := getPingRestart(pal); useRestart {
+                        if useRestart, restart := getPingRestart(palette); useRestart {
                             if err := writeLine(writer, restart); err != nil {
                                 return err
                             }
@@ -264,39 +264,39 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                     // attempt to start a ping sequence
                     //  - connected pings: guaranteed to finish
                     //  - accessory pings: may be "cancelled" if near the end of the transition
-                    if pal.ConnectedMode {
-                        comment := fmt.Sprintf("; Ping %d", len(msf.PingList) + 1)
+                    if palette.ConnectedMode {
+                        comment := fmt.Sprintf("; Ping %d", len(msfOut.PingList) + 1)
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        msf.AddPing(eTracker.TotalExtrusion)
-                        pingLine := msf.GetConnectedPingLine()
+                        msfOut.AddPing(eTracker.TotalExtrusion)
+                        pingLine := msfOut.GetConnectedPingLine()
                         if err := writeLines(writer, pingLine); err != nil {
                             return err
                         }
-                        if len(msf.PingList) < len(preflight.pingStarts) {
-                            nextPingStart = preflight.pingStarts[len(msf.PingList)]
+                        if len(msfOut.PingList) < len(preflight.pingStarts) {
+                            nextPingStart = preflight.pingStarts[len(msfOut.PingList)]
                         } else {
                             nextPingStart = float32(math.Inf(1))
                         }
                         lastPingStart = eTracker.TotalExtrusion
                     } else {
                         // start the accessory ping sequence
-                        comment := fmt.Sprintf("; Ping %d pause 1", len(msf.PingList) + 1)
+                        comment := fmt.Sprintf("; Ping %d pause 1", len(msfOut.PingList) + 1)
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        if useRetract, retract := getPingRetract(pal); useRetract {
+                        if useRetract, retract := getPingRetract(palette); useRetract {
                             if err := writeLine(writer, retract); err != nil {
                                 return err
                             }
                         }
-                        pauseSequence := getDwellPause(palette.Ping1PauseLength)
+                        pauseSequence := getDwellPause(msf.Ping1PauseLength)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
                         lastPingStart = eTracker.TotalExtrusion
-                        if useRestart, restart := getPingRestart(pal); useRestart {
+                        if useRestart, restart := getPingRestart(palette); useRestart {
                             if err := writeLine(writer, restart); err != nil {
                                 return err
                             }
@@ -312,13 +312,13 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
             }
             if firstToolChange {
                 firstToolChange = false
-                if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", pal.PrintExtruder)); err != nil {
+                if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
                     return err
                 }
             } else {
-                currentTransitionLength := pal.TransitionLengths[tool][currentTool]
-                spliceOffset := currentTransitionLength * (pal.TransitionTarget / 100)
-                if err := msf.AddSplice(currentTool, eTracker.TotalExtrusion + spliceOffset); err != nil {
+                currentTransitionLength := palette.TransitionLengths[tool][currentTool]
+                spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
+                if err := msfOut.AddSplice(currentTool, eTracker.TotalExtrusion + spliceOffset); err != nil {
                    return err
                 }
                 currentTool = int(tool)
@@ -347,11 +347,11 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
     if err != nil {
         return err
     }
-    err = msf.AddLastSplice(currentTool, eTracker.TotalExtrusion)
+    err = msfOut.AddLastSplice(currentTool, eTracker.TotalExtrusion)
     if err != nil {
         return err
     }
-    msfStr, err := msf.CreateMSF()
+    msfStr, err := msfOut.CreateMSF()
     if err != nil {
         return err
     }
@@ -367,9 +367,9 @@ func convertForPalette(argv []string) {
     inpath := argv[0] // unmodified G-code file
     outpath := argv[1] // modified G-code file
     msfpath := argv[2] // supplementary MSF file, if applicable
-    palettepath := argv[3] // serialized palette data
+    palettepath := argv[3] // serialized Palette data
 
-    pal, err := palette.LoadFromFile(palettepath)
+    palette, err := msf.LoadFromFile(palettepath)
     if err != nil {
         fmt.Print(err)
         log.Fatalln(err)
@@ -382,7 +382,7 @@ func convertForPalette(argv []string) {
     // - splice lengths -- check early if any splices will be too short
     // - number of pings
     // - bounding box
-    preflight, err := palettePreflight(inpath, &pal)
+    preflight, err := palettePreflight(inpath, &palette)
     if err != nil {
         log.Fatalln(err)
     }
@@ -396,7 +396,7 @@ func convertForPalette(argv []string) {
     // - accessory pings (two pauses with precise-ish amount of E between them)
     // - connected pings
     // - print summary in footer
-    err = paletteOutput(inpath, outpath, msfpath, &pal, &preflight)
+    err = paletteOutput(inpath, outpath, msfpath, &palette, &preflight)
     if err != nil {
         log.Fatalln(err)
     }

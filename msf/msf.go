@@ -1,4 +1,4 @@
-package palette
+package msf
 
 import (
     "errors"
