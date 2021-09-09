@@ -25,9 +25,9 @@ func getSegmentLengths(ax, ay, az, bx, by, bz, cx, cy, cz float32) (lenAB, lenAC
     ABx := float64(bx - ax); ABy := float64(by - ay); ABz := float64(bz - az)
     ACx := float64(cx - ax); ACy := float64(cy - ay); ACz := float64(cz - az)
     BCx := float64(cx - bx); BCy := float64(cy - by); BCz := float64(cz - bz)
-    lenAB = math.Sqrt(math.Pow(ABx, 2) + math.Pow(ABy, 2) + math.Pow(ABz, 2))
-    lenAC = math.Sqrt(math.Pow(ACx, 2) + math.Pow(ACy, 2) + math.Pow(ACz, 2))
-    lenBC = math.Sqrt(math.Pow(BCx, 2) + math.Pow(BCy, 2) + math.Pow(BCz, 2))
+    lenAB = math.Sqrt((ABx * ABx) + (ABy * ABy) + (ABz * ABz))
+    lenAC = math.Sqrt((ACx * ACx) + (ACy * ACy) + (ACz * ACz))
+    lenBC = math.Sqrt((BCx * BCx) + (BCy * BCy) + (BCz * BCz))
     return
 }
 
