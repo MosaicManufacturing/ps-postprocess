@@ -23,25 +23,35 @@ type SpliceSettings struct {
 }
 
 type Palette struct {
-    // general settings
+    // general
     Type Type `json:"type"`
     Model Model `json:"model"`
-    Makerbot5thGen bool `json:"makerbot5thGen"`
     MaterialMeta []Material `json:"materialMeta"`
     SpliceSettings []SpliceSettings `json:"spliceSettings"`
 
-    // output settings
+    // physical
     PrintExtruder int `json:"printExtruder"`
     FirmwarePurge float32 `json:"firmwarePurge"` // mm
     BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
+
+    // transitions
+    TransitionMethod string `json:"TransitionMethod"` // todo: add support for side transitions
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
-    // P2/P3 settings
-    PrinterID string `json:"printerId"`
-    ConnectedMode bool `json:"connectedMode"`
+    // pings
+    JogPauses bool `json:"jogPauses"` // todo: use this instead of dwells
+    Makerbot5thGen bool `json:"makerbot5thGen"` // todo: use this during jog pauses
+    PingRetractDistance float32 `json:"pingRetractDistance"` // todo: respect this
+    PingRestartDistance float32 `json:"pingRestartDistance"` // todo: respect this
+    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // todo: respect this
+    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // todo: respect this
 
-    // P1 settings
+    // P2/P3
+    ConnectedMode bool `json:"connectedMode"`
+    PrinterID string `json:"printerId"`
+
+    // P1
     LoadingOffset int `json:"loadingOffset"`
     PrintValue int `json:"printValue"`
     CalibrationLength float32 `json:"calibrationLength"`
