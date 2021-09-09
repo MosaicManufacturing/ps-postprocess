@@ -31,7 +31,8 @@ func NewCommand(raw, command, comment string, params Params, flags Flags) Comman
 }
 
 func (gcc Command) IsLinearMove() bool {
-	return gcc.Command == "G0" || gcc.Command == "G1"
+	// slight optimization: G1 is much more common, so check for that first
+	return gcc.Command == "G1" || gcc.Command == "G0"
 }
 
 func (gcc Command) IsArcMove() bool {
