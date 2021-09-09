@@ -86,6 +86,7 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
             if onWipeTower {
                 // check for ping actions
                 if currentlyPinging {
+                    // currentlyPinging == true implies accessory mode
                     if eTracker.TotalExtrusion >= currentPingStart + pingExtrusionMM {
                         // commit to the accessory ping sequence
                         results.pingStarts = append(results.pingStarts, currentPingStart)
@@ -217,6 +218,7 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
             if onWipeTower {
                 // check for ping actions
                 if currentlyPinging {
+                    // currentlyPinging == true implies accessory mode
                     if eTracker.TotalExtrusion >= lastPingStart + pingExtrusionMM {
                         // finish the accessory ping sequence
                         comment := fmt.Sprintf("; Ping %d pause 2", len(msf.PingList) + 1)
@@ -245,11 +247,11 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
+                        msf.AddPing(eTracker.TotalExtrusion)
                         pingLine := msf.GetConnectedPingLine()
                         if err := writeLines(writer, pingLine); err != nil {
                             return err
                         }
-                        msf.AddPing(eTracker.TotalExtrusion)
                         if len(msf.PingList) < len(preflight.pingStarts) {
                             nextPingStart = preflight.pingStarts[len(msf.PingList)]
                         } else {
