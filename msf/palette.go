@@ -1,6 +1,7 @@
 package msf
 
 import (
+    "../gcode"
     "encoding/json"
     "io/ioutil"
     "math"
@@ -38,6 +39,12 @@ type Palette struct {
     TransitionMethod string `json:"TransitionMethod"` // todo: add support for side transitions
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
+
+    // side transitions
+    SideTransitionJog bool `json:"sideTransitionJog"` // todo: support this
+    SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"` // todo: support this
+    SideTransitionEdge gcode.Direction `json:"sideTransitionEdge"` // todo: support this
+    SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"` // todo: support this
 
     // pings
     JogPauses bool `json:"jogPauses"` // todo: use this instead of dwells
