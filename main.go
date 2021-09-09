@@ -1,6 +1,8 @@
 package main
 
 import (
+    "./msf"
+    "./ptp"
     "fmt"
     "log"
     "os"
@@ -13,9 +15,9 @@ func main() {
     }
     switch argv[0] {
     case "msf":
-       convertForPalette(argv[1:])
+       msf.ConvertForPalette(argv[1:])
     case "ptp":
-       generateToolpath(argv[1:])
+       ptp.GenerateToolpath(argv[1:])
     default:
        log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
     }

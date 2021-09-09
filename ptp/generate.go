@@ -1,8 +1,7 @@
-package main
+package ptp
 
 import (
-    "./gcode"
-    "./ptp"
+    "../gcode"
     "errors"
     "log"
     "math"
@@ -36,40 +35,40 @@ func parseToolColors(serialized string) ([][3]float32, error) {
     return toolColors, nil
 }
 
-func convertPathType(hint string) ptp.PathType {
+func convertPathType(hint string) PathType {
     switch hint {
     case "Perimeter":
-        return ptp.PathTypeInnerPerimeter
+        return PathTypeInnerPerimeter
     case "External perimeter":
         fallthrough
     case "Overhang perimeter":
-        return ptp.PathTypeOuterPerimeter
+        return PathTypeOuterPerimeter
     case "Internal infill":
-        return ptp.PathTypeInfill
+        return PathTypeInfill
     case "Solid infill":
         fallthrough
     case "Top solid infill":
         fallthrough
     case "Ironing":
-        return ptp.PathTypeSolidLayer
+        return PathTypeSolidLayer
     case "Bridge infill":
-        return ptp.PathTypeBridge
+        return PathTypeBridge
     case "Gap fill":
-        return ptp.PathTypeGapFill
+        return PathTypeGapFill
     case "Skirt":
         fallthrough
     case "Skirt/Brim":
-        return ptp.PathTypeBrim
+        return PathTypeBrim
     case "Support material":
-        return ptp.PathTypeSupport
+        return PathTypeSupport
     case "Support material interface":
-        return ptp.PathTypeSupportInterface
+        return PathTypeSupportInterface
     case "Wipe tower":
-        return ptp.PathTypeTransition
+        return PathTypeTransition
     case "Custom":
-        return ptp.PathTypeStartSequence
+        return PathTypeStartSequence
     }
-    return ptp.PathTypeUnknown
+    return PathTypeUnknown
 }
 
 type ptpPreflight struct {
@@ -140,7 +139,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
     return results, err
 }
 
-func generateToolpath(argv []string) {
+func GenerateToolpath(argv []string) {
     argc := len(argv)
 
     if argc != 4 {
@@ -158,7 +157,7 @@ func generateToolpath(argv []string) {
         log.Fatalln(err)
     }
 
-    writer := ptp.NewWriter(outpath, brimIsSkirt, toolColors)
+    writer := NewWriter(outpath, brimIsSkirt, toolColors)
     writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
     writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
     writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
