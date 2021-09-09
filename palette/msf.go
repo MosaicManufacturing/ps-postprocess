@@ -28,13 +28,13 @@ type Algorithm struct {
 }
 
 type MSF struct {
-    Palette Palette
+    Palette *Palette
     DrivesUsed []bool
     SpliceList []Splice
     PingList []Ping
 }
 
-func NewMSF(paletteData Palette) MSF {
+func NewMSF(paletteData *Palette) MSF {
     return MSF{
         Palette:    paletteData,
         DrivesUsed: make([]bool, paletteData.GetInputCount()),
@@ -58,7 +58,7 @@ func (msf *MSF) addSplice(splice Splice) error {
         spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
         if spliceDelta < MinSpliceLength - 5 {
             message := "Piece Too Short\n"
-            message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but Palette's minimum splice length is %.2f mm.", splice.Length, MinSpliceLength)
+            message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but Palette's minimum splice length is %.2f mm.", spliceDelta, MinSpliceLength)
             return errors.New(message)
         }
     }
