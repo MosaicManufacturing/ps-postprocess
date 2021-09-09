@@ -1,8 +1,5 @@
 package msf
 
-type Type string
-type Model string
-
 const EOL = "\r\n"
 
 const (
@@ -10,11 +7,15 @@ const (
     charLimitMSF2 = 32
 )
 
+type Type string
+
 const (
     TypeP1 Type = "palette"
     TypeP2 Type = "palette-2"
     TypeP3 Type = "palette-3"
 )
+
+type Model string
 
 const (
     ModelP Model = "p"
@@ -25,6 +26,12 @@ const (
     ModelP2SPro Model = "p2s-pro"
     ModelP3 Model = "p3"
     ModelP3Pro Model = "p3-pro"
+)
+
+type TransitionMethod int
+const (
+    TransitionTower TransitionMethod = iota
+    SideTransitions
 )
 
 const (

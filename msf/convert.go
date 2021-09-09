@@ -200,8 +200,16 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
                 currentTool = int(tool)
                 currentlyTransitioning = true
+                if palette.TransitionMethod == SideTransitions {
+                    // todo: move to side, do transition, then maybe return from side
+                    //   - make sure to track all of this with eTracker, or the
+                    //     next splice will be very short!
+                    fmt.Println("insert side transition here")
+                    currentlyTransitioning = false
+                }
             }
-        } else if strings.HasPrefix(line.Comment, "TYPE:") {
+        } else if palette.TransitionMethod == SideTransitions &&
+            strings.HasPrefix(line.Comment, "TYPE:") {
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
             }

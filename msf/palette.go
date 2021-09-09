@@ -36,7 +36,7 @@ type Palette struct {
     BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
 
     // transitions
-    TransitionMethod string `json:"TransitionMethod"` // todo: add support for side transitions
+    TransitionMethod TransitionMethod `json:"TransitionMethod"` // todo: add support for side transitions
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 

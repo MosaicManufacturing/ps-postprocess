@@ -103,7 +103,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 results.drivesUsed[currentTool] = true
                 results.transitionStarts = append(results.transitionStarts, eTracker.TotalExtrusion)
             }
-        } else if strings.HasPrefix(line.Comment, "TYPE:") {
+        } else if palette.TransitionMethod == SideTransitions &&
+            strings.HasPrefix(line.Comment, "TYPE:") {
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
             if !onWipeTower && startingWipeTower {
                 // start of the actual transition being printed
