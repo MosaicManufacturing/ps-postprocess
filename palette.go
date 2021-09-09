@@ -118,11 +118,11 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                 results.transitionStarts = append(results.transitionStarts, eTracker.TotalExtrusion)
             }
         } else if strings.HasPrefix(line.Comment, "TYPE:") {
-            startWipeTower := line.Comment == "TYPE:Wipe tower"
-            if !onWipeTower && startWipeTower {
+            startingWipeTower := line.Comment == "TYPE:Wipe tower"
+            if !onWipeTower && startingWipeTower {
                 // start of the actual transition being printed
                 // todo: any logic needed?
-            } else if onWipeTower && !startWipeTower {
+            } else if onWipeTower && !startingWipeTower {
                 // end of the actual transition being printed
                 if currentlyTransitioning {
                     currentlyTransitioning = false
@@ -130,7 +130,7 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                     currentlyPinging = false
                 }
             }
-            onWipeTower = startWipeTower
+            onWipeTower = startingWipeTower
         }
 
         return nil
@@ -290,17 +290,17 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
             }
-            startWipeTower := line.Comment == "TYPE:Wipe tower"
-            if !onWipeTower && startWipeTower {
+            startingWipeTower := line.Comment == "TYPE:Wipe tower"
+            if !onWipeTower && startingWipeTower {
                 // start of the actual transition being printed
                 // todo: any logic needed?
-            } else if onWipeTower && !startWipeTower {
+            } else if onWipeTower && !startingWipeTower {
                 // end of the actual transition being printed
                 if currentlyPinging {
                     return errors.New("incomplete ping occurred")
                 }
             }
-            onWipeTower = startWipeTower
+            onWipeTower = startingWipeTower
         } else {
             return writeLine(writer, line.Raw)
         }
