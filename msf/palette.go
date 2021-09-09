@@ -58,7 +58,9 @@ type Palette struct {
 }
 
 func LoadFromFile(path string) (Palette, error) {
-    palette := Palette{}
+    palette := Palette{
+        BowdenTubeLength: BowdenDefault,
+    }
     bytes, err := ioutil.ReadFile(path)
     if err != nil {
         return palette, err
