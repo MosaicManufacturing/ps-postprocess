@@ -3,6 +3,7 @@ package main
 import (
     "./gcode"
     "./palette"
+    "errors"
     "log"
     "math"
     "strconv"
@@ -25,7 +26,7 @@ type msfPreflight struct {
     drivesUsed []bool
     transitionStarts []float32
     transitionEnds []float32
-    pings []float32
+    pingStarts []float32
     boundingBox bbox
 }
 
@@ -34,7 +35,7 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
         drivesUsed:       make([]bool, pal.GetInputCount()),
         transitionStarts: make([]float32, 0),
         transitionEnds:   make([]float32, 0),
-        pings:            make([]float32, 0),
+        pingStarts:       make([]float32, 0),
         boundingBox:      bbox{
             min: [3]float32{float32(math.Inf(1)), float32(math.Inf(1)), float32(math.Inf(1))},
             max: [3]float32{float32(math.Inf(-1)), float32(math.Inf(-1)), float32(math.Inf(-1))},
@@ -50,8 +51,13 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
 
     currentlyTransitioning := false
     onWipeTower := false
-    //currentlyPinging := false
-    //lastPingStart := float32(0)
+    pingExtrusionMM := float32(palette.PingExtrusion)
+    if pal.Type == palette.TypeP1 {
+        pingExtrusionMM = palette.PingExtrusionCounts / pal.GetPulsesPerMM()
+    }
+    lastPingStart := float32(0)
+    currentlyPinging := false
+    currentPingStart := float32(0)
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
         eTracker.TrackInstruction(line)
@@ -72,7 +78,26 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                 if z > results.boundingBox.max[2] { results.boundingBox.max[2] = z }
             }
             if onWipeTower {
-                // todo: check for ping actions
+                // check for ping actions
+                if currentlyPinging {
+                    if eTracker.TotalExtrusion >= currentPingStart + pingExtrusionMM {
+                        // commit to the accessory ping sequence
+                        results.pingStarts = append(results.pingStarts, currentPingStart)
+                        lastPingStart = currentPingStart
+                        currentlyPinging = false
+                    }
+                } else if eTracker.TotalExtrusion >= lastPingStart + palette.PingMinSpacing {
+                    // attempt to start a ping sequence
+                    //  - connected pings: guaranteed to finish
+                    //  - accessory pings: may be "cancelled" if near the end of the transition
+                    if pal.ConnectedMode {
+                        results.pingStarts = append(results.pingStarts, eTracker.TotalExtrusion)
+                        lastPingStart = eTracker.TotalExtrusion
+                    } else {
+                        currentPingStart = eTracker.TotalExtrusion
+                        currentlyPinging = true
+                    }
+                }
             }
         } else if len(line.Command) > 1 && line.Command[0] == 'T' {
             tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
@@ -87,12 +112,6 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                 results.drivesUsed[currentTool] = true
                 results.transitionStarts = append(results.transitionStarts, eTracker.TotalExtrusion)
             }
-
-            // todo:
-            //  - flag that we started a transition (get the current total E)
-            //  - keep an eye out for the end of the transition
-            //     - calculate the transition length for this transition
-
         } else if strings.HasPrefix(line.Comment, "TYPE:") {
             startWipeTower := line.Comment == "TYPE:Wipe tower"
             if !onWipeTower && startWipeTower {
@@ -103,6 +122,17 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
                 if currentlyTransitioning {
                     results.transitionEnds = append(results.transitionEnds, eTracker.TotalExtrusion)
                     currentlyTransitioning = false
+                    // if we're in the middle of an accessory ping, only keep it if we extruded enough
+                    if currentlyPinging {
+                        if eTracker.TotalExtrusion >= currentPingStart + pingExtrusionMM {
+                            // commit to the accessory ping sequence
+                            results.pingStarts = append(results.pingStarts, currentPingStart)
+                            lastPingStart = currentPingStart
+                            currentlyPinging = false
+                        } else {
+                            currentlyPinging = false
+                        }
+                    }
                 }
             }
             onWipeTower = startWipeTower
@@ -110,6 +140,12 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
 
         return nil
     })
+    if len(results.transitionStarts) != len(results.transitionEnds) {
+        return results, errors.New("mismatch between transition starts and ends")
+    }
+    if results.boundingBox.min[2] > 0 {
+        results.boundingBox.min[2] = 0
+    }
     return results, err
 }
 

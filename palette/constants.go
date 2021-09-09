@@ -39,6 +39,7 @@ const BowdenDefault = float32(150)
 const CutterToScrollWheel = float32(760)
 
 const PingExtrusionCounts = 600 // target extrusion between ping sequence pauses, in scroll wheel counts
-const Ping1PauseLength = 13000  // ms; duration of first ping sequence pause
-const Ping2PauseLength = 7000   // ms; duration of second ping sequence pause
-const PingMinSpacing = 350      // mm; minimum distance (extrusion) between pings
+const PingExtrusion = 20        // target extrusion between ping sequence pauses, mm
+const Ping1PauseLength = 13000  // duration of first ping sequence pause, in ms
+const Ping2PauseLength = 7000   // duration of second ping sequence pause, in ms
+const PingMinSpacing = 350      // minimum distance (extrusion) between ping starts, in mm
