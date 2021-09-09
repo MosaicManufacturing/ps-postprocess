@@ -325,55 +325,22 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
     return ioutil.WriteFile(msfpath, []byte(msfStr), 0644)
 }
 
-func getFakeSpliceSettings(inputCount int) ([]palette.Material, []palette.SpliceSettings) {
-    matls := make([]palette.Material, 0, inputCount)
-    ss := make([]palette.SpliceSettings, 0, inputCount * inputCount)
-    for i := 0; i < inputCount; i++ {
-        matls = append(matls, palette.Material{
-            ID:    strconv.Itoa(i + 1),
-            Index: i + 1,
-            Name:  "Some PLA",
-            Color: "#ff0000",
-        })
-    }
-    for i := 0; i < inputCount; i++ {
-        for j := 0; j < inputCount; j++ {
-            ss = append(ss, palette.SpliceSettings{
-                IngoingID:         strconv.Itoa(i + 1),
-                OutgoingID:        strconv.Itoa(j + 1),
-                HeatFactor:        2,
-                CompressionFactor: 2,
-                CoolingFactor:     2,
-                Reverse:           false,
-            })
-        }
-    }
-    return matls, ss
-}
-
 func convertForPalette(argv []string) {
     argc := len(argv)
 
-    if argc < 3 {
-        log.Fatalln("expected 3 command-line arguments")
+    if argc < 4 {
+        log.Fatalln("expected 4 command-line arguments")
     }
     inpath := argv[0] // unmodified G-code file
     outpath := argv[1] // modified G-code file
     msfpath := argv[2] // supplementary MSF file, if applicable
+    palettepath := argv[3] // serialized palette data
 
-    // todo: actually load data (fourth argv element)
-    pal := palette.Palette{
-        Type:              palette.TypeP1,
-        Model:             palette.ModelPPlus,
-        BowdenTubeLength:  150,
-        TransitionTarget:  40,
-        PrinterID:         "abcdef0123456789abcdef0123456789",
-        ConnectedMode:     false,
-        LoadingOffset:     18000,
-        PrintValue:        20000,
-        CalibrationLength: 680.5,
+    pal, err := palette.LoadFromFile(palettepath)
+    if err != nil {
+        fmt.Print(err)
+        log.Fatalln(err)
     }
-    pal.MaterialMeta, pal.SpliceSettings = getFakeSpliceSettings(pal.GetInputCount())
 
     // preflight: run through the G-code once to determine all necessary
     // information for performing modifications

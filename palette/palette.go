@@ -1,48 +1,62 @@
 package palette
 
-import "math"
+import (
+    "encoding/json"
+    "io/ioutil"
+    "math"
+)
 
 type Material struct {
-    ID string
-    Index int
-    Name string
-    Color string
+    ID string `json:"id"`
+    Index int `json:"index"`
+    Name string `json:"name"`
+    Color string `json:"color"`
 }
 
 type SpliceSettings struct {
-    IngoingID string
-    OutgoingID string
-    HeatFactor float32
-    CompressionFactor float32
-    CoolingFactor float32
-    Reverse bool
+    IngoingID string `json:"ingoingId"`
+    OutgoingID string `json:"outgoingId"`
+    HeatFactor float32 `json:"heatFactor"`
+    CompressionFactor float32 `json:"compressionFactor"`
+    CoolingFactor float32 `json:"coolingFactor"`
+    Reverse bool `json:"reverse"`
 }
 
 type Palette struct {
     // general settings
-    Type Type
-    Model Model
-    Makerbot5thGen bool
-    MaterialMeta []Material
-    SpliceSettings []SpliceSettings
+    Type Type `json:"type"`
+    Model Model `json:"model"`
+    Makerbot5thGen bool `json:"makerbot5thGen"`
+    MaterialMeta []Material `json:"materialMeta"`
+    SpliceSettings []SpliceSettings `json:"spliceSettings"`
 
     // output settings
-    PrintExtruder int
-    FirmwarePurge float32 // mm
-    BowdenTubeLength float32 // mm
-    TransitionTarget float32 // 0..100
+    PrintExtruder int `json:"printExtruder"`
+    FirmwarePurge float32 `json:"firmwarePurge"` // mm
+    BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
+    TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
     // P2/P3 settings
-    PrinterID string
-    ConnectedMode bool
+    PrinterID string `json:"printerId"`
+    ConnectedMode bool `json:"connectedMode"`
 
     // P1 settings
-    LoadingOffset int
-    PrintValue int
-    CalibrationLength float32
+    LoadingOffset int `json:"loadingOffset"`
+    PrintValue int `json:"printValue"`
+    CalibrationLength float32 `json:"calibrationLength"`
 }
 
-// todo: some way to load from disk or JSON?
+func LoadFromFile(path string) (Palette, error) {
+    palette := Palette{}
+    bytes, err := ioutil.ReadFile(path)
+    if err != nil {
+        return palette, err
+    }
+    if err := json.Unmarshal(bytes, &palette); err != nil {
+        return palette, err
+    }
+    return palette, nil
+}
 
 func (p Palette) GetInputCount() int {
     if p.Type == TypeP3 && p.Model == ModelP3Pro {
