@@ -42,10 +42,10 @@ type Palette struct {
     // pings
     JogPauses bool `json:"jogPauses"` // todo: use this instead of dwells
     Makerbot5thGen bool `json:"makerbot5thGen"` // todo: use this during jog pauses
-    PingRetractDistance float32 `json:"pingRetractDistance"` // todo: respect this
-    PingRestartDistance float32 `json:"pingRestartDistance"` // todo: respect this
-    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // todo: respect this
-    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // todo: respect this
+    PingRetractDistance float32 `json:"pingRetractDistance"` // todo: set this in Opal
+    PingRestartDistance float32 `json:"pingRestartDistance"` // todo: set this in Opal
+    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // todo: set this in Opal
+    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // todo: set this in Opal
 
     // P2/P3
     ConnectedMode bool `json:"connectedMode"`

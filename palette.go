@@ -143,7 +143,21 @@ func palettePreflight(inpath string, pal *palette.Palette) (msfPreflight, error)
     return results, err
 }
 
-func getAccessoryPause(durationMS int) string {
+func getPingRetract(pal *palette.Palette) (bool, string) {
+    if pal.PingRetractDistance == 0 {
+        return false, ""
+    }
+    return true, fmt.Sprintf("G1 E%.5f F%.1f", -pal.PingRetractDistance, pal.PingRetractFeedrate)
+}
+
+func getPingRestart(pal *palette.Palette) (bool, string) {
+    if pal.PingRestartDistance == 0 {
+        return false, ""
+    }
+    return true, fmt.Sprintf("G1 E%.5f F%.1f", pal.PingRestartDistance, pal.PingRestartFeedrate)
+}
+
+func getDwellPause(durationMS int) string {
     str := ""
     for durationMS > 0 {
         if durationMS > 4000 {
@@ -223,7 +237,12 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        pauseSequence := getAccessoryPause(palette.Ping2PauseLength)
+                        if useRetract, retract := getPingRetract(pal); useRetract {
+                            if err := writeLine(writer, retract); err != nil {
+                                return err
+                            }
+                        }
+                        pauseSequence := getDwellPause(palette.Ping2PauseLength)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
@@ -233,6 +252,11 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                             nextPingStart = preflight.pingStarts[len(msf.PingList)]
                         } else {
                             nextPingStart = float32(math.Inf(1))
+                        }
+                        if useRestart, restart := getPingRestart(pal); useRestart {
+                            if err := writeLine(writer, restart); err != nil {
+                                return err
+                            }
                         }
                         currentlyPinging = false
                     }
@@ -262,11 +286,21 @@ func paletteOutput(inpath, outpath, msfpath string, pal *palette.Palette, prefli
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        pauseSequence := getAccessoryPause(palette.Ping1PauseLength)
+                        if useRetract, retract := getPingRetract(pal); useRetract {
+                            if err := writeLine(writer, retract); err != nil {
+                                return err
+                            }
+                        }
+                        pauseSequence := getDwellPause(palette.Ping1PauseLength)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
                         lastPingStart = eTracker.TotalExtrusion
+                        if useRestart, restart := getPingRestart(pal); useRestart {
+                            if err := writeLine(writer, restart); err != nil {
+                                return err
+                            }
+                        }
                         currentlyPinging = true
                     }
                 }
