@@ -97,11 +97,10 @@ func concatOntoWriter(w *Writer, writername, filename string) error {
     if openErr != nil {
         return openErr
     }
-    defer file.Close()
     _, err := io.Copy(writer, file); if err != nil {
         return err
     }
-    return nil
+    return file.Close()
 }
 
 func writeUint32LE(writer *bufio.Writer, val uint32) error {
