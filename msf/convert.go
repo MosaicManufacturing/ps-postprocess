@@ -7,7 +7,6 @@ import (
     "fmt"
     "io/ioutil"
     "log"
-    "math"
     "os"
     "strconv"
     "strings"
@@ -81,6 +80,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
 
     // initialize state
     state := NewState(palette)
+    state.MSF = &msfOut
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
 
@@ -89,7 +89,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     if len(preflight.pingStarts) > 0 {
         state.NextPingStart = preflight.pingStarts[0]
     } else {
-        state.NextPingStart = float32(math.Inf(1))
+        state.NextPingStart = posInf
     }
 
     err = gcode.ReadByLine(inpath, func(line gcode.Command) error {
@@ -123,7 +123,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if len(msfOut.PingList) < len(preflight.pingStarts) {
                             state.NextPingStart = preflight.pingStarts[len(msfOut.PingList)]
                         } else {
-                            state.NextPingStart = float32(math.Inf(1))
+                            state.NextPingStart = posInf
                         }
                         if useRestart, restart := getPingRestart(palette); useRestart {
                             if err := writeLine(writer, restart); err != nil {
@@ -152,7 +152,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if len(msfOut.PingList) < len(preflight.pingStarts) {
                             state.NextPingStart = preflight.pingStarts[len(msfOut.PingList)]
                         } else {
-                            state.NextPingStart = float32(math.Inf(1))
+                            state.NextPingStart = posInf
                         }
                         state.LastPingStart = state.E.TotalExtrusion
                     } else {

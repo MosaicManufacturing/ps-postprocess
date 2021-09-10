@@ -1,11 +1,16 @@
 package msf
 
+import "math"
+
 const EOL = "\r\n"
 
 const (
     charLimitMSF1 = 20
     charLimitMSF2 = 32
 )
+
+var posInf = float32(math.Inf(1))
+var negInf = float32(math.Inf(-1))
 
 type Type string
 

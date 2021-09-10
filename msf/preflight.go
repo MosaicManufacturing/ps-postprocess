@@ -2,7 +2,6 @@ package msf
 
 import (
     "../gcode"
-    "math"
     "strconv"
     "strings"
 )
@@ -17,6 +16,29 @@ type msfPreflight struct {
     transitionStarts []float32
     pingStarts []float32
     boundingBox bbox
+    towerBoundingBox bbox
+}
+
+func emptyBBox() bbox {
+    return bbox{
+        min: [3]float32{posInf, posInf, posInf},
+        max: [3]float32{negInf, negInf, negInf},
+    }
+}
+
+func (b *bbox) expandX(x float32) {
+    if x < b.min[0] { b.min[0] = x }
+    if x > b.max[0] { b.max[0] = x }
+}
+
+func (b *bbox) expandY(y float32) {
+    if y < b.min[1] { b.min[1] = y }
+    if y > b.max[1] { b.max[1] = y }
+}
+
+func (b *bbox) expandZ(z float32) {
+    if z < b.min[2] { b.min[2] = z }
+    if z > b.max[2] { b.max[2] = z }
 }
 
 func preflight(inpath string, palette *Palette) (msfPreflight, error) {
@@ -24,10 +46,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         drivesUsed:       make([]bool, palette.GetInputCount()),
         transitionStarts: make([]float32, 0),
         pingStarts:       make([]float32, 0),
-        boundingBox:      bbox{
-            min: [3]float32{float32(math.Inf(1)), float32(math.Inf(1)), float32(math.Inf(1))},
-            max: [3]float32{float32(math.Inf(-1)), float32(math.Inf(-1)), float32(math.Inf(-1))},
-        },
+        boundingBox:      emptyBBox(),
+        towerBoundingBox: emptyBBox(),
     }
 
     // initialize state
@@ -42,18 +62,26 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
             if x, ok := line.Params["x"]; ok {
-                if x < results.boundingBox.min[0] { results.boundingBox.min[0] = x }
-                if x > results.boundingBox.max[0] { results.boundingBox.max[0] = x }
+                results.boundingBox.expandX(x)
             }
             if y, ok := line.Params["y"]; ok {
-                if y < results.boundingBox.min[1] { results.boundingBox.min[1] = y }
-                if y > results.boundingBox.max[1] { results.boundingBox.max[1] = y }
+                results.boundingBox.expandY(y)
             }
             if z, ok := line.Params["z"]; ok {
-                if z < results.boundingBox.min[2] { results.boundingBox.min[2] = z }
-                if z > results.boundingBox.max[2] { results.boundingBox.max[2] = z }
+                results.boundingBox.expandZ(z)
             }
             if state.OnWipeTower {
+                if _, ok := line.Params["e"]; ok {
+                    // extrusion on wipe tower -- update bounding box
+                    if state.E.CurrentRetraction == 0 {
+                        if x, ok := line.Params["x"]; ok {
+                            results.towerBoundingBox.expandX(x)
+                        }
+                        if y, ok := line.Params["y"]; ok {
+                            results.towerBoundingBox.expandY(y)
+                        }
+                    }
+                }
                 // check for ping actions
                 if state.CurrentlyPinging {
                     // currentlyPinging == true implies accessory mode

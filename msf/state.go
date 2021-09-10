@@ -3,7 +3,8 @@ package msf
 import "../gcode"
 
 type State struct {
-    Palette *Palette
+    Palette *Palette // reference stored here to reduce arguments passed to routines
+    MSF *MSF // reference stored here to reduce arguments passed to routines
 
     E gcode.ExtrusionTracker
     XYZF gcode.PositionTracker
