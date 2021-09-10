@@ -51,8 +51,25 @@ func leaveSideTransition() string {
 }
 
 func checkSideTransitionPings(transitionSoFar, transitionLength float32, state *State) (string, float32) {
-    // todo
-    return "", 0
+    if state.E.TotalExtrusion < state.LastPingStart + PingMinSpacing {
+        // not time for a ping yet
+        return "", 0
+    }
+
+    if state.Palette.ConnectedMode {
+        // connected pings can happen anywhere during the transition,
+        // even at the very end
+        state.MSF.AddPing(state.E.TotalExtrusion)
+        state.LastPingStart = state.E.TotalExtrusion
+        sequence := "G4 P0" + EOL
+        sequence += state.MSF.GetConnectedPingLine()
+        return sequence, 0
+    }
+
+    if state.Palette.SideTransitionJog {
+       return doSideTransitionOnEdgeAccessoryPing(transitionSoFar, transitionLength, state)
+    }
+    return doSideTransitionInPlaceAccessoryPing(transitionSoFar, transitionLength, state)
 }
 
 func sideTransitionInPlace(transitionLength float32, state *State) string {

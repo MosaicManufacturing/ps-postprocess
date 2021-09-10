@@ -63,3 +63,13 @@ func getTowerJogPause(state *State, durationMS int) string {
 
     return sequence
 }
+
+func doSideTransitionInPlaceAccessoryPing(transitionSoFar, transitionLength float32, state *State) (string, float32) {
+   // todo: implement
+    return "", 0
+}
+
+func doSideTransitionOnEdgeAccessoryPing(transitionSoFar, transitionLength float32, state *State) (string, float32) {
+   // todo: implement
+    return "", 0
+}
