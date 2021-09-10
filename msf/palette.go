@@ -35,16 +35,27 @@ type Palette struct {
     FirmwarePurge float32 `json:"firmwarePurge"` // mm
     BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
 
+    // slicer
+    TravelSpeedXY float32 `json:"travelSpeedXY"`
+    TravelSpeedZ float32 `json:"travelSpeedZ"`
+    PrintBedMinX float32 `json:"printBedMinX"`
+    PrintBedMaxX float32 `json:"printBedMaxX"`
+    PrintBedMinY float32 `json:"printBedMinY"`
+    PrintBedMaxY float32 `json:"printBedMaxY"`
+
     // transitions
     TransitionMethod TransitionMethod `json:"TransitionMethod"` // todo: add support for side transitions
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
     // side transitions
-    SideTransitionJog bool `json:"sideTransitionJog"` // todo: support this
-    SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"` // todo: support this
-    SideTransitionEdge gcode.Direction `json:"sideTransitionEdge"` // todo: support this
-    SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"` // todo: support this
+    SideTransitionJog bool `json:"sideTransitionJog"`
+    SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"`
+    SideTransitionFeedrate float32 `json:"sideTransitionFeedrate"`
+    SideTransitionX float32 `json:"sideTransitionX"`
+    SideTransitionY float32 `json:"sideTransitionY"`
+    SideTransitionEdge gcode.Direction `json:"sideTransitionEdge"`
+    SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"`
 
     // pings
     JogPauses bool `json:"jogPauses"` // todo: use this instead of dwells
@@ -138,6 +149,13 @@ func (p Palette) GetPulsesPerMM() float32 {
     }
     ppm := float64(p.PrintValue) / float64(p.CalibrationLength + p.FirmwarePurge)
     return float32(math.Max(20, math.Min(40, ppm)))
+}
+
+func (p Palette) GetPingExtrusion() float32 {
+    if p.Type == TypeP1 {
+        return PingExtrusionCounts / p.GetPulsesPerMM()
+    }
+    return PingExtrusion
 }
 
 func (p Palette) GetEffectiveLoadingOffset() float32 {

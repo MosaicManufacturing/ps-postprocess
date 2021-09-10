@@ -30,8 +30,8 @@ const (
 
 type TransitionMethod int
 const (
-    TransitionTower TransitionMethod = iota
-    SideTransitions
+    TransitionTower TransitionMethod = 1
+    SideTransitions TransitionMethod = 2
 )
 
 const (

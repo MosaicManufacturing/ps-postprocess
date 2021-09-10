@@ -6,32 +6,69 @@ import (
     "math"
 )
 
-func getSideTransitionStartPosition(currentX, currentY float32) (float32, float32) {
-    // todo
-    return 0, 0
+func getSideTransitionStartPosition(state *State) (x, y float32) {
+    if state.Palette.SideTransitionJog {
+        x = state.XYZF.CurrentX
+        y = state.XYZF.CurrentY
+        switch state.Palette.SideTransitionEdge {
+        case gcode.North:
+            y = state.Palette.PrintBedMaxY + state.Palette.SideTransitionEdgeOffset
+        case gcode.South:
+            y = state.Palette.PrintBedMinY - state.Palette.SideTransitionEdgeOffset
+        case gcode.West:
+            x = state.Palette.PrintBedMinX - state.Palette.SideTransitionEdgeOffset
+        case gcode.East:
+            x = state.Palette.PrintBedMaxX + state.Palette.SideTransitionEdgeOffset
+        }
+    } else {
+        // side transition in place
+        x = state.Palette.SideTransitionX
+        y = state.Palette.SideTransitionY
+    }
+    return
 }
 
-func moveToSideTransition(transitionLength float32, palette *Palette) string {
-    // todo
-    return ""
+func moveToSideTransition(state *State) string {
+    startX, startY := getSideTransitionStartPosition(state)
+    sequence := "; move to side transition" + EOL
+    travel := gcode.Command{
+        Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", startX, startY, state.Palette.TravelSpeedXY),
+        Command: "G1",
+        Params:  map[string]float32{
+            "x": startX,
+            "y": startY,
+            "f": state.Palette.TravelSpeedXY,
+        },
+        Flags: map[string]bool{},
+    }
+    state.XYZF.TrackInstruction(travel)
+    sequence += travel.Raw + EOL
+    return sequence
 }
 
-func checkSideTransitionPings(transitionSoFar, transitionLength float32, palette *Palette) string {
-    // todo
-    return ""
+func leaveSideTransition() string {
+    return "; leave side transition" + EOL
 }
 
-func sideTransitionInPlace(transitionLength float32, palette *Palette, eTracker *gcode.ExtrusionTracker) string {
-    feedrate := palette.SideTransitionPurgeSpeed
+func checkSideTransitionPings(transitionSoFar, transitionLength float32, state *State) (string, float32) {
+    // todo
+    return "", 0
+}
+
+func sideTransitionInPlace(transitionLength float32, state *State) string {
+    feedrate := state.Palette.SideTransitionPurgeSpeed
     transitionSoFar := float32(0)
-    sequence := ""
+    sequence := moveToSideTransition(state)
 
     for transitionSoFar < transitionLength {
-        sequence += checkSideTransitionPings(transitionSoFar, transitionLength, palette)
+        if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+            transitionSoFar += pingExtrusion
+            sequence += pingSequence
+        }
         nextPurgeExtrusion := float32(math.Min(10, float64(transitionLength - transitionSoFar)))
         nextE := nextPurgeExtrusion
-        if !eTracker.RelativeExtrusion {
-            nextE = eTracker.CurrentExtrusionValue + nextPurgeExtrusion
+        if !state.E.RelativeExtrusion {
+            nextE = state.E.CurrentExtrusionValue + nextPurgeExtrusion
         }
         purge := gcode.Command{
             Raw:     fmt.Sprintf("G1 E%.5f F%.1f", nextE, feedrate),
@@ -42,28 +79,132 @@ func sideTransitionInPlace(transitionLength float32, palette *Palette, eTracker 
             },
             Flags: map[string]bool{},
         }
-        eTracker.TrackInstruction(purge)
+        state.E.TrackInstruction(purge)
         sequence += purge.Raw + EOL
+        transitionSoFar += nextPurgeExtrusion
     }
 
-    // todo
+    sequence += leaveSideTransition()
     return sequence
 }
 
-func sideTransitionOnEdge(transitionLength float32, palette *Palette, eTracker *gcode.ExtrusionTracker) string {
-    // todo
-    return ""
-}
+func sideTransitionOnEdge(transitionLength float32, state *State) string {
+    eFeedrate := state.Palette.SideTransitionPurgeSpeed
+    xyFeedrate := state.Palette.SideTransitionFeedrate
+    transitionSoFar := float32(0)
 
-func sideTransition(transitionLength float32, palette *Palette, eTracker *gcode.ExtrusionTracker) string {
-    // todo: move to side and do the transition purge
-    //   - make sure to track all of this with eTracker, or the next splice will be very short!
-
-    sequence := moveToSideTransition(transitionLength, palette)
-    if palette.SideTransitionJog {
-        sequence += sideTransitionOnEdge(transitionLength, palette, eTracker)
+    // determine next purge direction
+    var nextPurgeDirection gcode.Direction
+    if state.Palette.SideTransitionEdge == gcode.North || state.Palette.SideTransitionEdge == gcode.South {
+        if state.Palette.PrintBedMaxX - state.XYZF.CurrentX >= state.XYZF.CurrentX - state.Palette.PrintBedMinX {
+            nextPurgeDirection = gcode.East
+        } else {
+            nextPurgeDirection = gcode.West
+        }
     } else {
-        sequence += sideTransitionInPlace(transitionLength, palette, eTracker)
+        if state.Palette.PrintBedMaxY - state.XYZF.CurrentY >= state.XYZF.CurrentY - state.Palette.PrintBedMinY {
+            nextPurgeDirection = gcode.North
+        } else {
+            nextPurgeDirection = gcode.South
+        }
     }
+    nextX := state.XYZF.CurrentX
+    nextY := state.XYZF.CurrentY
+    switch state.Palette.SideTransitionEdge {
+    case gcode.North:
+        nextY = state.Palette.PrintBedMaxY + state.Palette.SideTransitionEdgeOffset
+    case gcode.South:
+        nextY = state.Palette.PrintBedMinY - state.Palette.SideTransitionEdgeOffset
+    case gcode.West:
+        nextX = state.Palette.PrintBedMinX - state.Palette.SideTransitionEdgeOffset
+    case gcode.East:
+        nextX = state.Palette.PrintBedMaxX + state.Palette.SideTransitionEdgeOffset
+    }
+
+    // move to starting position
+    sequence := moveToSideTransition(state)
+
+    dimensionOfInterest := state.Palette.PrintBedMaxX - state.Palette.PrintBedMinX
+    if state.Palette.SideTransitionEdge == gcode.West || state.Palette.SideTransitionEdge == gcode.East {
+        dimensionOfInterest = state.Palette.PrintBedMaxY - state.Palette.PrintBedMinY
+    }
+    edgeClearance := float32(15)
+    if dimensionOfInterest < 50 {
+        edgeClearance = 0
+    } else if dimensionOfInterest < 80 {
+        edgeClearance = 10
+    }
+
+    // purge until transition length is achieved
+    for transitionSoFar < transitionLength {
+        if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+            transitionSoFar += pingExtrusion
+            sequence += pingSequence
+        }
+        switch nextPurgeDirection {
+        case gcode.North:
+            nextY = state.Palette.PrintBedMaxY - edgeClearance
+        case gcode.South:
+            nextY = state.Palette.PrintBedMinY + edgeClearance
+        case gcode.West:
+            nextX = state.Palette.PrintBedMinX + edgeClearance
+        case gcode.East:
+            nextX = state.Palette.PrintBedMaxX - edgeClearance
+        }
+        nextLineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY)
+        nextPurgeExtrusion := nextLineLength * (eFeedrate / xyFeedrate)
+        if transitionSoFar + nextPurgeExtrusion > transitionLength {
+            t := (transitionLength - transitionSoFar) / nextPurgeExtrusion
+            nextPurgeExtrusion = lerp(0, nextPurgeExtrusion, t)
+            if nextPurgeDirection == gcode.North || nextPurgeDirection == gcode.South {
+                nextY = lerp(state.XYZF.CurrentY, nextY, t)
+            } else {
+                nextX = lerp(state.XYZF.CurrentX, nextX, t)
+            }
+        }
+        nextE := nextPurgeExtrusion
+        if !state.E.RelativeExtrusion {
+            nextE = state.E.CurrentExtrusionValue + nextPurgeExtrusion
+        }
+        purge := gcode.Command{
+            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%.1f", nextX, nextY, nextE, xyFeedrate),
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": nextX,
+                "y": nextY,
+                "e": nextE,
+                "f": xyFeedrate,
+            },
+            Flags: map[string]bool{},
+        }
+        state.E.TrackInstruction(purge)
+        state.XYZF.TrackInstruction(purge)
+        sequence += purge.Raw + EOL
+        transitionSoFar += nextPurgeExtrusion
+        switch nextPurgeDirection {
+        case gcode.North:
+            nextPurgeDirection = gcode.South
+        case gcode.South:
+            nextPurgeDirection = gcode.North
+        case gcode.West:
+            nextPurgeDirection = gcode.East
+        case gcode.East:
+            nextPurgeDirection = gcode.West
+        }
+    }
+
+    if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+        transitionSoFar += pingExtrusion
+        sequence += pingSequence
+    }
+
+    sequence += leaveSideTransition()
     return sequence
+}
+
+func sideTransition(transitionLength float32, state *State) string {
+    if state.Palette.SideTransitionJog {
+        return sideTransitionOnEdge(transitionLength, state)
+    }
+    return sideTransitionInPlace(transitionLength, state)
 }

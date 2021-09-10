@@ -30,63 +30,49 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         },
     }
 
-    firstToolChange := true // don't treat the first T command as a toolchange
-    currentTool := 0
-    currentX := float32(0)
-    currentY := float32(0)
-    currentZ := float32(0)
-    eTracker := gcode.ExtrusionTracker{}
+    // initialize state
+    state := NewState(palette)
     // account for a firmware purge (not part of G-code) once
-    eTracker.TotalExtrusion += palette.FirmwarePurge
+    state.E.TotalExtrusion += palette.FirmwarePurge
 
-    currentlyTransitioning := false
-    onWipeTower := false
-    pingExtrusionMM := float32(PingExtrusion)
-    if palette.Type == TypeP1 {
-        pingExtrusionMM = PingExtrusionCounts / palette.GetPulsesPerMM()
-    }
-    lastPingStart := float32(0)
-    currentlyPinging := false
-    currentPingStart := float32(0)
+    pingExtrusionMM := palette.GetPingExtrusion()
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
-        eTracker.TrackInstruction(line)
+        state.E.TrackInstruction(line)
+        state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
             if x, ok := line.Params["x"]; ok {
-                currentX = x
                 if x < results.boundingBox.min[0] { results.boundingBox.min[0] = x }
                 if x > results.boundingBox.max[0] { results.boundingBox.max[0] = x }
             }
             if y, ok := line.Params["y"]; ok {
-                currentY = y
                 if y < results.boundingBox.min[1] { results.boundingBox.min[1] = y }
                 if y > results.boundingBox.max[1] { results.boundingBox.max[1] = y }
             }
             if z, ok := line.Params["z"]; ok {
-                currentZ = z
                 if z < results.boundingBox.min[2] { results.boundingBox.min[2] = z }
                 if z > results.boundingBox.max[2] { results.boundingBox.max[2] = z }
             }
-            if onWipeTower {
+            if state.OnWipeTower {
                 // check for ping actions
-                if currentlyPinging {
+                if state.CurrentlyPinging {
                     // currentlyPinging == true implies accessory mode
-                    if eTracker.TotalExtrusion >= currentPingStart + pingExtrusionMM {
+                    if state.E.TotalExtrusion >= state.CurrentPingStart + pingExtrusionMM {
                         // commit to the accessory ping sequence
-                        results.pingStarts = append(results.pingStarts, currentPingStart)
-                        lastPingStart = currentPingStart
-                        currentlyPinging = false
+                        results.pingStarts = append(results.pingStarts, state.CurrentPingStart)
+                        state.LastPingStart = state.CurrentPingStart
+                        state.CurrentlyPinging = false
                     }
-                } else if eTracker.TotalExtrusion >= lastPingStart + PingMinSpacing {
+                } else if state.E.TotalExtrusion >= state.LastPingStart + PingMinSpacing {
                     // attempt to start a ping sequence
                     //  - connected pings: guaranteed to finish
                     //  - accessory pings: may be "cancelled" if near the end of the transition
                     if palette.ConnectedMode {
-                        results.pingStarts = append(results.pingStarts, eTracker.TotalExtrusion)
-                        lastPingStart = eTracker.TotalExtrusion
+                        results.pingStarts = append(results.pingStarts, state.E.TotalExtrusion)
+                        state.LastPingStart = state.E.TotalExtrusion
                     } else {
-                        currentPingStart = eTracker.TotalExtrusion
-                        currentlyPinging = true
+                        state.CurrentPingStart = state.E.TotalExtrusion
+                        state.CurrentlyPinging = true
                     }
                 }
             }
@@ -95,29 +81,29 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if err != nil {
                 return err
             }
-            if firstToolChange {
-                firstToolChange = false
+            if state.FirstToolChange {
+                state.FirstToolChange = false
             } else {
-                currentTool = int(tool)
-                currentlyTransitioning = true
-                results.drivesUsed[currentTool] = true
-                results.transitionStarts = append(results.transitionStarts, eTracker.TotalExtrusion)
+                state.CurrentTool = int(tool)
+                state.CurrentlyTransitioning = true
+                results.drivesUsed[state.CurrentTool] = true
+                results.transitionStarts = append(results.transitionStarts, state.E.TotalExtrusion)
             }
-        } else if palette.TransitionMethod == SideTransitions &&
+        } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
-            if !onWipeTower && startingWipeTower {
+            if !state.OnWipeTower && startingWipeTower {
                 // start of the actual transition being printed
                 // todo: any logic needed?
-            } else if onWipeTower && !startingWipeTower {
+            } else if state.OnWipeTower && !startingWipeTower {
                 // end of the actual transition being printed
-                if currentlyTransitioning {
-                    currentlyTransitioning = false
+                if state.CurrentlyTransitioning {
+                    state.CurrentlyTransitioning = false
                     // if we're in the middle of an accessory ping, cancel it -- too late to finish
-                    currentlyPinging = false
+                    state.CurrentlyPinging = false
                 }
             }
-            onWipeTower = startingWipeTower
+            state.OnWipeTower = startingWipeTower
         }
 
         return nil

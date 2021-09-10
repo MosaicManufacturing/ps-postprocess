@@ -38,3 +38,14 @@ func msfVersionToO21(major, minor uint) string {
     versionNumber := (major * 10) + minor
     return fmt.Sprintf("O21 D%s%s", intToHexString(versionNumber, 4), EOL)
 }
+
+func getLineLength(x1, y1, x2, y2 float32) float32 {
+    dx := float64(x2 - x1)
+    dy := float64(y2 - y1)
+    return float32(math.Sqrt(dx * dx + dy * dy))
+}
+
+func lerp(minVal, maxVal, t float32) float32 {
+    boundedT := float32(math.Max(0, math.Min(1, float64(t))))
+    return ((1 - boundedT) * minVal) + (t * maxVal)
+}
