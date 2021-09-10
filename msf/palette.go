@@ -44,7 +44,7 @@ type Palette struct {
     PrintBedMaxY float32 `json:"printBedMaxY"`
 
     // transitions
-    TransitionMethod TransitionMethod `json:"TransitionMethod"` // todo: add support for side transitions
+    TransitionMethod TransitionMethod `json:"TransitionMethod"`
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
@@ -58,12 +58,12 @@ type Palette struct {
     SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"`
 
     // pings
-    JogPauses bool `json:"jogPauses"` // todo: use this instead of dwells
-    Makerbot5thGen bool `json:"makerbot5thGen"` // todo: use this during jog pauses
-    PingRetractDistance float32 `json:"pingRetractDistance"` // todo: set this in Opal
-    PingRestartDistance float32 `json:"pingRestartDistance"` // todo: set this in Opal
-    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // todo: set this in Opal
-    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // todo: set this in Opal
+    JogPauses bool `json:"jogPauses"` // todo: support jog pauses instead of dwells
+    Makerbot5thGen bool `json:"makerbot5thGen"` // todo: check this during jog pauses
+    PingRetractDistance float32 `json:"pingRetractDistance"`
+    PingRestartDistance float32 `json:"pingRestartDistance"`
+    PingRetractFeedrate float32 `json:"pingRetractFeedrate"`
+    PingRestartFeedrate float32 `json:"pingRestartFeedrate"`
 
     // P2/P3
     ConnectedMode bool `json:"connectedMode"`

@@ -122,7 +122,6 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
             if !state.OnWipeTower && startingWipeTower {
                 // start of the actual transition being printed
-                // todo: any logic needed?
             } else if state.OnWipeTower && !startingWipeTower {
                 // end of the actual transition being printed
                 if state.CurrentlyTransitioning {
