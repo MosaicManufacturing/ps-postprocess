@@ -19,45 +19,6 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
-func getPingRetract(palette *Palette) (bool, string) {
-    if palette.PingRetractDistance == 0 {
-        return false, ""
-    }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", -palette.PingRetractDistance, palette.PingRetractFeedrate)
-}
-
-func getPingRestart(palette *Palette) (bool, string) {
-    if palette.PingRestartDistance == 0 {
-        return false, ""
-    }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", palette.PingRestartDistance, palette.PingRestartFeedrate)
-}
-
-func getDwellPause(durationMS int) string {
-    str := ""
-    for durationMS > 0 {
-        if durationMS > 4000 {
-            str += "G4 P4000" + EOL
-            str += "G1" + EOL
-            durationMS -= 4000
-        } else {
-            str += fmt.Sprintf("G4 P%d%s", durationMS, EOL)
-            durationMS = 0
-        }
-    }
-    return str
-}
-
-func writeLine(writer *bufio.Writer, line string) error {
-    _, err := writer.WriteString(line + EOL)
-    return err
-}
-
-func writeLines(writer *bufio.Writer, lines string) error {
-    _, err := writer.WriteString(lines)
-    return err
-}
-
 func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) (err error) {
     // todo: P2 will need a temp file so the final MSF can be prepended
     outfile, createErr := os.Create(outpath)
@@ -81,6 +42,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     // initialize state
     state := NewState(palette)
     state.MSF = &msfOut
+    state.TowerBoundingBox = preflight.towerBoundingBox
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
 
@@ -114,7 +76,12 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                                 return err
                             }
                         }
-                        pauseSequence := getDwellPause(Ping2PauseLength)
+                        var pauseSequence string
+                        if palette.JogPauses {
+                            pauseSequence = getTowerJogPause(&state, Ping2PauseLength)
+                        } else {
+                            pauseSequence = getDwellPause(Ping2PauseLength)
+                        }
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
@@ -166,7 +133,12 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                                 return err
                             }
                         }
-                        pauseSequence := getDwellPause(Ping1PauseLength)
+                        var pauseSequence string
+                        if palette.JogPauses {
+                            pauseSequence = getTowerJogPause(&state, Ping1PauseLength)
+                        } else {
+                            pauseSequence = getDwellPause(Ping1PauseLength)
+                        }
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }

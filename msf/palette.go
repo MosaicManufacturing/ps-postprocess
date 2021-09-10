@@ -58,8 +58,8 @@ type Palette struct {
     SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"`
 
     // pings
-    JogPauses bool `json:"jogPauses"` // todo: support jog pauses instead of dwells
-    Makerbot5thGen bool `json:"makerbot5thGen"` // todo: check this during jog pauses
+    PingOffTower bool `json:"pingOffTower"` // todo: respect this setting
+    JogPauses bool `json:"jogPauses"` // todo: respect this setting
     PingRetractDistance float32 `json:"pingRetractDistance"`
     PingRestartDistance float32 `json:"pingRestartDistance"`
     PingRetractFeedrate float32 `json:"pingRetractFeedrate"`

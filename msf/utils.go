@@ -1,6 +1,7 @@
 package msf
 
 import (
+    "bufio"
     "encoding/binary"
     "fmt"
     "math"
@@ -37,6 +38,16 @@ func truncate(input string, length int) string {
 func msfVersionToO21(major, minor uint) string {
     versionNumber := (major * 10) + minor
     return fmt.Sprintf("O21 D%s%s", intToHexString(versionNumber, 4), EOL)
+}
+
+func writeLine(writer *bufio.Writer, line string) error {
+    _, err := writer.WriteString(line + EOL)
+    return err
+}
+
+func writeLines(writer *bufio.Writer, lines string) error {
+    _, err := writer.WriteString(lines)
+    return err
 }
 
 func getLineLength(x1, y1, x2, y2 float32) float32 {

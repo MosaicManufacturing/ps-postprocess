@@ -8,14 +8,12 @@ type State struct {
 
     E gcode.ExtrusionTracker
     XYZF gcode.PositionTracker
-    CurrentX float32
-    CurrentY float32
-    CurrentZ float32
 
     FirstToolChange bool // don't treat the first T command as a toolchange
     CurrentTool int
     CurrentlyTransitioning bool
     OnWipeTower bool
+    TowerBoundingBox bbox
 
     LastPingStart float32
     CurrentlyPinging bool
