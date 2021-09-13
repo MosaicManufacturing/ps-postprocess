@@ -1,6 +1,7 @@
 package msf
 
 import (
+    "../gcode"
     "fmt"
     "math"
 )
@@ -34,26 +35,25 @@ func getDwellPause(durationMS int) string {
     return sequence
 }
 
-func getTowerJogPause(state *State, durationMS int) string {
+func getJogPause(durationMS int, direction gcode.Direction, state *State) string {
+    const totalJogs = 5
+    const feedrate = 10
     durationMM := float32(durationMS) / 1000
-
-    // PrusaSlicer tower extrusions always run east-west, so either jog eastward or westward,
-    // depending on which edge we're currently closer to
 
     x1 := state.XYZF.CurrentX
     y1 := state.XYZF.CurrentY
     x2 := x1
     y2 := y1
-    if math.Abs(float64(x1 - state.TowerBoundingBox.min[0])) > math.Abs(float64(state.TowerBoundingBox.max[0] - x1)) {
-        // closer to west edge -- jog westward
+    switch direction {
+    case gcode.North:
+        y2 += durationMM
+    case gcode.South:
+        y2 -= durationMM
+    case gcode.West:
         x2 -= durationMM
-    } else {
-        // closer to east edge -- jog eastward
+    case gcode.East:
         x2 += durationMM
     }
-
-    const totalJogs = 5
-    const feedrate = 10
 
     sequence := ""
     for i := 0; i < totalJogs; i++ {
@@ -64,12 +64,240 @@ func getTowerJogPause(state *State, durationMS int) string {
     return sequence
 }
 
-func doSideTransitionInPlaceAccessoryPing(transitionSoFar, transitionLength float32, state *State) (string, float32) {
-   // todo: implement
-    return "", 0
+func getTowerJogPause(durationMS int, state *State) string {
+    // PrusaSlicer tower extrusions always run east-west, so either jog eastward or westward,
+    // depending on which edge we're currently closer to
+    var direction gcode.Direction
+    if math.Abs(float64(state.XYZF.CurrentX - state.TowerBoundingBox.min[0])) >
+        math.Abs(float64(state.TowerBoundingBox.max[0] - state.XYZF.CurrentX)) {
+        // closer to west edge -- jog westward
+        direction = gcode.West
+    } else {
+        // closer to east edge -- jog eastward
+        direction = gcode.East
+    }
+    return getJogPause(durationMS, direction, state)
 }
 
-func doSideTransitionOnEdgeAccessoryPing(transitionSoFar, transitionLength float32, state *State) (string, float32) {
-   // todo: implement
-    return "", 0
+func getTowerPause(durationMS int, state *State) string {
+    if state.Palette.JogPauses {
+        return getTowerJogPause(durationMS, state)
+    }
+    return getDwellPause(durationMS)
+}
+
+func getSideTransitionInPlaceJogPauseDirection(state *State) gcode.Direction {
+    bedMiddleX := state.Palette.PrintBedMaxX - state.Palette.PrintBedMinX
+    bedMiddleY := state.Palette.PrintBedMaxY - state.Palette.PrintBedMinY
+    x := state.XYZF.CurrentX
+    y := state.XYZF.CurrentY
+
+    if x < state.Palette.PrintBedMinX {
+        // off west edge
+        if y <= state.Palette.PrintBedMinY || y >= state.Palette.PrintBedMaxY {
+            // too close to north/south limits to go north or south
+            return gcode.East
+
+        }
+        // go in the direction in which we're further away from the edge
+        if y <= bedMiddleY {
+            return gcode.North
+        }
+        return gcode.South
+    }
+    if x >= state.Palette.PrintBedMaxX {
+        // off east edge
+        if y <= state.Palette.PrintBedMinY || y >= state.Palette.PrintBedMaxY {
+            // too close to north/south limits to go north or south
+            return gcode.West
+        }
+        // go in the direction in which we're further away from the edge
+        if y <= bedMiddleY {
+            return gcode.North
+        }
+        return gcode.South
+    }
+    if y <= state.Palette.PrintBedMinY || y >= state.Palette.PrintBedMaxY {
+        // off north or south edge
+        // go in the direction in which we're further away from the edge
+        if x <= bedMiddleX {
+            return gcode.East
+        }
+        return gcode.West
+    }
+    // user specified a purge location over the print bed
+    // (unlikely, but possible)
+    if x < bedMiddleX {
+        return gcode.West
+    }
+    if x > bedMiddleX {
+        return gcode.East
+    }
+    if y >= bedMiddleY {
+        return gcode.North
+    }
+    return gcode.South
+}
+
+func getSideTransitionInPlaceJogPause(durationMS int, state *State) string {
+    direction := getSideTransitionInPlaceJogPauseDirection(state)
+    return getJogPause(durationMS, direction, state)
+}
+
+func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
+    // first pause
+    sequence := fmt.Sprintf("; Ping %d pause 1", len(state.MSF.PingList) + 1)
+    if state.Palette.JogPauses {
+        sequence += getSideTransitionInPlaceJogPause(Ping1PauseLength, state)
+    } else {
+        sequence += getDwellPause(Ping1PauseLength)
+    }
+
+    // extrusion between pauses
+    pingStartExtrusion := state.E.TotalExtrusion
+    purgeLength := state.Palette.GetPingExtrusion()
+    eValue := purgeLength
+    if !state.E.RelativeExtrusion {
+        eValue += state.E.CurrentExtrusionValue
+    }
+    purge := gcode.Command{
+        Raw:     fmt.Sprintf("G1 E%.5f F%.1f", eValue, state.Palette.SideTransitionPurgeSpeed),
+        Command: "G1",
+        Params:  map[string]float32{
+            "e": eValue,
+            "f": state.Palette.SideTransitionPurgeSpeed,
+        },
+        Flags: map[string]bool{},
+    }
+    state.E.TrackInstruction(purge)
+    sequence += purge.Raw + EOL
+
+    // second pause
+    sequence += fmt.Sprintf("; Ping %d pause 2", len(state.MSF.PingList) + 1)
+    if state.Palette.JogPauses {
+        sequence += getSideTransitionInPlaceJogPause(Ping2PauseLength, state)
+    } else {
+        sequence += getDwellPause(Ping2PauseLength)
+    }
+    state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
+
+    return sequence, purgeLength
+}
+
+func getSideTransitionOnEdgeJogPauseDirection(state *State) gcode.Direction {
+    if state.Palette.SideTransitionEdge == gcode.North ||
+        state.Palette.SideTransitionEdge == gcode.South {
+        if state.XYZF.CurrentX - state.Palette.PrintBedMinX >
+            state.Palette.PrintBedMaxX - state.XYZF.CurrentX {
+            return gcode.West
+        }
+        return gcode.East
+    }
+    if state.XYZF.CurrentY - state.Palette.PrintBedMinY >
+        state.Palette.PrintBedMaxY - state.XYZF.CurrentY {
+        return gcode.South
+    }
+    return gcode.North
+}
+
+func getSideTransitionOnEdgeJogPause(durationMS int, direction gcode.Direction, state *State) string {
+    return getJogPause(durationMS, direction, state)
+}
+
+func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
+    jogPauseDirection := getSideTransitionOnEdgeJogPauseDirection(state)
+
+    // first pause
+    sequence := fmt.Sprintf("; Ping %d pause 1", len(state.MSF.PingList) + 1)
+    if state.Palette.JogPauses {
+        sequence += getSideTransitionOnEdgeJogPause(Ping1PauseLength, jogPauseDirection, state)
+    } else {
+        sequence += getDwellPause(Ping1PauseLength)
+    }
+
+    // extrusion between pauses
+    pingStartExtrusion := state.E.TotalExtrusion
+    nextX := state.XYZF.CurrentX
+    nextY := state.XYZF.CurrentY
+    switch jogPauseDirection {
+    case gcode.North:
+        if state.Palette.PrintBedMaxY - state.XYZF.CurrentY < 20 {
+            nextY -= 5
+        } else {
+            nextY += 5
+        }
+    case gcode.South:
+        if state.XYZF.CurrentY - state.Palette.PrintBedMinY < 20 {
+            nextY += 5
+        } else {
+            nextY -= 5
+        }
+    case gcode.West:
+        if state.XYZF.CurrentX - state.Palette.PrintBedMinX < 20 {
+            nextX += 5
+        } else {
+            nextX -= 5
+        }
+    case gcode.East:
+        if state.Palette.PrintBedMaxX - state.XYZF.CurrentX < 20 {
+            nextX -= 5
+        } else {
+            nextX += 5
+        }
+    }
+
+    const totalJogs = 5
+    const feedrate = 600
+    purgeLength := state.Palette.GetPingExtrusion()
+    purgePerJog := purgeLength / (totalJogs * 2)
+
+    for i := 0; i < totalJogs; i++ {
+        eValue := purgePerJog
+        if !state.E.RelativeExtrusion {
+            eValue += state.E.CurrentExtrusionValue
+        }
+        // jog out
+        purge := gcode.Command{
+            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%d", nextX, nextY, eValue, feedrate),
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": nextX,
+                "y": nextY,
+                "e": eValue,
+                "f": feedrate,
+            },
+            Flags: map[string]bool{},
+        }
+        state.E.TrackInstruction(purge)
+        sequence += purge.Raw + EOL
+
+        // jog back in
+        if !state.E.RelativeExtrusion {
+            eValue += purgePerJog
+        }
+        purge = gcode.Command{
+            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%d", state.XYZF.CurrentX, state.XYZF.CurrentY, eValue, feedrate),
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": state.XYZF.CurrentX,
+                "y": state.XYZF.CurrentY,
+                "e": eValue,
+                "f": feedrate,
+            },
+            Flags: map[string]bool{},
+        }
+        state.E.TrackInstruction(purge)
+        sequence += purge.Raw + EOL
+    }
+
+    // second pause
+    sequence += fmt.Sprintf("; Ping %d pause 2", len(state.MSF.PingList) + 1)
+    if state.Palette.JogPauses {
+        sequence += getSideTransitionOnEdgeJogPause(Ping2PauseLength, jogPauseDirection, state)
+    } else {
+        sequence += getDwellPause(Ping2PauseLength)
+    }
+    state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
+
+    return sequence, purgeLength
 }

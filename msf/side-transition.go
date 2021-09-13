@@ -50,10 +50,10 @@ func leaveSideTransition() string {
     return "; leave side transition" + EOL
 }
 
-func checkSideTransitionPings(transitionSoFar, transitionLength float32, state *State) (string, float32) {
+func checkSideTransitionPings(state *State) (bool, string, float32) {
     if state.E.TotalExtrusion < state.LastPingStart + PingMinSpacing {
         // not time for a ping yet
-        return "", 0
+        return false, "", 0
     }
 
     if state.Palette.ConnectedMode {
@@ -61,15 +61,20 @@ func checkSideTransitionPings(transitionSoFar, transitionLength float32, state *
         // even at the very end
         state.MSF.AddPing(state.E.TotalExtrusion)
         state.LastPingStart = state.E.TotalExtrusion
-        sequence := "G4 P0" + EOL
+        sequence := fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList), EOL)
+        sequence += "G4 P0" + EOL
         sequence += state.MSF.GetConnectedPingLine()
-        return sequence, 0
+        return true, sequence, 0
     }
 
+    var sequence string
+    var extrusion float32
     if state.Palette.SideTransitionJog {
-       return doSideTransitionOnEdgeAccessoryPing(transitionSoFar, transitionLength, state)
+        sequence, extrusion = doSideTransitionOnEdgeAccessoryPing(state)
+    } else {
+        sequence, extrusion = doSideTransitionInPlaceAccessoryPing(state)
     }
-    return doSideTransitionInPlaceAccessoryPing(transitionSoFar, transitionLength, state)
+    return true, sequence, extrusion
 }
 
 func sideTransitionInPlace(transitionLength float32, state *State) string {
@@ -78,7 +83,7 @@ func sideTransitionInPlace(transitionLength float32, state *State) string {
     sequence := moveToSideTransition(state)
 
     for transitionSoFar < transitionLength {
-        if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+        if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
             transitionSoFar += pingExtrusion
             sequence += pingSequence
         }
@@ -99,6 +104,11 @@ func sideTransitionInPlace(transitionLength float32, state *State) string {
         state.E.TrackInstruction(purge)
         sequence += purge.Raw + EOL
         transitionSoFar += nextPurgeExtrusion
+    }
+
+    if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
+        transitionSoFar += pingExtrusion
+        sequence += pingSequence
     }
 
     sequence += leaveSideTransition()
@@ -154,7 +164,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) string {
 
     // purge until transition length is achieved
     for transitionSoFar < transitionLength {
-        if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+        if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
             transitionSoFar += pingExtrusion
             sequence += pingSequence
         }
@@ -210,7 +220,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) string {
         }
     }
 
-    if pingSequence, pingExtrusion := checkSideTransitionPings(transitionSoFar, transitionLength, state); pingExtrusion > 0 {
+    if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
         transitionSoFar += pingExtrusion
         sequence += pingSequence
     }

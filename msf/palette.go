@@ -59,7 +59,7 @@ type Palette struct {
 
     // pings
     PingOffTower bool `json:"pingOffTower"` // todo: respect this setting
-    JogPauses bool `json:"jogPauses"` // todo: respect this setting
+    JogPauses bool `json:"jogPauses"`
     PingRetractDistance float32 `json:"pingRetractDistance"`
     PingRestartDistance float32 `json:"pingRestartDistance"`
     PingRetractFeedrate float32 `json:"pingRetractFeedrate"`

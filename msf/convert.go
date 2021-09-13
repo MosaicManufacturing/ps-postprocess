@@ -76,12 +76,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                                 return err
                             }
                         }
-                        var pauseSequence string
-                        if palette.JogPauses {
-                            pauseSequence = getTowerJogPause(&state, Ping2PauseLength)
-                        } else {
-                            pauseSequence = getDwellPause(Ping2PauseLength)
-                        }
+                        pauseSequence := getTowerPause(Ping2PauseLength, &state)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
@@ -133,12 +128,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                                 return err
                             }
                         }
-                        var pauseSequence string
-                        if palette.JogPauses {
-                            pauseSequence = getTowerJogPause(&state, Ping1PauseLength)
-                        } else {
-                            pauseSequence = getDwellPause(Ping1PauseLength)
-                        }
+                        pauseSequence := getTowerPause(Ping1PauseLength, &state)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }

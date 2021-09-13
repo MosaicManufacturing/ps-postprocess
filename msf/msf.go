@@ -54,7 +54,7 @@ func (msf *MSF) addSplice(splice Splice) error {
             return errors.New(message)
         }
     } else {
-        // all other splices
+        // all others
         spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
         if spliceDelta < MinSpliceLength - 5 {
             message := "Piece Too Short\n"
