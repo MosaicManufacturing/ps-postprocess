@@ -17,6 +17,7 @@ type msfPreflight struct {
     pingStarts []float32
     boundingBox bbox
     towerBoundingBox bbox
+    timeEstimate float32 // seconds
 }
 
 func emptyBBox() bbox {
@@ -131,6 +132,13 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 }
             }
             state.OnWipeTower = startingWipeTower
+        } else if results.timeEstimate == 0 &&
+            strings.HasPrefix(line.Comment, "estimated printing time (normal mode) = ") {
+            timeEstimate, err := parseTimeEstimate(line.Comment)
+            if err != nil {
+                return err
+            }
+            results.timeEstimate = timeEstimate
         }
 
         return nil

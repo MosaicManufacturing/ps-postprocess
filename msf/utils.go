@@ -9,6 +9,8 @@ import (
     "math"
     "os"
     "path"
+    "regexp"
+    "strconv"
     "strings"
 )
 
@@ -63,6 +65,48 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
 func lerp(minVal, maxVal, t float32) float32 {
     boundedT := float32(math.Max(0, math.Min(1, float64(t))))
     return ((1 - boundedT) * minVal) + (t * maxVal)
+}
+
+func parseTimeEstimate(str string) (float32, error) {
+    r, err := regexp.Compile("estimated printing time \\(normal mode\\) = (?:(\\d+)d ?)?(?:(\\d+)h ?)?(?:(\\d+)m ?)?(?:(\\d+)s ?)")
+    if err != nil {
+        return 0, err
+    }
+    matches := r.FindStringSubmatch(str)
+    timeTotal := 0
+    if len(matches[1]) > 0 {
+        // days
+        days, err := strconv.ParseInt(matches[1], 10, 32)
+        if err != nil {
+            return 0, err
+        }
+        timeTotal += int(days) * 60 * 60 * 24
+    }
+    if len(matches[2]) > 0 {
+        // hours
+        hours, err := strconv.ParseInt(matches[2], 10, 32)
+        if err != nil {
+            return 0, err
+        }
+        timeTotal += int(hours) * 60 * 60
+    }
+    if len(matches[3]) > 0 {
+        // minutes
+        minutes, err := strconv.ParseInt(matches[3], 10, 32)
+        if err != nil {
+            return 0, err
+        }
+        timeTotal += int(minutes) * 60
+    }
+    if len(matches[4]) > 0 {
+        // seconds
+        seconds, err := strconv.ParseInt(matches[4], 10, 32)
+        if err != nil {
+            return 0, err
+        }
+        timeTotal += int(seconds)
+    }
+    return float32(timeTotal), nil
 }
 
 func prependFile(filepath, content string) error {

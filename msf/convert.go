@@ -19,6 +19,8 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
+// TODO: add to the original file's time estimate when adding commands
+// TODO: output our own filament length/volume estimates
 func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
