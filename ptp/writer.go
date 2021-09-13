@@ -732,7 +732,7 @@ func (w *Writer) outputPrintLine() {
     w.writeLayerHeightColor(w.state.currentLayerHeight)
 }
 
-func (w *Writer) addXYZPrintLineTo(x, y, z float32, fromTool int, t float32, savePosition bool) {
+func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) {
     zFloat := roundZ(z)
     // flush travel line buffer if necessary
     if w.state.travelLineBuffered {
@@ -795,27 +795,27 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, fromTool int, t float32, sav
     }
 }
 
-func (w *Writer) addXYPrintLineTo(x, y float32, fromTool int, t float32, savePosition bool) {
-    w.addXYZPrintLineTo(x, y, w.state.currentZ, fromTool, t, savePosition)
+func (w *Writer) addXYPrintLineTo(x, y float32, savePosition bool) {
+    w.addXYZPrintLineTo(x, y, w.state.currentZ, savePosition)
 }
 
 func (w *Writer) AddXYZPrintLineTo(x, y, z float32) {
-    w.addXYZPrintLineTo(x, y, z, 0, 1, true)
+    w.addXYZPrintLineTo(x, y, z, true)
 }
 
 func (w *Writer) AddXYPrintLineTo(x, y float32) {
-    w.addXYZPrintLineTo(x, y, w.state.currentZ, 0, 1, true)
+    w.addXYZPrintLineTo(x, y, w.state.currentZ, true)
 }
 
 func (w *Writer) AddXYZTransitionLineTo(x, y, z float32, fromTool int, t float32) {
-    w.addXYZPrintLineTo(x, y, z, fromTool, t, true)
+    w.addXYZPrintLineTo(x, y, z, true)
     w.state.bufferedFromTool = fromTool
     w.state.bufferedT = t
     w.state.transitionLineBuffered = true
 }
 
 func (w *Writer) AddXYTransitionLineTo(x, y float32, fromTool int, t float32) {
-    w.addXYPrintLineTo(x, y, fromTool, t, true)
+    w.addXYPrintLineTo(x, y, true)
     w.state.bufferedFromTool = fromTool
     w.state.bufferedT = t
     w.state.transitionLineBuffered = true
@@ -823,5 +823,5 @@ func (w *Writer) AddXYTransitionLineTo(x, y float32, fromTool int, t float32) {
 
 func (w *Writer) AddSideTransitionDangler() {
     toZ := float32(math.Max(-20, float64(w.state.currentZ) - 100))
-    w.addXYZPrintLineTo(w.state.currentX, w.state.currentY, toZ, 0, 1, false)
+    w.addXYZPrintLineTo(w.state.currentX, w.state.currentY, toZ, false)
 }
