@@ -65,6 +65,8 @@ func convertPathType(hint string) PathType {
         return PathTypeSupportInterface
     case "Wipe tower":
         return PathTypeTransition
+    case "Side transition":
+        return PathTypeTransition
     case "Custom":
         return PathTypeStartSequence
     }

@@ -230,8 +230,11 @@ func sideTransitionOnEdge(transitionLength float32, state *State) string {
 }
 
 func sideTransition(transitionLength float32, state *State) string {
+    sequence := ";TYPE:Side transition" + EOL
     if state.Palette.SideTransitionJog {
-        return sideTransitionOnEdge(transitionLength, state)
+        sequence += sideTransitionOnEdge(transitionLength, state)
+    } else {
+        sequence += sideTransitionInPlace(transitionLength, state)
     }
-    return sideTransitionInPlace(transitionLength, state)
+    return sequence
 }
