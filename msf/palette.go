@@ -68,6 +68,7 @@ type Palette struct {
     // P2/P3
     ConnectedMode bool `json:"connectedMode"`
     PrinterID string `json:"printerId"`
+    Filename string `json:"filename"`
 
     // P1
     LoadingOffset int `json:"loadingOffset"`

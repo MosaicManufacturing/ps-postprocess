@@ -221,15 +221,19 @@ func (msf *MSF) GetOutputAlgorithmsList() []Algorithm {
     return algs
 }
 
-func (msf *MSF) GetMSF2Header(filename string) string {
+func (msf *MSF) GetMSF2Header() string {
     header := msf.createMSF2()
     // start multicolor mode
-    msfFilename := replaceSpaces(truncate(filename, charLimitMSF2))
+    msfFilename := replaceSpaces(truncate(msf.Palette.Filename, charLimitMSF2))
     printLength := msf.GetTotalFilamentLength()
     intLength := uint(math.Ceil(float64(printLength)))
     header += "O1 D" + msfFilename + " D" + intToHexString(intLength, 8) + EOL
     header += "M0" + EOL
     return header
+}
+
+func (msf *MSF) GetMSF2Footer() string {
+    return "O9" + EOL
 }
 
 func getMSF2PingLine(ping Ping) string {

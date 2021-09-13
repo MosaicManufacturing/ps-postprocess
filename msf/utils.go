@@ -4,7 +4,11 @@ import (
     "bufio"
     "encoding/binary"
     "fmt"
+    "io"
+    "io/ioutil"
     "math"
+    "os"
+    "path"
     "strings"
 )
 
@@ -59,4 +63,40 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
 func lerp(minVal, maxVal, t float32) float32 {
     boundedT := float32(math.Max(0, math.Min(1, float64(t))))
     return ((1 - boundedT) * minVal) + (t * maxVal)
+}
+
+func prependFile(filepath, content string) error {
+    // create a temporary file
+    tempfile, err := ioutil.TempFile(path.Dir(filepath), "")
+    if err != nil {
+        return err
+    }
+
+    // write prepended content first
+    if _, err := tempfile.WriteString(content); err != nil {
+        return err
+    }
+
+    // now append content of original file
+    reader, err := os.Open(filepath)
+    if err != nil {
+        return err
+    }
+    if _, err := io.Copy(tempfile, reader); err != nil {
+        return err
+    }
+    if err := reader.Close(); err != nil {
+        return err
+    }
+
+    // finalize and close temporary file
+    if err := tempfile.Sync(); err != nil {
+        return err
+    }
+    if err := tempfile.Close(); err != nil {
+        return err
+    }
+
+    // overwrite original file with temporary one
+    return os.Rename(tempfile.Name(), filepath)
 }

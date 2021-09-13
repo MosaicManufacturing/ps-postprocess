@@ -19,24 +19,12 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
-func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) (err error) {
-    // todo: P2 will need a temp file so the final MSF can be prepended
+func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
-        err = createErr
-        return
+        return createErr
     }
-    defer func() {
-        if closeErr := outfile.Close(); closeErr != nil {
-            err = closeErr
-        }
-    }()
     writer := bufio.NewWriter(outfile)
-    defer func() {
-        if flushErr := writer.Flush(); flushErr != nil {
-            err = flushErr
-        }
-    }()
     msfOut := NewMSF(palette)
 
     // initialize state
@@ -54,7 +42,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         state.NextPingStart = posInf
     }
 
-    err = gcode.ReadByLine(inpath, func(line gcode.Command) error {
+    err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
@@ -171,15 +159,33 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     if err != nil {
         return err
     }
-    err = msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion)
-    if err != nil {
+    if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
         return err
     }
-    msfStr, err := msfOut.CreateMSF()
-    if err != nil {
+    if palette.Type == TypeP2 && palette.ConnectedMode {
+        // .mcf.gcode -- append footer
+        if err := writeLines(writer, msfOut.GetMSF2Footer()); err != nil {
+            return err
+        }
+    }
+    // finalize outfile now
+    if err := writer.Flush(); err != nil {
         return err
     }
-    return ioutil.WriteFile(msfpath, []byte(msfStr), 0644)
+    if err := outfile.Close(); err != nil {
+        return err
+    }
+    if palette.Type == TypeP2 && palette.ConnectedMode {
+        // .mcf.gcode -- prepend header instead of writing to separate file
+        header := msfOut.GetMSF2Header()
+        return prependFile(outpath, header)
+    } else {
+        msfStr, err := msfOut.CreateMSF()
+        if err != nil {
+            return err
+        }
+        return ioutil.WriteFile(msfpath, []byte(msfStr), 0644)
+    }
 }
 
 func ConvertForPalette(argv []string) {
