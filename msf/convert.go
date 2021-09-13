@@ -71,11 +71,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        if useRetract, retract := getPingRetract(palette); useRetract {
-                            if err := writeLine(writer, retract); err != nil {
-                                return err
-                            }
-                        }
                         pauseSequence := getTowerPause(Ping2PauseLength, &state)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
@@ -86,11 +81,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                             state.NextPingStart = preflight.pingStarts[len(msfOut.PingList)]
                         } else {
                             state.NextPingStart = posInf
-                        }
-                        if useRestart, restart := getPingRestart(palette); useRestart {
-                            if err := writeLine(writer, restart); err != nil {
-                                return err
-                            }
                         }
                         state.CurrentlyPinging = false
                     }
@@ -123,21 +113,11 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if err := writeLine(writer, comment); err != nil {
                             return err
                         }
-                        if useRetract, retract := getPingRetract(palette); useRetract {
-                            if err := writeLine(writer, retract); err != nil {
-                                return err
-                            }
-                        }
                         pauseSequence := getTowerPause(Ping1PauseLength, &state)
                         if err := writeLines(writer, pauseSequence); err != nil {
                             return err
                         }
                         state.LastPingStart = state.E.TotalExtrusion
-                        if useRestart, restart := getPingRestart(palette); useRestart {
-                            if err := writeLine(writer, restart); err != nil {
-                                return err
-                            }
-                        }
                         state.CurrentlyPinging = true
                     }
                 }

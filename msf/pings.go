@@ -64,26 +64,79 @@ func getJogPause(durationMS int, direction gcode.Direction, state *State) string
     return sequence
 }
 
-func getTowerJogPause(durationMS int, state *State) string {
+func getTowerJogPauseDirection(state *State) gcode.Direction {
     // PrusaSlicer tower extrusions always run east-west, so either jog eastward or westward,
     // depending on which edge we're currently closer to
-    var direction gcode.Direction
     if math.Abs(float64(state.XYZF.CurrentX - state.TowerBoundingBox.min[0])) >
         math.Abs(float64(state.TowerBoundingBox.max[0] - state.XYZF.CurrentX)) {
         // closer to west edge -- jog westward
-        direction = gcode.West
+        return gcode.West
     } else {
         // closer to east edge -- jog eastward
-        direction = gcode.East
+        return gcode.East
     }
+}
+
+func getTowerJogPause(durationMS int, state *State) string {
+    direction := getTowerJogPauseDirection(state)
     return getJogPause(durationMS, direction, state)
 }
 
 func getTowerPause(durationMS int, state *State) string {
-    if state.Palette.JogPauses {
-        return getTowerJogPause(durationMS, state)
+    sequence := ""
+    if useRetract, retract := getPingRetract(state.Palette); useRetract {
+        sequence += retract + EOL
     }
-    return getDwellPause(durationMS)
+    currentF := state.XYZF.CurrentFeedrate
+    currentX := state.XYZF.CurrentX
+    currentY := state.XYZF.CurrentY
+    pauseX := currentX
+    pauseY := currentY
+    if state.Palette.PingOffTowerDistance > 0 {
+        // move off the tower before pausing
+        direction := getTowerJogPauseDirection(state)
+        if direction == gcode.West {
+            pauseX -= state.Palette.PingOffTowerDistance
+        } else {
+            pauseX += state.Palette.PingOffTowerDistance
+        }
+        move := gcode.Command{
+            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", pauseX, pauseY, currentF),
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": pauseX,
+                "y": pauseY,
+                "f": currentF,
+            },
+            Flags: map[string]bool{},
+        }
+        state.XYZF.TrackInstruction(move)
+        sequence += move.Raw + EOL
+    }
+    if state.Palette.JogPauses {
+        sequence += getTowerJogPause(durationMS, state)
+    } else {
+        sequence += getDwellPause(durationMS)
+    }
+    if state.Palette.PingOffTowerDistance > 0 {
+        // move back onto the tower after pausing
+        move := gcode.Command{
+            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", currentX, currentY, currentF),
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": currentX,
+                "y": currentY,
+                "f": currentF,
+            },
+            Flags: map[string]bool{},
+        }
+        state.XYZF.TrackInstruction(move)
+        sequence += move.Raw + EOL
+    }
+    if useRestart, restart := getPingRestart(state.Palette); useRestart {
+        sequence += restart + EOL
+    }
+    return sequence
 }
 
 func getSideTransitionInPlaceJogPauseDirection(state *State) gcode.Direction {

@@ -58,7 +58,7 @@ type Palette struct {
     SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"`
 
     // pings
-    PingOffTower bool `json:"pingOffTower"` // todo: respect this setting
+    PingOffTowerDistance float32 `json:"pingOffTowerDistance"`
     JogPauses bool `json:"jogPauses"`
     PingRetractDistance float32 `json:"pingRetractDistance"`
     PingRestartDistance float32 `json:"pingRestartDistance"`
