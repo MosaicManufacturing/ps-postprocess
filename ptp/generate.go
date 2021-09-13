@@ -260,6 +260,13 @@ func GenerateToolpath(argv []string) {
                     return err
                 }
                 writer.SetLayerHeight(float32(height))
+            } else if strings.HasPrefix(line.Comment, "Transitioning to T") {
+                toolStr := strings.Split(line.Comment[18:], "")[0]
+                tool, err := strconv.ParseInt(toolStr, 10, 32)
+                if err != nil {
+                    return err
+                }
+                writer.SetTool(int(tool))
             }
         }
         return nil

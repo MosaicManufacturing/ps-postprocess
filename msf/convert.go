@@ -121,6 +121,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     return err
                 }
             } else {
+                comment := fmt.Sprintf("; Transitioning to T%d from T%d", tool, state.CurrentTool)
+                if err := writeLine(writer, comment); err != nil {
+                    return err
+                }
                 currentTransitionLength := palette.TransitionLengths[tool][state.CurrentTool]
                 spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
                 if err := msfOut.AddSplice(state.CurrentTool, state.E.TotalExtrusion + spliceOffset); err != nil {
