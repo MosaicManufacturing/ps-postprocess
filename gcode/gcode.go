@@ -109,7 +109,7 @@ func (gcc Command) ToString() string {
 	return line
 }
 
-type LineCallback func(Command) error
+type LineCallback func(Command, int) error
 // if callback returns an error, reading will stop
 
 func ReadByLine (path string, callback LineCallback) (err error) {
@@ -124,6 +124,7 @@ func ReadByLine (path string, callback LineCallback) (err error) {
 		}
 	}()
 	reader := bufio.NewReader(infile)
+	lineNumber := 0
 	for {
 		line, isPrefix, readErr := reader.ReadLine()
 		if readErr == io.EOF {
@@ -148,11 +149,12 @@ func ReadByLine (path string, callback LineCallback) (err error) {
 			}
 		}
 		gcode := ParseLine(string(line))
-		cbErr := callback(gcode)
+		cbErr := callback(gcode, lineNumber)
 		if cbErr != nil {
 			err = cbErr
 			return
 		}
+		lineNumber++
 	}
 	return nil
 }

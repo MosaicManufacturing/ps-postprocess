@@ -87,7 +87,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
     minTemperature := math.Inf(1); maxTemperature := math.Inf(-1)
     minLayerHeight := math.Inf(1); maxLayerHeight := math.Inf(-1)
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
+    err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
         if line.IsLinearMove() {
             // feedrates
             if f, ok := line.Params["f"]; ok {
@@ -169,7 +169,7 @@ func GenerateToolpath(argv []string) {
 
     currentE := float32(0)
     relativeE := false
-    err = gcode.ReadByLine(inpath, func(line gcode.Command) error {
+    err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
         isSetExtrusionMode, isRelativeE := line.IsSetExtrusionMode()
         if isSetExtrusionMode {
             relativeE = isRelativeE

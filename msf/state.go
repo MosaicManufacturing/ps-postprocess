@@ -8,6 +8,7 @@ type State struct {
 
     E gcode.ExtrusionTracker
     XYZF gcode.PositionTracker
+    TimeEstimate float32
 
     FirstToolChange bool // don't treat the first T command as a toolchange
     CurrentTool int

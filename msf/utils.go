@@ -80,7 +80,7 @@ func parseTimeEstimate(str string) (float32, error) {
         if err != nil {
             return 0, err
         }
-        timeTotal += int(days) * 60 * 60 * 24
+        timeTotal += int(days) * 86400
     }
     if len(matches[2]) > 0 {
         // hours
@@ -88,7 +88,7 @@ func parseTimeEstimate(str string) (float32, error) {
         if err != nil {
             return 0, err
         }
-        timeTotal += int(hours) * 60 * 60
+        timeTotal += int(hours) * 3600
     }
     if len(matches[3]) > 0 {
         // minutes
@@ -107,6 +107,50 @@ func parseTimeEstimate(str string) (float32, error) {
         timeTotal += int(seconds)
     }
     return float32(timeTotal), nil
+}
+
+func getTimeString(timeEstimate float32) string {
+    seconds := int(math.Round(float64(timeEstimate)))
+    days := seconds / 86400
+    seconds -= days * 86400
+    hours := seconds / 3600
+    seconds -= hours * 3600
+    minutes := seconds / 60
+    seconds -= minutes * 60
+
+    if days > 0 {
+        return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, seconds)
+    }
+    if hours > 0 {
+        return fmt.Sprintf("%dh %dm %ds", hours, minutes, seconds)
+    }
+    if minutes > 0 {
+        return fmt.Sprintf("%dm %ds", minutes, seconds)
+    }
+    return fmt.Sprintf("%ds", seconds)
+}
+
+func getPrintSummary(msf *MSF, timeEstimate float32) string {
+    totalFilament := msf.GetTotalFilamentLength()
+    filamentByDrive := msf.GetFilamentLengthsByDrive()
+
+    summary := "; According to Chroma:" + EOL
+
+    // total filament length
+    summary += fmt.Sprintf("; total filament used [mm] = %.5f%s", totalFilament, EOL)
+
+    // filament lengths by drive
+    for drive, length := range filamentByDrive {
+        if length > 0 {
+            summary += fmt.Sprintf(";    T%d = %.5f%s", drive + 1, length, EOL)
+        }
+    }
+
+    // time estimate
+    summary += fmt.Sprintf("; estimated printing time: %s%s", getTimeString(timeEstimate), EOL)
+    summary += EOL
+
+    return summary
 }
 
 func prependFile(filepath, content string) error {

@@ -20,7 +20,7 @@ import (
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
 // TODO: add to the original file's time estimate when adding commands
-// TODO: output our own filament length/volume estimates
+// TODO: generate preheat hints file, a la KISS
 func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
@@ -35,6 +35,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     state.TowerBoundingBox = preflight.towerBoundingBox
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
+    state.TimeEstimate = preflight.timeEstimate // todo: actually add to this when inserting relevant commands!!!
 
     pingExtrusionMM := palette.GetPingExtrusion()
 
@@ -44,7 +45,20 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         state.NextPingStart = posInf
     }
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
+    didFinalSplice := false
+
+    err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
+        if lineNumber == preflight.printSummaryStart {
+            if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
+                return err
+            }
+            didFinalSplice = true // make sure not to do this again at EOF
+            // insert our (more accurate) print summary
+            summary := getPrintSummary(&msfOut, state.TimeEstimate)
+            if err := writeLines(writer, summary); err != nil {
+                return err
+            }
+        }
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
@@ -165,8 +179,11 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     if err != nil {
         return err
     }
-    if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
-        return err
+    if !didFinalSplice {
+        if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
+            return err
+        }
+        didFinalSplice = true
     }
     if palette.Type == TypeP2 && palette.ConnectedMode {
         // .mcf.gcode -- append footer

@@ -18,6 +18,7 @@ type msfPreflight struct {
     boundingBox bbox
     towerBoundingBox bbox
     timeEstimate float32 // seconds
+    printSummaryStart int // line number before which to output print summary
 }
 
 func emptyBBox() bbox {
@@ -49,6 +50,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         pingStarts:       make([]float32, 0),
         boundingBox:      emptyBBox(),
         towerBoundingBox: emptyBBox(),
+        printSummaryStart: -1,
     }
 
     // initialize state
@@ -58,7 +60,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
 
     pingExtrusionMM := palette.GetPingExtrusion()
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command) error {
+    err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
@@ -139,6 +141,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 return err
             }
             results.timeEstimate = timeEstimate
+            results.printSummaryStart = lineNumber + 2
         }
 
         return nil
