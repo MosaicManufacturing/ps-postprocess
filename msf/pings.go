@@ -110,6 +110,7 @@ func getTowerPause(durationMS int, state *State) string {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimateMoveTime(currentX, currentY, pauseX, pauseY, currentF)
         state.XYZF.TrackInstruction(move)
         sequence += move.Raw + EOL
     }
@@ -118,6 +119,7 @@ func getTowerPause(durationMS int, state *State) string {
     } else {
         sequence += getDwellPause(durationMS)
     }
+    state.TimeEstimate += float32(durationMS / 1000)
     if state.Palette.PingOffTowerDistance > 0 {
         // move back onto the tower after pausing
         move := gcode.Command{
@@ -130,6 +132,7 @@ func getTowerPause(durationMS int, state *State) string {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimateMoveTime(pauseX, pauseY, currentX, currentY, currentF)
         state.XYZF.TrackInstruction(move)
         sequence += move.Raw + EOL
     }
@@ -205,6 +208,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
     } else {
         sequence += getDwellPause(Ping1PauseLength)
     }
+    state.TimeEstimate += float32(Ping1PauseLength / 1000)
 
     // extrusion between pauses
     pingStartExtrusion := state.E.TotalExtrusion
@@ -222,6 +226,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
         },
         Flags: map[string]bool{},
     }
+    state.TimeEstimate += estimatePurgeTime(purgeLength, state.Palette.SideTransitionPurgeSpeed)
     state.E.TrackInstruction(purge)
     sequence += purge.Raw + EOL
 
@@ -232,6 +237,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
     } else {
         sequence += getDwellPause(Ping2PauseLength)
     }
+    state.TimeEstimate += float32(Ping2PauseLength / 1000)
     state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
 
     return sequence, purgeLength
@@ -267,6 +273,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
     } else {
         sequence += getDwellPause(Ping1PauseLength)
     }
+    state.TimeEstimate += float32(Ping1PauseLength / 1000)
 
     // extrusion between pauses
     pingStartExtrusion := state.E.TotalExtrusion
@@ -321,6 +328,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, feedrate)
         state.E.TrackInstruction(purge)
         sequence += purge.Raw + EOL
 
@@ -339,6 +347,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimateMoveTime(nextX, nextY, state.XYZF.CurrentX, state.XYZF.CurrentY, feedrate)
         state.E.TrackInstruction(purge)
         sequence += purge.Raw + EOL
     }
@@ -350,6 +359,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
     } else {
         sequence += getDwellPause(Ping2PauseLength)
     }
+    state.TimeEstimate += float32(Ping2PauseLength / 1000)
     state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
 
     return sequence, purgeLength

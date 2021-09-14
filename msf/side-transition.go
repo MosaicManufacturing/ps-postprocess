@@ -41,6 +41,7 @@ func moveToSideTransition(state *State) string {
         },
         Flags: map[string]bool{},
     }
+    state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, startX, startY, state.Palette.TravelSpeedXY)
     state.XYZF.TrackInstruction(travel)
     sequence += travel.Raw + EOL
     return sequence
@@ -101,6 +102,7 @@ func sideTransitionInPlace(transitionLength float32, state *State) string {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimatePurgeTime(nextPurgeExtrusion, feedrate)
         state.E.TrackInstruction(purge)
         sequence += purge.Raw + EOL
         transitionSoFar += nextPurgeExtrusion
@@ -204,6 +206,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) string {
             },
             Flags: map[string]bool{},
         }
+        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, xyFeedrate)
         state.E.TrackInstruction(purge)
         state.XYZF.TrackInstruction(purge)
         sequence += purge.Raw + EOL

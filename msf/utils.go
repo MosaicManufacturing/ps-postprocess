@@ -62,6 +62,17 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
     return float32(math.Sqrt(dx * dx + dy * dy))
 }
 
+func estimateMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
+    lineLength := getLineLength(x1, y1, x2, y2)
+    mmPerS := feedrate / 60
+    return lineLength / mmPerS
+}
+
+func estimatePurgeTime(eDelta, feedrate float32) float32 {
+    mmPerS := feedrate / 60
+    return eDelta / mmPerS
+}
+
 func lerp(minVal, maxVal, t float32) float32 {
     boundedT := float32(math.Max(0, math.Min(1, float64(t))))
     return ((1 - boundedT) * minVal) + (t * maxVal)
