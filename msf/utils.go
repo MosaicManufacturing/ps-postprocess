@@ -148,17 +148,17 @@ func getPrintSummary(msf *MSF, timeEstimate float32) string {
     summary := "; According to Chroma:" + EOL
 
     // total filament length
-    summary += fmt.Sprintf("; total filament used [mm] = %.5f%s", totalFilament, EOL)
+    summary += fmt.Sprintf("; filament total [mm] = %.5f%s", totalFilament, EOL)
 
     // filament lengths by drive
     for drive, length := range filamentByDrive {
         if length > 0 {
-            summary += fmt.Sprintf(";    T%d = %.5f%s", drive + 1, length, EOL)
+            summary += fmt.Sprintf(";    T%d filament = %.5f%s", drive + 1, length, EOL)
         }
     }
 
     // time estimate
-    summary += fmt.Sprintf("; estimated printing time: %s%s", getTimeString(timeEstimate), EOL)
+    summary += fmt.Sprintf("; estimated printing time = %s%s", getTimeString(timeEstimate), EOL)
     summary += EOL
 
     return summary
