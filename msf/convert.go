@@ -19,7 +19,6 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
-// TODO: generate preheat hints file, a la KISS
 func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
@@ -200,14 +199,34 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     if palette.Type == TypeP2 && palette.ConnectedMode {
         // .mcf.gcode -- prepend header instead of writing to separate file
         header := msfOut.GetMSF2Header()
-        return prependFile(outpath, header)
+        if err := prependFile(outpath, header); err != nil {
+            return err
+        }
     } else {
         msfStr, err := msfOut.CreateMSF()
         if err != nil {
             return err
         }
-        return ioutil.WriteFile(msfpath, []byte(msfStr), 0644)
+        if err := ioutil.WriteFile(msfpath, []byte(msfStr), 0644); err != nil {
+            return err
+        }
     }
+
+    // MSF 3 preheat hints
+    if palette.Type == TypeP3 {
+        preheatHintsPath := inpath + ".preheat"
+        firstTool := msfOut.SpliceList[0].Drive
+        hints := PreheatHints{
+            Extruder: palette.FirstLayerTemperatures[firstTool],
+            Bed:      palette.FirstLayerBedTemperatures[firstTool],
+            Chamber:  0,
+        }
+        if err := hints.Save(preheatHintsPath); err != nil {
+            return err
+        }
+    }
+
+    return nil
 }
 
 func ConvertForPalette(argv []string) {
