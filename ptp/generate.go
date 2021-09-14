@@ -170,9 +170,8 @@ func GenerateToolpath(argv []string) {
     currentE := float32(0)
     relativeE := false
     err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
-        isSetExtrusionMode, isRelativeE := line.IsSetExtrusionMode()
-        if isSetExtrusionMode {
-            relativeE = isRelativeE
+        if setExtrusionMode, relative := line.IsSetExtrusionMode(); setExtrusionMode {
+            relativeE = relative
             currentE = 0
         } else if line.IsSetPosition() {
             if e, ok := line.Params["e"]; ok {

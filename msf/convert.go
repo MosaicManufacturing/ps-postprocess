@@ -19,7 +19,6 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
-// TODO: add to the original file's time estimate when adding commands
 // TODO: generate preheat hints file, a la KISS
 func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
     outfile, createErr := os.Create(outpath)
@@ -35,7 +34,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     state.TowerBoundingBox = preflight.towerBoundingBox
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
-    state.TimeEstimate = preflight.timeEstimate // todo: actually add to this when inserting relevant commands!!!
+    state.TimeEstimate = preflight.timeEstimate
 
     pingExtrusionMM := palette.GetPingExtrusion()
 
