@@ -79,7 +79,7 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 }
 
 func sideTransitionInPlace(transitionLength float32, state *State) string {
-    feedrate := state.Palette.SideTransitionPurgeSpeed
+    feedrate := state.Palette.SideTransitionPurgeSpeed * 60
     transitionSoFar := float32(0)
     sequence := moveToSideTransition(state)
 
@@ -118,8 +118,8 @@ func sideTransitionInPlace(transitionLength float32, state *State) string {
 }
 
 func sideTransitionOnEdge(transitionLength float32, state *State) string {
-    eFeedrate := state.Palette.SideTransitionPurgeSpeed
-    xyFeedrate := state.Palette.SideTransitionFeedrate
+    eFeedrate := state.Palette.SideTransitionPurgeSpeed * 60
+    xyFeedrate := state.Palette.SideTransitionMoveSpeed * 60
     transitionSoFar := float32(0)
 
     // determine next purge direction

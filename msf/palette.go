@@ -36,12 +36,12 @@ type Palette struct {
     BowdenTubeLength float32 `json:"bowdenTubeLength"` // mm
 
     // slicer
-    TravelSpeedXY float32 `json:"travelSpeedXY"`
-    TravelSpeedZ float32 `json:"travelSpeedZ"`
-    PrintBedMinX float32 `json:"printBedMinX"`
-    PrintBedMaxX float32 `json:"printBedMaxX"`
-    PrintBedMinY float32 `json:"printBedMinY"`
-    PrintBedMaxY float32 `json:"printBedMaxY"`
+    TravelSpeedXY float32 `json:"travelSpeedXY"` // mm/min
+    TravelSpeedZ float32 `json:"travelSpeedZ"` // mm/min
+    PrintBedMinX float32 `json:"printBedMinX"` // mm
+    PrintBedMaxX float32 `json:"printBedMaxX"` // mm
+    PrintBedMinY float32 `json:"printBedMinY"` // mm
+    PrintBedMaxY float32 `json:"printBedMaxY"` // mm
 
     // transitions
     TransitionMethod TransitionMethod `json:"TransitionMethod"`
@@ -50,20 +50,20 @@ type Palette struct {
 
     // side transitions
     SideTransitionJog bool `json:"sideTransitionJog"`
-    SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"`
-    SideTransitionFeedrate float32 `json:"sideTransitionFeedrate"`
-    SideTransitionX float32 `json:"sideTransitionX"`
-    SideTransitionY float32 `json:"sideTransitionY"`
+    SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"` // mm/s
+    SideTransitionMoveSpeed float32 `json:"sideTransitionMoveSpeed"` // mm/s
+    SideTransitionX float32 `json:"sideTransitionX"` // mm
+    SideTransitionY float32 `json:"sideTransitionY"` // mm
     SideTransitionEdge gcode.Direction `json:"sideTransitionEdge"`
-    SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"`
+    SideTransitionEdgeOffset float32 `json:"sideTransitionEdgeOffset"` // mm
 
     // pings
-    PingOffTowerDistance float32 `json:"pingOffTowerDistance"`
+    PingOffTowerDistance float32 `json:"pingOffTowerDistance"` // mm
     JogPauses bool `json:"jogPauses"`
-    PingRetractDistance float32 `json:"pingRetractDistance"`
-    PingRestartDistance float32 `json:"pingRestartDistance"`
-    PingRetractFeedrate float32 `json:"pingRetractFeedrate"`
-    PingRestartFeedrate float32 `json:"pingRestartFeedrate"`
+    PingRetractDistance float32 `json:"pingRetractDistance"` // mm
+    PingRestartDistance float32 `json:"pingRestartDistance"` // mm
+    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // mm/min
+    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // mm/min
 
     // P2/P3
     ConnectedMode bool `json:"connectedMode"`
@@ -71,9 +71,9 @@ type Palette struct {
     Filename string `json:"filename"`
 
     // P1
-    LoadingOffset int `json:"loadingOffset"`
-    PrintValue int `json:"printValue"`
-    CalibrationLength float32 `json:"calibrationLength"`
+    LoadingOffset int `json:"loadingOffset"` // scroll wheel counts
+    PrintValue int `json:"printValue"` // scroll wheel counts
+    CalibrationLength float32 `json:"calibrationLength"` // mm
 }
 
 func LoadFromFile(path string) (Palette, error) {
