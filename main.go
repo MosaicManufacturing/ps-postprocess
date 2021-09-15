@@ -3,6 +3,7 @@ package main
 import (
     "./msf"
     "./ptp"
+    "./ultimaker"
     "fmt"
     "log"
     "os"
@@ -18,6 +19,8 @@ func main() {
        msf.ConvertForPalette(argv[1:])
     case "ptp":
        ptp.GenerateToolpath(argv[1:])
+    case "ultimaker":
+        ultimaker.AddHeader(argv[1:])
     default:
        log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
     }
