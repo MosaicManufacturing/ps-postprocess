@@ -6,41 +6,14 @@ import (
     "strings"
 )
 
-type bbox struct {
-    min [3]float32
-    max [3]float32
-}
-
 type msfPreflight struct {
     drivesUsed []bool
     transitionStarts []float32
     pingStarts []float32
-    boundingBox bbox
-    towerBoundingBox bbox
+    boundingBox gcode.BoundingBox
+    towerBoundingBox gcode.BoundingBox
     timeEstimate float32 // seconds
     printSummaryStart int // line number before which to output print summary
-}
-
-func emptyBBox() bbox {
-    return bbox{
-        min: [3]float32{posInf, posInf, posInf},
-        max: [3]float32{negInf, negInf, negInf},
-    }
-}
-
-func (b *bbox) expandX(x float32) {
-    if x < b.min[0] { b.min[0] = x }
-    if x > b.max[0] { b.max[0] = x }
-}
-
-func (b *bbox) expandY(y float32) {
-    if y < b.min[1] { b.min[1] = y }
-    if y > b.max[1] { b.max[1] = y }
-}
-
-func (b *bbox) expandZ(z float32) {
-    if z < b.min[2] { b.min[2] = z }
-    if z > b.max[2] { b.max[2] = z }
 }
 
 func preflight(inpath string, palette *Palette) (msfPreflight, error) {
@@ -48,8 +21,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         drivesUsed:       make([]bool, palette.GetInputCount()),
         transitionStarts: make([]float32, 0),
         pingStarts:       make([]float32, 0),
-        boundingBox:      emptyBBox(),
-        towerBoundingBox: emptyBBox(),
+        boundingBox:      gcode.NewBoundingBox(),
+        towerBoundingBox: gcode.NewBoundingBox(),
         printSummaryStart: -1,
     }
 
@@ -65,23 +38,23 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
             if x, ok := line.Params["x"]; ok {
-                results.boundingBox.expandX(x)
+                results.boundingBox.ExpandX(x)
             }
             if y, ok := line.Params["y"]; ok {
-                results.boundingBox.expandY(y)
+                results.boundingBox.ExpandY(y)
             }
             if z, ok := line.Params["z"]; ok {
-                results.boundingBox.expandZ(z)
+                results.boundingBox.ExpandZ(z)
             }
             if state.OnWipeTower {
                 if _, ok := line.Params["e"]; ok {
                     // extrusion on wipe tower -- update bounding box
                     if state.E.CurrentRetraction == 0 {
                         if x, ok := line.Params["x"]; ok {
-                            results.towerBoundingBox.expandX(x)
+                            results.towerBoundingBox.ExpandX(x)
                         }
                         if y, ok := line.Params["y"]; ok {
-                            results.towerBoundingBox.expandY(y)
+                            results.towerBoundingBox.ExpandY(y)
                         }
                     }
                 }
@@ -146,8 +119,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
 
         return nil
     })
-    if results.boundingBox.min[2] > 0 {
-        results.boundingBox.min[2] = 0
+    if results.boundingBox.Min[2] > 0 {
+        results.boundingBox.Min[2] = 0
     }
     return results, err
 }

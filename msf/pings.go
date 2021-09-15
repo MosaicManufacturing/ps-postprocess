@@ -67,8 +67,8 @@ func getJogPause(durationMS int, direction gcode.Direction, state *State) string
 func getTowerJogPauseDirection(state *State) gcode.Direction {
     // PrusaSlicer tower extrusions always run east-west, so either jog eastward or westward,
     // depending on which edge we're currently closer to
-    if math.Abs(float64(state.XYZF.CurrentX - state.TowerBoundingBox.min[0])) >
-        math.Abs(float64(state.TowerBoundingBox.max[0] - state.XYZF.CurrentX)) {
+    if math.Abs(float64(state.XYZF.CurrentX - state.TowerBoundingBox.Min[0])) >
+        math.Abs(float64(state.TowerBoundingBox.Max[0] - state.XYZF.CurrentX)) {
         // closer to west edge -- jog westward
         return gcode.West
     } else {

@@ -14,7 +14,7 @@ type State struct {
     CurrentTool int
     CurrentlyTransitioning bool
     OnWipeTower bool
-    TowerBoundingBox bbox
+    TowerBoundingBox gcode.BoundingBox
 
     LastPingStart float32
     CurrentlyPinging bool
