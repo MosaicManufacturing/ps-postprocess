@@ -1,6 +1,7 @@
 package main
 
 import (
+    "./flashforge"
     "./msf"
     "./ptp"
     "./ultimaker"
@@ -21,6 +22,8 @@ func main() {
        ptp.GenerateToolpath(argv[1:])
     case "ultimaker":
         ultimaker.AddHeader(argv[1:])
+    case "flashforge":
+        flashforge.ConvertCommands(argv[1:])
     default:
        log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
     }
