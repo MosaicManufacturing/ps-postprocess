@@ -8,14 +8,12 @@ import (
 
 type VisitorOptions struct {
     MaxLoopIterations int
-    MaxOutputSize int
     EOL string
     Locals map[string]float64
 }
 
 type Visitor struct {
     antlr.ParseTreeVisitor
-    maxOutputSize int
     maxLoopIters int
     loopIters int
     EOL string
@@ -48,7 +46,6 @@ func (v *Visitor) GetLocals() map[string]float64 {
 func NewVisitor(opts VisitorOptions) Visitor {
     return Visitor{
         ParseTreeVisitor: &BaseSequenceParserVisitor{},
-        maxOutputSize:    opts.MaxOutputSize,
         maxLoopIters:     opts.MaxLoopIterations,
         EOL:              opts.EOL,
         locals:           opts.Locals,

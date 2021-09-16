@@ -9,7 +9,6 @@ const DEBUG = false
 
 type InterpreterOptions struct {
     MaxLoopIterations int
-    MaxOutputSize int
     EOL string
     TrailingNewline bool
     Locals map[string]float64
@@ -75,15 +74,11 @@ func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterRe
     if DEBUG { fmt.Println("===== VISITOR =====") }
     visitorOpts := VisitorOptions{
         MaxLoopIterations: 1e6, // 100k total iterations, including nesting
-        MaxOutputSize:     50 * 1024 * 1024, // 50 MiB
         EOL:               "\n",
         Locals:            make(map[string]float64),
     }
     if opts.MaxLoopIterations > 0 {
         visitorOpts.MaxLoopIterations = opts.MaxLoopIterations
-    }
-    if opts.MaxOutputSize > 0 {
-        visitorOpts.MaxOutputSize = opts.MaxOutputSize
     }
     if opts.EOL != "" {
         visitorOpts.EOL = opts.EOL
