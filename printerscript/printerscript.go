@@ -12,7 +12,6 @@ type InterpreterOptions struct {
     MaxOutputSize int
     EOL string
     TrailingNewline bool
-    Input string
     Locals map[string]float64
 }
 
@@ -21,10 +20,8 @@ type InterpreterResult struct {
     Locals map[string]float64
 }
 
-func Validate(input string) error {
+func Lex(input string) (*antlr.CommonTokenStream, error) {
     input = normalizeInput(input)
-
-    // lexer
     if DEBUG { fmt.Println("===== LEXER =====") }
     istream := antlr.NewInputStream(input)
     lexer := NewSequenceLexer(istream)
@@ -34,7 +31,7 @@ func Validate(input string) error {
     tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
     tokens.Fill()
     if err := lexerErrorListener.GetError(); err != nil {
-        return err
+        return nil, err
     }
     if DEBUG {
         for _, token := range tokens.GetAllTokens() {
@@ -42,44 +39,10 @@ func Validate(input string) error {
         }
         fmt.Println()
     }
-
-    // parser
-    if DEBUG { fmt.Println("===== PARSER =====") }
-    parser := NewSequenceParser(tokens)
-    parserErrorListener := NewSyntaxErrorListener()
-    parser.RemoveErrorListeners()
-    parser.AddErrorListener(parserErrorListener)
-    parser.Sequence()
-    if err := parserErrorListener.GetError(); err != nil {
-        return err
-    }
-    return nil
+    return tokens, nil
 }
 
-func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
-    input := normalizeInput(opts.Input)
-    result := InterpreterResult{}
-
-    // lexer
-    if DEBUG { fmt.Println("===== LEXER =====") }
-    istream := antlr.NewInputStream(input)
-    lexer := NewSequenceLexer(istream)
-    lexerErrorListener := NewSyntaxErrorListener()
-    lexer.RemoveErrorListeners()
-    lexer.AddErrorListener(lexerErrorListener)
-    tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-    tokens.Fill()
-    if err := lexerErrorListener.GetError(); err != nil {
-        return result, err
-    }
-    if DEBUG {
-        for _, token := range tokens.GetAllTokens() {
-            fmt.Print(token.GetText())
-        }
-        fmt.Println()
-    }
-
-    // parser
+func Parse(tokens *antlr.CommonTokenStream) (ISequenceContext, error) {
     if DEBUG { fmt.Println("===== PARSER =====") }
     parser := NewSequenceParser(tokens)
     parserErrorListener := NewSyntaxErrorListener()
@@ -87,16 +50,43 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     parser.AddErrorListener(parserErrorListener)
     tree := parser.Sequence()
     if err := parserErrorListener.GetError(); err != nil {
-        return result, err
+        return nil, err
     }
+    return tree, nil
+}
+
+func LexAndParse(input string) (ISequenceContext, error) {
+    tokens, err := Lex(input)
+    if err != nil {
+        return nil, err
+    }
+    return Parse(tokens)
+}
+
+func Validate(input string) error {
+    _, err := LexAndParse(input)
+    return err
+}
+
+func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterResult, error) {
+    result := InterpreterResult{}
 
     // visitor
     if DEBUG { fmt.Println("===== VISITOR =====") }
     visitorOpts := VisitorOptions{
-        MaxLoopIterations: opts.MaxLoopIterations,
-        MaxOutputSize:     opts.MaxOutputSize,
-        EOL:               opts.EOL,
+        MaxLoopIterations: 1e6, // 100k total iterations, including nesting
+        MaxOutputSize:     50 * 1024 * 1024, // 50 MiB
+        EOL:               "\n",
         Locals:            make(map[string]float64),
+    }
+    if opts.MaxLoopIterations > 0 {
+        visitorOpts.MaxLoopIterations = opts.MaxLoopIterations
+    }
+    if opts.MaxOutputSize > 0 {
+        visitorOpts.MaxOutputSize = opts.MaxOutputSize
+    }
+    if opts.EOL != "" {
+        visitorOpts.EOL = opts.EOL
     }
     if opts.Locals != nil {
         for k, v := range opts.Locals {
@@ -105,8 +95,7 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
         }
     }
     visitor := NewVisitor(visitorOpts)
-    err := visitor.Visit(tree)
-    if err != nil {
+    if err := visitor.Visit(tree); err != nil {
         if runtimeErr, ok := err.(*RuntimeError); ok {
             return result, runtimeErr
         }
@@ -122,18 +111,22 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     return result, nil
 }
 
-func EvaluateStringAndLocals(input string, locals map[string]float64) (InterpreterResult, error) {
-    opts := InterpreterOptions{
-        MaxLoopIterations: 1e6,
-        MaxOutputSize:     50 * 1024 * 1024, // 50 MiB
-        EOL:               "\n",
-        TrailingNewline:   true,
-        Input:             input,
-        Locals:            locals,
+func EvaluateWithOpts(input string, opts InterpreterOptions) (InterpreterResult, error) {
+    tree, err := LexAndParse(input)
+    if err != nil {
+        return InterpreterResult{}, err
     }
-    return Evaluate(opts)
+    return EvaluateTree(tree, opts)
 }
 
-func EvaluateString(input string) (InterpreterResult, error) {
-    return EvaluateStringAndLocals(input, nil)
+func EvaluateWithLocals(input string, locals map[string]float64) (InterpreterResult, error) {
+    opts := InterpreterOptions{
+        TrailingNewline: true,
+        Locals:          locals,
+    }
+    return EvaluateWithOpts(input, opts)
+}
+
+func Evaluate(input string) (InterpreterResult, error) {
+    return EvaluateWithLocals(input, nil)
 }

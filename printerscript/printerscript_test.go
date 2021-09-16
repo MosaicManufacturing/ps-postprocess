@@ -7,7 +7,7 @@ import (
 )
 
 func expectOutput(t *testing.T, input, expectedOutput string) {
-    result, err := EvaluateString(input)
+    result, err := Evaluate(input)
     if err != nil {
         t.Error(err)
         return
@@ -24,7 +24,7 @@ func expectOutput(t *testing.T, input, expectedOutput string) {
 }
 
 func expectLocal(t *testing.T, input, local string, expectedValue float64) {
-    result, err := EvaluateString(input)
+    result, err := Evaluate(input)
     if err != nil {
         t.Error(err)
         return
@@ -37,7 +37,7 @@ func expectLocal(t *testing.T, input, local string, expectedValue float64) {
 }
 
 func expectLocalClose(t *testing.T, input, local string, expectedValue float64) {
-    result, err := EvaluateString(input)
+    result, err := Evaluate(input)
     if err != nil {
         t.Error(err)
         return
@@ -52,13 +52,13 @@ func expectLocalClose(t *testing.T, input, local string, expectedValue float64) 
 }
 
 func expectSuccess(t *testing.T, input string) {
-    if _, err := EvaluateString(input); err != nil {
+    if _, err := Evaluate(input); err != nil {
         t.Error(err)
     }
 }
 
 func expectSyntaxError(t *testing.T, input string) {
-    _, err := EvaluateString(input)
+    _, err := Evaluate(input)
     if err != nil {
         if _, ok := err.(*SyntaxError); ok {
             // got what we expected
@@ -69,7 +69,7 @@ func expectSyntaxError(t *testing.T, input string) {
 }
 
 func expectRuntimeError(t *testing.T, input string) {
-    _, err := EvaluateString(input)
+    _, err := Evaluate(input)
     if err != nil {
         if _, ok := err.(*RuntimeError); ok {
             // got what we expected
@@ -146,7 +146,7 @@ func Test_IdentifiersAssignmentAndExpressions(t *testing.T) {
         "e": 11.0,
         "f": 3.0,
     }
-    result, err := EvaluateStringAndLocals(input, locals)
+    result, err := EvaluateWithLocals(input, locals)
     if err != nil {
         t.Error(err)
         return
