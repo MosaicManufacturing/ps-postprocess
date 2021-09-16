@@ -239,9 +239,9 @@ func (v *Visitor) VisitFloatExpr(ctx *FloatExprContext) interface{} {
 func (v *Visitor) VisitBoolExpr(ctx *BoolExprContext) interface{} {
     if DEBUG { fmt.Println("VisitBoolExpr") }
     if ctx.TRUE() != nil {
-        return 1
+        return float64(1)
     }
-    return 0
+    return float64(0)
 }
 
 func (v *Visitor) VisitParenExpr(ctx *ParenExprContext) interface{} {
