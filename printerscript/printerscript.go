@@ -8,10 +8,10 @@ import (
 const DEBUG = false
 
 type InterpreterOptions struct {
-    MaxLoopIterations int
-    EOL string
-    TrailingNewline bool
-    Locals map[string]float64
+    MaxLoopIterations int // raise a RuntimeError if we exceed this many iterations (default: 100,000)
+    EOL string // line ending to use in output (default: "\n")
+    TrailingNewline bool // include a trailing newline in output (default: true)
+    Locals map[string]float64 // initial local values (default: empty map)
 }
 
 type InterpreterResult struct {
@@ -19,6 +19,10 @@ type InterpreterResult struct {
     Locals map[string]float64
 }
 
+// Lex takes a PrinterScript script as input and runs the PrinterScript lexer,
+// returning a token stream which can be passed to Parse, along with an error
+// if lexing failed. In the case of a syntax error, the error will be a
+// SyntaxError including line and column information.
 func Lex(input string) (*antlr.CommonTokenStream, error) {
     input = normalizeInput(input)
     if DEBUG { fmt.Println("===== LEXER =====") }
@@ -41,6 +45,10 @@ func Lex(input string) (*antlr.CommonTokenStream, error) {
     return tokens, nil
 }
 
+// Parse takes a token stream produced by Lex as input and runs the PrinterScript
+// parser, returning a parse tree which can be passed to EvaluateTree, along with
+// an error if parsing failed. In the case of a syntax error, the error will be
+// a SyntaxError including line and column information.
 func Parse(tokens *antlr.CommonTokenStream) (ISequenceContext, error) {
     if DEBUG { fmt.Println("===== PARSER =====") }
     parser := NewSequenceParser(tokens)
@@ -54,6 +62,11 @@ func Parse(tokens *antlr.CommonTokenStream) (ISequenceContext, error) {
     return tree, nil
 }
 
+// LexAndParse is a convenience function that calls Lex and then Parse, checking
+// for lexer errors before parsing. The returned parse tree can be passed to
+// EvaluateTree. This function is especially useful when scripts may be
+// evaluated more than once, as the parse tree can be generated just once and
+// then re-used with each evaluation.
 func LexAndParse(input string) (ISequenceContext, error) {
     tokens, err := Lex(input)
     if err != nil {
@@ -62,11 +75,17 @@ func LexAndParse(input string) (ISequenceContext, error) {
     return Parse(tokens)
 }
 
+// Validate takes a PrinterScript script and checks it for syntax errors,
+// running Lex and then Parse but only returning the error (if any).
 func Validate(input string) error {
     _, err := LexAndParse(input)
     return err
 }
 
+// EvaluateTree takes a parse tree produced by Parse, as well as a set of
+// runtime options for the interpreter, and evaluates the tree. It returns
+// a result containing the output string and the final value of all locals,
+// as well as a RuntimeError if evaluation failed.
 func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterResult, error) {
     result := InterpreterResult{}
 
@@ -106,6 +125,10 @@ func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterRe
     return result, nil
 }
 
+// EvaluateWithOpts takes a PrinterScript script and a set of runtime options for
+// the interpreter, and evaluates the script. It returns a result containing the
+// output string and the final value of all locals, as well as a RuntimeError
+// if evaluation failed.
 func EvaluateWithOpts(input string, opts InterpreterOptions) (InterpreterResult, error) {
     tree, err := LexAndParse(input)
     if err != nil {
@@ -114,6 +137,9 @@ func EvaluateWithOpts(input string, opts InterpreterOptions) (InterpreterResult,
     return EvaluateTree(tree, opts)
 }
 
+// EvaluateWithLocals takes a PrinterScript script and a set of initial local values,
+// and evaluates the script. It returns a result containing the output string and the
+// final value of all locals, as well as a RuntimeError if evaluation failed.
 func EvaluateWithLocals(input string, locals map[string]float64) (InterpreterResult, error) {
     opts := InterpreterOptions{
         TrailingNewline: true,
@@ -122,6 +148,9 @@ func EvaluateWithLocals(input string, locals map[string]float64) (InterpreterRes
     return EvaluateWithOpts(input, opts)
 }
 
+// Evaluate takes a PrinterScript script and evaluates it. It returns a result
+// containing the output string and the final value of all locals, as well as a
+// RuntimeError if evaluation failed.
 func Evaluate(input string) (InterpreterResult, error) {
     return EvaluateWithLocals(input, nil)
 }
