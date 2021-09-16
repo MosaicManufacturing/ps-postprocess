@@ -21,11 +21,6 @@ type InterpreterResult struct {
     Locals map[string]float64
 }
 
-func normalizeInput(input string) string {
-    // todo: trim, convert newlines to only be \n, and add trailing \n
-    return input
-}
-
 func Validate(input string) error {
     input = normalizeInput(input)
 

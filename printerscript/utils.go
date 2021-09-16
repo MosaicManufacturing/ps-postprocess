@@ -1,10 +1,30 @@
 package printerscript
 
 import (
+    "bytes"
     "errors"
     "fmt"
     "math"
+    "strings"
 )
+
+func normalizeNewlines(input string) string {
+    d := []byte(input)
+    // replace CR LF \r\n (Windows) with LF \n (Unix)
+    d = bytes.Replace(d, []byte{13, 10}, []byte{10}, -1)
+    // replace CF \r (Mac Classic) with LF \n (Unix)
+    d = bytes.Replace(d, []byte{13}, []byte{10}, -1)
+    return string(d)
+}
+
+func normalizeInput(input string) string {
+    // trim leading and trailing whitespace
+    trimmed := strings.TrimSpace(input)
+    // normalize all newlines to \n
+    lfOnly := normalizeNewlines(trimmed)
+    // add a trailing newline
+    return lfOnly + "\n"
+}
 
 func getArity(fn string) (int, error) {
     // minimum arity
