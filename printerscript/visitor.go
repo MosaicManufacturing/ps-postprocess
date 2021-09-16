@@ -129,7 +129,11 @@ func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
 
 func (v *Visitor) VisitOptionalElseBlock(ctx *OptionalElseBlockContext) interface{} {
     if DEBUG { fmt.Println("VisitOptionalElseBlock") }
-    return v.Visit(ctx.Statements())
+    statements := ctx.Statements()
+    if statements != nil {
+        return v.Visit(ctx.Statements())
+    }
+    return nil
 }
 
 func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
