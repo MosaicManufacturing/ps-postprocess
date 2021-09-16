@@ -64,8 +64,10 @@ func expectSuccess(t *testing.T, input string) {
 func expectSyntaxError(t *testing.T, input string) {
     _, err := EvaluateString(input)
     if err != nil {
-        // todo: ensure it's actually a syntax error
-        return
+        if _, ok := err.(*SyntaxError); ok {
+            // got what we expected
+            return
+        }
     }
     t.Error("expected syntax error")
 }
@@ -73,8 +75,10 @@ func expectSyntaxError(t *testing.T, input string) {
 func expectRuntimeError(t *testing.T, input string) {
     _, err := EvaluateString(input)
     if err != nil {
-        // todo: ensure it's actually a runtime error
-        return
+        if _, ok := err.(*RuntimeError); ok {
+            // got what we expected
+            return
+        }
     }
     t.Error("expected runtime error")
 }
