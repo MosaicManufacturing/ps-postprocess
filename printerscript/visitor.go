@@ -57,13 +57,6 @@ func NewVisitor(opts VisitorOptions) Visitor {
 
 func (v *Visitor) Visit(tree antlr.ParseTree) interface{} {
     return tree.Accept(v)
-   //
-   //switch val := tree.(type) {
-   //case *StatementsContext:
-   //    return val.Accept(v)
-   //}
-   //fmt.Println("couldn't figure out root of tree... :S")
-   //return nil
 }
 
 func (v *Visitor) VisitSequence(ctx *SequenceContext) interface{} {
@@ -74,10 +67,16 @@ func (v *Visitor) VisitSequence(ctx *SequenceContext) interface{} {
 func (v *Visitor) VisitStatements(ctx *StatementsContext) interface{} {
     if DEBUG { fmt.Println("VisitStatements") }
     if statement := ctx.Statement(); statement != nil {
-        statement.Accept(v)
+        err := statement.Accept(v)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+            return runtimeError
+        }
     }
     if statements := ctx.Statements(); statements != nil {
-        ctx.Statements().Accept(v)
+        err := ctx.Statements().Accept(v)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+            return runtimeError
+        }
     }
     return nil
 }
@@ -86,10 +85,16 @@ func (v *Visitor) VisitStatement(ctx *StatementContext) interface{} {
     if DEBUG { fmt.Println("VisitStatement") }
     assignment := ctx.Assignment()
     if assignment != nil {
-        v.Visit(assignment)
+        err := v.Visit(assignment)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+            return runtimeError
+        }
         return nil
     }
-    v.Visit(ctx.GCode())
+    err := v.Visit(ctx.GCode())
+    if runtimeError, ok := err.(*RuntimeError); ok {
+        return runtimeError
+    }
     return nil
 }
 
@@ -97,7 +102,10 @@ func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
     if DEBUG { fmt.Println("VisitIfBlock") }
     condition := ctx.Expression()
     enterIf := v.Visit(condition)
-    if enterIf != 0 {
+    if runtimeError, ok := enterIf.(*RuntimeError); ok {
+        return runtimeError
+    }
+    if enterIf.(float64) != 0 {
         // if condition is true
         return v.Visit(ctx.Statements())
     }
@@ -111,7 +119,7 @@ func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
 
 func (v *Visitor) VisitOptionalElseBlock(ctx *OptionalElseBlockContext) interface{} {
     if DEBUG { fmt.Println("VisitOptionalElseBlock") }
-    return v.VisitChildren(ctx)
+    return v.Visit(ctx.Statements())
 }
 
 func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
@@ -120,10 +128,10 @@ func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
     enterWhile := v.Visit(condition)
     for enterWhile != 0 {
         if v.loopIters > v.maxLoopIters {
-            //start := ctx.GetStart()
-            //line := start.GetLine()
-            //col := start.GetColumn()
-            // todo: runtime error
+            start := ctx.GetStart()
+            line := start.GetLine()
+            col := start.GetColumn()
+            return NewRuntimeError("maximum number of loop iterations exceeded", line, col)
         }
         v.Visit(ctx.Statements())
         enterWhile = v.Visit(condition)
@@ -135,14 +143,22 @@ func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
 func (v *Visitor) VisitAssignment(ctx *AssignmentContext) interface{} {
     if DEBUG { fmt.Println("VisitAssignment") }
     identifier := ctx.IDENTIFIER().GetText()
-    value := v.Visit(ctx.Expression()).(float64)
-    v.SetLocal(identifier, value)
+    value := v.Visit(ctx.Expression())
+    if runtimeError, ok := value.(*RuntimeError); ok {
+        return runtimeError
+    }
+    v.SetLocal(identifier, value.(float64))
     return nil
 }
 
 func (v *Visitor) VisitGCode(ctx *GCodeContext) interface{} {
     if DEBUG { fmt.Println("VisitGCode") }
-    v.VisitChildren(ctx)
+    for _, part := range ctx.AllGCodePart() {
+        err := v.Visit(part)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+            return runtimeError
+        }
+    }
     v.result += v.EOL
     return nil
 }
@@ -169,8 +185,11 @@ func (v *Visitor) VisitGCodeEscapedText(ctx *GCodeEscapedTextContext) interface{
 
 func (v *Visitor) VisitGCodeSubExpression(ctx *GCodeSubExpressionContext) interface{} {
     if DEBUG { fmt.Println("VisitGCodeSubExpression") }
-    value := v.Visit(ctx.Expression()).(float64)
-    v.result += strconv.FormatFloat(value, 'f', -1, 64)
+    value := v.Visit(ctx.Expression())
+    if runtimeError, ok := value.(*RuntimeError); ok {
+        return runtimeError
+    }
+    v.result += strconv.FormatFloat(value.(float64), 'f', -1, 64)
     return nil
 }
 
@@ -185,28 +204,44 @@ func (v *Visitor) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
     argc := len(paramCtxs)
     requiredArity, err := getArity(fn)
     if err != nil {
-        // todo: runtime error
+        start := ctx.GetStart()
+        line := start.GetLine()
+        col := start.GetColumn()
+        return NewRuntimeError(err.Error(), line, col)
     }
     if fn == "max" || fn == "min" {
         // argc must be AT LEAST the required arity
         if argc < requiredArity {
-            // todo: runtime error
+            start := ctx.GetStart()
+            line := start.GetLine()
+            col := start.GetColumn()
+            return NewRuntimeError(fmt.Sprintf("expected at least %d arguments to '%s' (%d given)", requiredArity, fn, argc), line, col)
         }
     } else {
         // argc must be EXACTLY the required arity
         if argc != requiredArity {
-            // todo: runtime error
+            start := ctx.GetStart()
+            line := start.GetLine()
+            col := start.GetColumn()
+            return NewRuntimeError(fmt.Sprintf("expected %d arguments to '%s' (%d given)", requiredArity, fn, argc), line, col)
         }
     }
 
     // evaluate
     argv := make([]float64, 0, len(paramCtxs))
     for _, paramCtx := range paramCtxs {
-        argv = append(argv, v.Visit(paramCtx).(float64))
+        value := v.Visit(paramCtx)
+        if runtimeError, ok := value.(*RuntimeError); ok {
+            return runtimeError
+        }
+        argv = append(argv, value.(float64))
     }
     retval, err := evaluateFunction(fn, argv)
     if err != nil {
-        // todo: runtime error
+        start := ctx.GetStart()
+        line := start.GetLine()
+        col := start.GetColumn()
+        return NewRuntimeError(err.Error(), line, col)
     }
     return retval
 }
@@ -220,19 +255,15 @@ func (v *Visitor) VisitIdentExpr(ctx *IdentExprContext) interface{} {
 
 func (v *Visitor) VisitIntExpr(ctx *IntExprContext) interface{} {
     if DEBUG { fmt.Println("VisitIntExpr") }
-    value, err := strconv.ParseInt(ctx.INT().GetText(), 10, 64)
-    if err != nil {
-        // todo: runtime error
-    }
+    // successful lexing + parsing guarantee no error here
+    value, _ := strconv.ParseInt(ctx.INT().GetText(), 10, 64)
     return float64(value)
 }
 
 func (v *Visitor) VisitFloatExpr(ctx *FloatExprContext) interface{} {
     if DEBUG { fmt.Println("VisitFloatExpr") }
-    value, err := strconv.ParseFloat(ctx.FLOAT().GetText(), 64)
-    if err != nil {
-        // todo: runtime error
-    }
+    // successful lexing + parsing guarantee no error here
+    value, _ := strconv.ParseFloat(ctx.FLOAT().GetText(), 64)
     return value
 }
 
@@ -252,10 +283,16 @@ func (v *Visitor) VisitParenExpr(ctx *ParenExprContext) interface{} {
 func (v *Visitor) VisitUnaryOpExpr(ctx *UnaryOpExprContext) interface{} {
     if DEBUG { fmt.Println("VisitUnaryOpExpr") }
     op := ctx.GetChild(0).GetPayload().(antlr.Token).GetText()
-    operand := v.Visit(ctx.Expression()).(float64)
-    result, err := evaluateUnaryOp(op, operand)
+    value := v.Visit(ctx.Expression())
+    if runtimeError, ok := value.(*RuntimeError); ok {
+        return runtimeError
+    }
+    result, err := evaluateUnaryOp(op, value.(float64))
     if err != nil {
-        // todo: runtime error
+        start := ctx.GetStart()
+        line := start.GetLine()
+        col := start.GetColumn()
+        return NewRuntimeError(err.Error(), line, col)
     }
     return result
 }
@@ -263,11 +300,20 @@ func (v *Visitor) VisitUnaryOpExpr(ctx *UnaryOpExprContext) interface{} {
 func (v *Visitor) VisitBinaryOpExpr(ctx *BinaryOpExprContext) interface{} {
     if DEBUG { fmt.Println("VisitBinaryOpExpr") }
     op := ctx.GetChild(1).GetPayload().(antlr.Token).GetText()
-    lhs := v.Visit(ctx.Expression(0)).(float64)
-    rhs := v.Visit(ctx.Expression(1)).(float64)
-    result, err := evaluateBinaryOp(op, lhs, rhs)
+    lhs := v.Visit(ctx.Expression(0))
+    if runtimeError, ok := lhs.(*RuntimeError); ok {
+        return runtimeError
+    }
+    rhs := v.Visit(ctx.Expression(1))
+    if runtimeError, ok := rhs.(*RuntimeError); ok {
+        return runtimeError
+    }
+    result, err := evaluateBinaryOp(op, lhs.(float64), rhs.(float64))
     if err != nil {
-        // todo: runtime error
+        start := ctx.GetStart()
+        line := start.GetLine()
+        col := start.GetColumn()
+        return NewRuntimeError(err.Error(), line, col)
     }
     return result
 }

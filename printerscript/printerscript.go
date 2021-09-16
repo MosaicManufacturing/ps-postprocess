@@ -21,14 +21,48 @@ type InterpreterResult struct {
     Locals map[string]float64
 }
 
+func normalizeInput(input string) string {
+    // todo: trim, convert newlines to only be \n, and add trailing \n
+    return input
+}
+
 func Validate(input string) error {
-    // todo: run lexer and parser, and just make sure
-    //   no syntax errors were found (i.e. no visitor)
+    input = normalizeInput(input)
+
+    // lexer
+    if DEBUG { fmt.Println("===== LEXER =====") }
+    istream := antlr.NewInputStream(input)
+    lexer := NewSequenceLexer(istream)
+    lexerErrorListener := NewSyntaxErrorListener()
+    lexer.RemoveErrorListeners()
+    lexer.AddErrorListener(lexerErrorListener)
+    tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+    tokens.Fill()
+    if err := lexerErrorListener.GetError(); err != nil {
+        return err
+    }
+    if DEBUG {
+        for _, token := range tokens.GetAllTokens() {
+            fmt.Print(token.GetText())
+        }
+        fmt.Println()
+    }
+
+    // parser
+    if DEBUG { fmt.Println("===== PARSER =====") }
+    parser := NewSequenceParser(tokens)
+    parserErrorListener := NewSyntaxErrorListener()
+    parser.RemoveErrorListeners()
+    parser.AddErrorListener(parserErrorListener)
+    parser.Sequence()
+    if err := parserErrorListener.GetError(); err != nil {
+        return err
+    }
     return nil
 }
 
 func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
-    input := opts.Input // todo: trim, convert newlines to only be \n, and add trailing \n
+    input := normalizeInput(opts.Input)
     result := InterpreterResult{}
 
     // lexer
@@ -76,7 +110,12 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
         }
     }
     visitor := NewVisitor(visitorOpts)
-    visitor.Visit(tree)
+    err := visitor.Visit(tree)
+    if err != nil {
+        if runtimeErr, ok := err.(*RuntimeError); ok {
+            return result, runtimeErr
+        }
+    }
 
     // result
     if DEBUG { fmt.Println("===== RESULT =====") }
@@ -85,7 +124,7 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
         result.Output = result.Output[:len(result.Output)-1]
     }
     result.Locals = visitor.GetLocals()
-    return result, nil // todo: actually return errors, don't just print them
+    return result, nil
 }
 
 func EvaluateStringAndLocals(input string, locals map[string]float64) (InterpreterResult, error) {
