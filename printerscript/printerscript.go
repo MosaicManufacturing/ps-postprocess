@@ -29,16 +29,20 @@ func Validate(input string) error {
 
 func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     input := opts.Input // todo: trim, convert newlines to only be \n, and add trailing \n
+    result := InterpreterResult{}
 
     // lexer
     if DEBUG { fmt.Println("===== LEXER =====") }
     istream := antlr.NewInputStream(input)
     lexer := NewSequenceLexer(istream)
-    lexerErrorListener := antlr.NewConsoleErrorListener() // todo: implement our own
+    lexerErrorListener := NewSyntaxErrorListener()
     lexer.RemoveErrorListeners()
     lexer.AddErrorListener(lexerErrorListener)
     tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
     tokens.Fill()
+    if err := lexerErrorListener.GetError(); err != nil {
+        return result, err
+    }
     if DEBUG {
         for _, token := range tokens.GetAllTokens() {
             fmt.Print(token.GetText())
@@ -49,11 +53,13 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     // parser
     if DEBUG { fmt.Println("===== PARSER =====") }
     parser := NewSequenceParser(tokens)
-    parserErrorListener := antlr.NewConsoleErrorListener() // todo: implement our own
-    // todo: no equivalent of parser.removeParseListeners() ?
+    parserErrorListener := NewSyntaxErrorListener()
     parser.RemoveErrorListeners()
     parser.AddErrorListener(parserErrorListener)
     tree := parser.Sequence()
+    if err := parserErrorListener.GetError(); err != nil {
+        return result, err
+    }
 
     // visitor
     if DEBUG { fmt.Println("===== VISITOR =====") }
@@ -74,7 +80,6 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
 
     // result
     if DEBUG { fmt.Println("===== RESULT =====") }
-    result := InterpreterResult{}
     result.Output = visitor.GetResult()
     if !opts.TrailingNewline && len(result.Output) > 0 {
         result.Output = result.Output[:len(result.Output)-1]
