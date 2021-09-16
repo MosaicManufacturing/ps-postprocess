@@ -13,12 +13,14 @@ func expectOutput(t *testing.T, input, expectedOutput string) {
         return
     }
     if result.Output != expectedOutput {
-        fmt.Println("< EXPECTED >")
-        fmt.Println(expectedOutput)
-        fmt.Println("< /EXPECTED >")
-        fmt.Println("< RESULT >")
-        fmt.Println(result.Output)
-        fmt.Println("< /RESULT >")
+        if DEBUG {
+            fmt.Println("< EXPECTED >")
+            fmt.Println(expectedOutput)
+            fmt.Println("< /EXPECTED >")
+            fmt.Println("< RESULT >")
+            fmt.Println(result.Output)
+            fmt.Println("< /RESULT >")
+        }
         t.Error("mismatch in output")
     }
 }
@@ -30,8 +32,10 @@ func expectLocal(t *testing.T, input, local string, expectedValue float64) {
         return
     }
     if result.Locals[local] != expectedValue {
-        fmt.Printf("EXPECTED: locals[%s] = %f\n", local, expectedValue)
-        fmt.Printf("RESULT: locals[%s] = %f\n", local, result.Locals[local])
+        if DEBUG {
+            fmt.Printf("EXPECTED: locals[%s] = %f\n", local, expectedValue)
+            fmt.Printf("RESULT: locals[%s] = %f\n", local, result.Locals[local])
+        }
         t.Error("mismatch in local value")
     }
 }
@@ -43,12 +47,13 @@ func expectLocalClose(t *testing.T, input, local string, expectedValue float64) 
         return
     }
     if math.Abs(result.Locals[local] - expectedValue) > 10e-5 {
-        fmt.Printf("EXPECTED: locals[%s] = %f\n", local, expectedValue)
-        fmt.Printf("RESULT: locals[%s] = %f\n", local, result.Locals[local])
+        if DEBUG {
+            fmt.Printf("EXPECTED: locals[%s] = %f\n", local, expectedValue)
+            fmt.Printf("RESULT: locals[%s] = %f\n", local, result.Locals[local])
+        }
         t.Error("mismatch in local value")
     }
 }
-
 
 func expectSyntaxError(t *testing.T, input string) {
     _, err := EvaluateString(input)

@@ -5,6 +5,8 @@ import (
     "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
+const DEBUG = false
+
 type InterpreterOptions struct {
     MaxLoopIterations int
     MaxOutputSize int
@@ -29,7 +31,7 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     input := opts.Input // todo: trim, convert newlines to only be \n, and add trailing \n
 
     // lexer
-    fmt.Println("===== LEXER =====")
+    if DEBUG { fmt.Println("===== LEXER =====") }
     istream := antlr.NewInputStream(input)
     lexer := NewSequenceLexer(istream)
     lexerErrorListener := antlr.NewConsoleErrorListener() // todo: implement our own
@@ -37,13 +39,15 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     lexer.AddErrorListener(lexerErrorListener)
     tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
     tokens.Fill()
-    for _, token := range tokens.GetAllTokens() {
-        fmt.Print(token.GetText())
+    if DEBUG {
+        for _, token := range tokens.GetAllTokens() {
+            fmt.Print(token.GetText())
+        }
+        fmt.Println()
     }
-    fmt.Println()
 
     // parser
-    fmt.Println("===== PARSER =====")
+    if DEBUG { fmt.Println("===== PARSER =====") }
     parser := NewSequenceParser(tokens)
     parserErrorListener := antlr.NewConsoleErrorListener() // todo: implement our own
     // todo: no equivalent of parser.removeParseListeners() ?
@@ -52,7 +56,7 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     tree := parser.Sequence()
 
     // visitor
-    fmt.Println("===== VISITOR =====")
+    if DEBUG { fmt.Println("===== VISITOR =====") }
     visitorOpts := VisitorOptions{
         MaxLoopIterations: opts.MaxLoopIterations,
         MaxOutputSize:     opts.MaxOutputSize,
@@ -62,14 +66,14 @@ func Evaluate(opts InterpreterOptions) (InterpreterResult, error) {
     if opts.Locals != nil {
         for k, v := range opts.Locals {
             visitorOpts.Locals[k] = v
-            fmt.Printf("%s: %f\n", k, v)
+            if DEBUG { fmt.Printf("%s: %f\n", k, v) }
         }
     }
     visitor := NewVisitor(visitorOpts)
     visitor.Visit(tree)
 
     // result
-    fmt.Println("===== RESULT =====")
+    if DEBUG { fmt.Println("===== RESULT =====") }
     result := InterpreterResult{}
     result.Output = visitor.GetResult()
     if !opts.TrailingNewline && len(result.Output) > 0 {

@@ -67,12 +67,12 @@ func (v *Visitor) Visit(tree antlr.ParseTree) interface{} {
 }
 
 func (v *Visitor) VisitSequence(ctx *SequenceContext) interface{} {
-    fmt.Println("VisitSequence")
+    if DEBUG { fmt.Println("VisitSequence") }
     return ctx.Statements().Accept(v)
 }
 
 func (v *Visitor) VisitStatements(ctx *StatementsContext) interface{} {
-    fmt.Println("VisitStatements")
+    if DEBUG { fmt.Println("VisitStatements") }
     if statement := ctx.Statement(); statement != nil {
         statement.Accept(v)
     }
@@ -83,7 +83,7 @@ func (v *Visitor) VisitStatements(ctx *StatementsContext) interface{} {
 }
 
 func (v *Visitor) VisitStatement(ctx *StatementContext) interface{} {
-    fmt.Println("VisitStatement")
+    if DEBUG { fmt.Println("VisitStatement") }
     assignment := ctx.Assignment()
     if assignment != nil {
         v.Visit(assignment)
@@ -94,7 +94,7 @@ func (v *Visitor) VisitStatement(ctx *StatementContext) interface{} {
 }
 
 func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
-    fmt.Println("VisitIfBlock")
+    if DEBUG { fmt.Println("VisitIfBlock") }
     condition := ctx.Expression()
     enterIf := v.Visit(condition)
     if enterIf != 0 {
@@ -110,12 +110,12 @@ func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
 }
 
 func (v *Visitor) VisitOptionalElseBlock(ctx *OptionalElseBlockContext) interface{} {
-    fmt.Println("VisitOptionalElseBlock")
+    if DEBUG { fmt.Println("VisitOptionalElseBlock") }
     return v.VisitChildren(ctx)
 }
 
 func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
-    fmt.Println("VisitWhileBlock")
+    if DEBUG { fmt.Println("VisitWhileBlock") }
     condition := ctx.Expression()
     enterWhile := v.Visit(condition)
     for enterWhile != 0 {
@@ -133,7 +133,7 @@ func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
 }
 
 func (v *Visitor) VisitAssignment(ctx *AssignmentContext) interface{} {
-    fmt.Println("VisitAssignment")
+    if DEBUG { fmt.Println("VisitAssignment") }
     identifier := ctx.IDENTIFIER().GetText()
     value := v.Visit(ctx.Expression()).(float64)
     v.SetLocal(identifier, value)
@@ -141,20 +141,20 @@ func (v *Visitor) VisitAssignment(ctx *AssignmentContext) interface{} {
 }
 
 func (v *Visitor) VisitGCode(ctx *GCodeContext) interface{} {
-    fmt.Println("VisitGCode")
+    if DEBUG { fmt.Println("VisitGCode") }
     v.VisitChildren(ctx)
     v.result += v.EOL
     return nil
 }
 
 func (v *Visitor) VisitGCodeText(ctx *GCodeTextContext) interface{} {
-    fmt.Println("VisitGCodeText")
+    if DEBUG { fmt.Println("VisitGCodeText") }
     v.result += ctx.GetText()
     return nil
 }
 
 func (v *Visitor) VisitGCodeEscapedText(ctx *GCodeEscapedTextContext) interface{} {
-    fmt.Println("VisitGCodeEscapedText")
+    if DEBUG { fmt.Println("VisitGCodeEscapedText") }
     // remove leading backslash if necessary
     text := ctx.GetText()
     if len(text) > 0 {
@@ -168,14 +168,14 @@ func (v *Visitor) VisitGCodeEscapedText(ctx *GCodeEscapedTextContext) interface{
 }
 
 func (v *Visitor) VisitGCodeSubExpression(ctx *GCodeSubExpressionContext) interface{} {
-    fmt.Println("VisitGCodeSubExpression")
+    if DEBUG { fmt.Println("VisitGCodeSubExpression") }
     value := v.Visit(ctx.Expression()).(float64)
     v.result += strconv.FormatFloat(value, 'f', -1, 64)
     return nil
 }
 
 func (v *Visitor) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
-    fmt.Println("VisitFunctionCall")
+    if DEBUG { fmt.Println("VisitFunctionCall") }
     // name of the function
     fn := ctx.IDENTIFIER().GetText()
     // arguments to the function
@@ -212,14 +212,14 @@ func (v *Visitor) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
 }
 
 func (v *Visitor) VisitIdentExpr(ctx *IdentExprContext) interface{} {
-    fmt.Println("VisitIdentExpr")
+    if DEBUG { fmt.Println("VisitIdentExpr") }
     identifier := ctx.IDENTIFIER().GetText()
     value := v.GetLocal(identifier)
     return value
 }
 
 func (v *Visitor) VisitIntExpr(ctx *IntExprContext) interface{} {
-    fmt.Println("VisitIntExpr")
+    if DEBUG { fmt.Println("VisitIntExpr") }
     value, err := strconv.ParseInt(ctx.INT().GetText(), 10, 64)
     if err != nil {
         // todo: runtime error
@@ -228,7 +228,7 @@ func (v *Visitor) VisitIntExpr(ctx *IntExprContext) interface{} {
 }
 
 func (v *Visitor) VisitFloatExpr(ctx *FloatExprContext) interface{} {
-    fmt.Println("VisitFloatExpr")
+    if DEBUG { fmt.Println("VisitFloatExpr") }
     value, err := strconv.ParseFloat(ctx.FLOAT().GetText(), 64)
     if err != nil {
         // todo: runtime error
@@ -237,7 +237,7 @@ func (v *Visitor) VisitFloatExpr(ctx *FloatExprContext) interface{} {
 }
 
 func (v *Visitor) VisitBoolExpr(ctx *BoolExprContext) interface{} {
-    fmt.Println("VisitBoolExpr")
+    if DEBUG { fmt.Println("VisitBoolExpr") }
     if ctx.TRUE() != nil {
         return 1
     }
@@ -245,12 +245,12 @@ func (v *Visitor) VisitBoolExpr(ctx *BoolExprContext) interface{} {
 }
 
 func (v *Visitor) VisitParenExpr(ctx *ParenExprContext) interface{} {
-    fmt.Println("VisitParenExpr")
+    if DEBUG { fmt.Println("VisitParenExpr") }
     return v.Visit(ctx.Expression())
 }
 
 func (v *Visitor) VisitUnaryOpExpr(ctx *UnaryOpExprContext) interface{} {
-    fmt.Println("VisitUnaryOpExpr")
+    if DEBUG { fmt.Println("VisitUnaryOpExpr") }
     op := ctx.GetChild(0).GetPayload().(antlr.Token).GetText()
     operand := v.Visit(ctx.Expression()).(float64)
     result, err := evaluateUnaryOp(op, operand)
@@ -261,7 +261,7 @@ func (v *Visitor) VisitUnaryOpExpr(ctx *UnaryOpExprContext) interface{} {
 }
 
 func (v *Visitor) VisitBinaryOpExpr(ctx *BinaryOpExprContext) interface{} {
-    fmt.Println("VisitBinaryOpExpr")
+    if DEBUG { fmt.Println("VisitBinaryOpExpr") }
     op := ctx.GetChild(1).GetPayload().(antlr.Token).GetText()
     lhs := v.Visit(ctx.Expression(0)).(float64)
     rhs := v.Visit(ctx.Expression(1)).(float64)
