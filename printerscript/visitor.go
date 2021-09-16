@@ -145,7 +145,10 @@ func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
     if DEBUG { fmt.Println("VisitWhileBlock") }
     condition := ctx.Expression()
     enterWhile := v.Visit(condition)
-    for enterWhile != 0 {
+    if runtimeError, ok := enterWhile.(*RuntimeError); ok {
+        return runtimeError
+    }
+    for enterWhile.(float64) != 0 {
         if v.loopIters > v.maxLoopIters {
             start := ctx.GetStart()
             line := start.GetLine()
@@ -154,6 +157,9 @@ func (v *Visitor) VisitWhileBlock(ctx *WhileBlockContext) interface{} {
         }
         v.Visit(ctx.Statements())
         enterWhile = v.Visit(condition)
+        if runtimeError, ok := enterWhile.(*RuntimeError); ok {
+            return runtimeError
+        }
         v.loopIters++
     }
     return nil
