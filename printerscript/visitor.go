@@ -234,13 +234,17 @@ func (v *Visitor) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
         col := start.GetColumn()
         return NewRuntimeError(err.Error(), line, col)
     }
+    argumentsMsg := "argument"
+    if requiredArity != 1 {
+        argumentsMsg = "arguments"
+    }
     if fn == "max" || fn == "min" {
         // argc must be AT LEAST the required arity
         if argc < requiredArity {
             start := ctx.GetStart()
             line := start.GetLine()
             col := start.GetColumn()
-            return NewRuntimeError(fmt.Sprintf("expected at least %d arguments to '%s' (%d given)", requiredArity, fn, argc), line, col)
+            return NewRuntimeError(fmt.Sprintf("expected at least %d %s to '%s' (%d given)", requiredArity, argumentsMsg, fn, argc), line, col)
         }
     } else {
         // argc must be EXACTLY the required arity
@@ -248,7 +252,7 @@ func (v *Visitor) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
             start := ctx.GetStart()
             line := start.GetLine()
             col := start.GetColumn()
-            return NewRuntimeError(fmt.Sprintf("expected %d arguments to '%s' (%d given)", requiredArity, fn, argc), line, col)
+            return NewRuntimeError(fmt.Sprintf("expected %d %s to '%s' (%d given)", requiredArity, argumentsMsg, fn, argc), line, col)
         }
     }
 
