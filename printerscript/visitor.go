@@ -66,10 +66,20 @@ func (v *Visitor) VisitSequence(ctx *SequenceContext) interface{} {
 
 func (v *Visitor) VisitStatements(ctx *StatementsContext) interface{} {
     if DEBUG { fmt.Println("VisitStatements") }
-    if statement := ctx.Statement(); statement != nil {
-        err := statement.Accept(v)
+    if ifBlock := ctx.IfBlock(); ifBlock != nil {
+        err := v.Visit(ifBlock)
         if runtimeError, ok := err.(*RuntimeError); ok {
             return runtimeError
+        }
+    } else if whileBlock := ctx.WhileBlock(); whileBlock != nil {
+        err := v.Visit(whileBlock)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+            return runtimeError
+        }
+    } else if statement := ctx.Statement(); statement != nil {
+        err := v.Visit(statement)
+        if runtimeError, ok := err.(*RuntimeError); ok {
+           return runtimeError
         }
     }
     if statements := ctx.Statements(); statements != nil {
