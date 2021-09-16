@@ -129,10 +129,15 @@ func (v *Visitor) VisitIfBlock(ctx *IfBlockContext) interface{} {
 
 func (v *Visitor) VisitOptionalElseBlock(ctx *OptionalElseBlockContext) interface{} {
     if DEBUG { fmt.Println("VisitOptionalElseBlock") }
-    statements := ctx.Statements()
-    if statements != nil {
+    if ifBlock := ctx.IfBlock(); ifBlock != nil {
+        // else-if block
+        return v.Visit(ctx.IfBlock())
+    }
+    if statements := ctx.Statements(); statements != nil {
+        // else block
         return v.Visit(ctx.Statements())
     }
+    // if or else-if without a final else
     return nil
 }
 
