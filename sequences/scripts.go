@@ -39,10 +39,8 @@ func LoadScripts(jsonPath string) (Scripts, error) {
     if err != nil {
         return scripts, err
     }
-    if err := json.Unmarshal(data, &scripts); err != nil {
-        return scripts, err
-    }
-    return scripts, nil
+    err = json.Unmarshal(data, &scripts)
+    return scripts, err
 }
 
 func (s *Scripts) Parse() (ParsedScripts, error) {

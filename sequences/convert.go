@@ -12,27 +12,35 @@ import (
 
 const EOL = "\r\n"
 
-func convert(inpath, outpath string, scripts ParsedScripts) error {
+func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]float64) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
         return createErr
     }
     writer := bufio.NewWriter(outfile)
 
+    // keep track of current state
+    positionTracker := gcode.PositionTracker{}
+    currentLayer := float64(0)
+
+    // todo: run through file once to get some additional values
+    //  (totalLayers, totalTime) and set them on locals
+    // todo: any way to cheaply calculate timeElapsed?
+    // todo: track print head and bed temperatures
+
     err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
+        positionTracker.TrackInstruction(line)
         output := line.Raw
         if line.Raw == startPlaceholder {
             fmt.Println("start sequence found")
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          map[string]float64{
-                    // todo: populate printer/style settings (constants)
-                    // todo: populate current state values (dynamic)
+                Locals:          MergeLocals(locals, map[string]float64{
                     "layer": 0,
                     // todo: nextX/Y/Z
                     "currentPrintTemperature": 0,
-                },
+                }),
             }
             result, err := printerscript.EvaluateTree(scripts.Start, opts)
             if err != nil {
@@ -44,12 +52,10 @@ func convert(inpath, outpath string, scripts ParsedScripts) error {
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          map[string]float64{
-                    // todo: populate printer/style settings (constants)
-                    // todo: populate current state values (dynamic)
-                    // todo: layer (equal to totalLayers)
+                Locals:          MergeLocals(locals, map[string]float64{
+                    "layer": currentLayer, // todo: force this to equal totalLayers? (should already match)
                     // todo: nextX/Y/Z
-                },
+                }),
             }
             result, err := printerscript.EvaluateTree(scripts.End, opts)
             if err != nil {
@@ -63,17 +69,18 @@ func convert(inpath, outpath string, scripts ParsedScripts) error {
             if err != nil {
                 return err
             }
+            currentLayer = float64(layer)
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          map[string]float64{
-                    // todo: populate printer/style settings (constants)
-                    // todo: populate current state values (dynamic)
-                    "layer": float64(layer),
-                    // todo: currentX/Y/Z
+                Locals:          MergeLocals(locals, map[string]float64{
+                    "layer": currentLayer,
+                    "currentX": float64(positionTracker.CurrentX),
+                    "currentY": float64(positionTracker.CurrentY),
+                    "currentZ": float64(positionTracker.CurrentZ),
                     // todo: nextX/Y
                     "nextZ": layerZ,
-                },
+                }),
             }
             result, err := printerscript.EvaluateTree(scripts.LayerChange, opts)
             if err != nil {
@@ -89,13 +96,13 @@ func convert(inpath, outpath string, scripts ParsedScripts) error {
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          map[string]float64{
-                    // todo: populate printer/style settings (constants)
-                    // todo: populate current state values (dynamic)
-                    // todo: layer
-                    // todo: currentX/Y/Z
+                Locals:          MergeLocals(locals, map[string]float64{
+                    "layer": currentLayer,
+                    "currentX": float64(positionTracker.CurrentX),
+                    "currentY": float64(positionTracker.CurrentY),
+                    "currentZ": float64(positionTracker.CurrentZ),
                     // todo: nextX/Y/Z
-                },
+                }),
             }
             result, err := printerscript.EvaluateTree(scripts.MaterialChange[toTool], opts)
             if err != nil {
@@ -124,12 +131,13 @@ func convert(inpath, outpath string, scripts ParsedScripts) error {
 func ConvertSequences(argv []string) {
     argc := len(argv)
 
-    if argc < 3 {
-        log.Fatalln("expected 3 command-line arguments")
+    if argc < 4 {
+        log.Fatalln("expected 4 command-line arguments")
     }
     inpath := argv[0] // unmodified G-code file
     outpath := argv[1] // modified G-code file
     scriptspath := argv[2] // JSON-stringified scripts to swap in
+    localspath := argv[3] // JSON-stringified locals
 
     scripts, err := LoadScripts(scriptspath)
     if err != nil {
@@ -142,7 +150,13 @@ func ConvertSequences(argv []string) {
         log.Fatalln(err)
     }
 
-    err = convert(inpath, outpath, parsedScripts)
+    // load locals that are available in all scripts
+    locals, err := LoadLocals(localspath)
+    if err != nil {
+        log.Fatalln(err)
+    }
+
+    err = convert(inpath, outpath, parsedScripts, locals)
     if err != nil {
         log.Fatalln(err)
     }
