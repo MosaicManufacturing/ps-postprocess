@@ -4,7 +4,6 @@ import (
     "../gcode"
     "../printerscript"
     "bufio"
-    "fmt"
     "log"
     "os"
     "strings"
@@ -32,6 +31,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
     currentLayer := float64(0)
     currentPrintTemperature := float64(0)
     currentBedTemperature := float64(0)
+    nextLayerChangeIdx := 0
+    nextMaterialChangeIdx := 0
 
     // todo: any way to cheaply calculate timeElapsed?
 
@@ -50,13 +51,14 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
 
         output := line.Raw
         if line.Raw == startPlaceholder {
-            fmt.Println("start sequence found")
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
                 Locals:          MergeLocals(locals, map[string]float64{
                     "layer": 0,
-                    // todo: nextX/Y/Z
+                    "nextX": preflightResults.startSequenceNextPos.nextX,
+                    "nextY": preflightResults.startSequenceNextPos.nextY,
+                    "nextZ": preflightResults.startSequenceNextPos.nextZ,
                     "currentPrintTemperature": 0,
                     "currentBedTemperature": currentBedTemperature,
                 }),
@@ -67,13 +69,11 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             }
             output = result.Output
         } else if line.Raw == endPlaceholder {
-            fmt.Println("end sequence found")
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
                 Locals:          MergeLocals(locals, map[string]float64{
                     "layer": float64(preflightResults.totalLayers),
-                    // todo: nextX/Y/Z
                     "currentPrintTemperature": currentPrintTemperature,
                     "currentBedTemperature": currentBedTemperature,
                 }),
@@ -84,9 +84,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             }
             output = result.Output
         } else if strings.HasPrefix(line.Raw, layerChangePrefix) {
-            fmt.Println("layer change sequence found")
             layer, layerZ, err := parseLayerChangePlaceholder(line.Raw)
-            fmt.Printf("layer = %d, layerZ = %f \n", layer, layerZ)
             if err != nil {
                 return err
             }
@@ -99,7 +97,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                     "currentX": float64(positionTracker.CurrentX),
                     "currentY": float64(positionTracker.CurrentY),
                     "currentZ": float64(positionTracker.CurrentZ),
-                    // todo: nextX/Y
+                    "nextX": preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextX,
+                    "nextY": preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextY,
                     "nextZ": layerZ,
                     "currentPrintTemperature": currentPrintTemperature,
                     "currentBedTemperature": currentBedTemperature,
@@ -110,8 +109,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                 return err
             }
             output = result.Output
+            nextLayerChangeIdx++
         } else if strings.HasPrefix(line.Raw, materialChangePrefix) {
-            fmt.Println("material change sequence found")
             toTool, err := parseMaterialChangePlaceholder(line.Raw)
             if err != nil {
                 return err
@@ -124,7 +123,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                     "currentX": float64(positionTracker.CurrentX),
                     "currentY": float64(positionTracker.CurrentY),
                     "currentZ": float64(positionTracker.CurrentZ),
-                    // todo: nextX/Y/Z
+                    "nextX": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextX,
+                    "nextY": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextY,
+                    "nextZ": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextZ,
                     "currentPrintTemperature": currentPrintTemperature,
                     "currentBedTemperature": currentBedTemperature,
                 }),
@@ -134,6 +135,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                 return err
             }
             output = result.Output
+            nextMaterialChangeIdx++
         }
         if _, err := writer.WriteString(output + EOL); err != nil {
             return err

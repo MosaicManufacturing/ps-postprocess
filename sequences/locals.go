@@ -2,7 +2,6 @@ package sequences
 
 import (
     "encoding/json"
-    "fmt"
     "io/ioutil"
 )
 
@@ -12,7 +11,6 @@ func LoadLocals(jsonPath string) (map[string]float64, error) {
     if err != nil {
         return locals, err
     }
-    fmt.Println(string(data))
     err = json.Unmarshal(data, &locals)
     return locals, err
 }
