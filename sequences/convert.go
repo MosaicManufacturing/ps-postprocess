@@ -30,11 +30,24 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
     // keep track of current state
     positionTracker := gcode.PositionTracker{}
     currentLayer := float64(0)
-    // todo: track print head and bed temperatures
+    currentPrintTemperature := float64(0)
+    currentBedTemperature := float64(0)
+
     // todo: any way to cheaply calculate timeElapsed?
 
     err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
+        // update current position and/or temperature
         positionTracker.TrackInstruction(line)
+        if line.Command == "M104" || line.Command == "M109" {
+            if s, ok := line.Params["s"]; ok {
+                currentPrintTemperature = float64(s)
+            }
+        } else if line.Command == "M140" || line.Command == "M190" {
+            if s, ok := line.Params["s"]; ok {
+                currentBedTemperature = float64(s)
+            }
+        }
+
         output := line.Raw
         if line.Raw == startPlaceholder {
             fmt.Println("start sequence found")
@@ -45,6 +58,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                     "layer": 0,
                     // todo: nextX/Y/Z
                     "currentPrintTemperature": 0,
+                    "currentBedTemperature": currentBedTemperature,
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.Start, opts)
@@ -58,8 +72,10 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                 EOL:             EOL,
                 TrailingNewline: false,
                 Locals:          MergeLocals(locals, map[string]float64{
-                    "layer": currentLayer, // todo: force this to equal totalLayers? (should already match)
+                    "layer": float64(preflightResults.totalLayers),
                     // todo: nextX/Y/Z
+                    "currentPrintTemperature": currentPrintTemperature,
+                    "currentBedTemperature": currentBedTemperature,
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.End, opts)
@@ -85,6 +101,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                     "currentZ": float64(positionTracker.CurrentZ),
                     // todo: nextX/Y
                     "nextZ": layerZ,
+                    "currentPrintTemperature": currentPrintTemperature,
+                    "currentBedTemperature": currentBedTemperature,
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.LayerChange, opts)
@@ -107,6 +125,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
                     "currentY": float64(positionTracker.CurrentY),
                     "currentZ": float64(positionTracker.CurrentZ),
                     // todo: nextX/Y/Z
+                    "currentPrintTemperature": currentPrintTemperature,
+                    "currentBedTemperature": currentBedTemperature,
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.MaterialChange[toTool], opts)
