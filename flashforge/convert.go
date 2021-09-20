@@ -46,7 +46,7 @@ func convert(inpath, outpath string, printExtruder int) error {
         return nil
     })
     if err != nil {
-        log.Fatalln(err)
+        return err
     }
 
     if err := writer.Flush(); err != nil {

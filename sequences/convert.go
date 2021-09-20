@@ -116,7 +116,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
         return nil
     })
     if err != nil {
-        log.Fatalln(err)
+        return err
     }
 
     if err := writer.Flush(); err != nil {
