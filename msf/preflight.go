@@ -109,7 +109,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             state.OnWipeTower = startingWipeTower
         } else if results.timeEstimate == 0 &&
             strings.HasPrefix(line.Comment, "estimated printing time (normal mode) = ") {
-            timeEstimate, err := parseTimeEstimate(line.Comment)
+            timeEstimate, err := gcode.ParseTimeString(line.Comment)
             if err != nil {
                 return err
             }

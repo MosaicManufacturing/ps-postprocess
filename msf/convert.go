@@ -242,7 +242,6 @@ func ConvertForPalette(argv []string) {
 
     palette, err := LoadFromFile(palettepath)
     if err != nil {
-        fmt.Print(err)
         log.Fatalln(err)
     }
 
