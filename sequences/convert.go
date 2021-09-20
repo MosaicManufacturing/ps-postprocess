@@ -19,16 +19,21 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
     }
     writer := bufio.NewWriter(outfile)
 
+    // run through the file once for summary information
+    preflightResults, err := preflight(inpath)
+    if err != nil {
+        return err
+    }
+    locals["totalLayers"] = float64(preflightResults.totalLayers)
+    locals["totalTime"] = float64(preflightResults.totalTime)
+
     // keep track of current state
     positionTracker := gcode.PositionTracker{}
     currentLayer := float64(0)
-
-    // todo: run through file once to get some additional values
-    //  (totalLayers, totalTime) and set them on locals
-    // todo: any way to cheaply calculate timeElapsed?
     // todo: track print head and bed temperatures
+    // todo: any way to cheaply calculate timeElapsed?
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
+    err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
         positionTracker.TrackInstruction(line)
         output := line.Raw
         if line.Raw == startPlaceholder {
