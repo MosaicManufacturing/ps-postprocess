@@ -118,8 +118,13 @@ func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterRe
     // result
     if DEBUG { fmt.Println("===== RESULT =====") }
     result.Output = visitor.GetResult()
-    if !opts.TrailingNewline && len(result.Output) > 0 {
-        result.Output = result.Output[:len(result.Output)-1]
+    if !opts.TrailingNewline {
+        // trailing newlines are always generated -- remove now if disabled
+        outputLen := len(result.Output)
+        eolLen := len(opts.EOL)
+        if outputLen >= eolLen {
+            result.Output = result.Output[:outputLen-eolLen]
+        }
     }
     result.Locals = visitor.GetLocals()
     return result, nil
