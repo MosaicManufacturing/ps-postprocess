@@ -4,6 +4,7 @@ import (
     "./flashforge"
     "./msf"
     "./ptp"
+    "./sequences"
     "./ultimaker"
     "fmt"
     "log"
@@ -24,6 +25,8 @@ func main() {
         ultimaker.AddHeader(argv[1:])
     case "flashforge":
         flashforge.ConvertCommands(argv[1:])
+    case "printerscript":
+        sequences.ConvertSequences(argv[1:])
     default:
        log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
     }
