@@ -28,15 +28,6 @@ type sequencesPreflight struct {
     materialChangeNextPos []lookahead
 }
 
-func newLookahead(lookaheadType lookaheadType, position *gcode.PositionTracker) lookahead {
-    return lookahead{
-        lookaheadType: lookaheadType,
-        nextX:         float64(position.CurrentX),
-        nextY:         float64(position.CurrentY),
-        nextZ:         float64(position.CurrentZ),
-    }
-}
-
 func preflight(inpath string) (sequencesPreflight, error) {
     results := sequencesPreflight{
         layerChangeNextPos:    make([]lookahead, 0),
@@ -64,7 +55,12 @@ func preflight(inpath string) (sequencesPreflight, error) {
     }
 
     addLookahead := func(lookaheadType lookaheadType) {
-        currentLookaheads = append(currentLookaheads, newLookahead(lookaheadType, &position))
+        currentLookaheads = append(currentLookaheads, lookahead{
+            lookaheadType: lookaheadType,
+            nextX:         float64(position.CurrentX),
+            nextY:         float64(position.CurrentY),
+            nextZ:         float64(position.CurrentZ),
+        })
     }
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNum int) error {
