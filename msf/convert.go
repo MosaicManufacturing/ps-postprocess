@@ -130,6 +130,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 return err
             }
             if state.FirstToolChange {
+                // todo: only output and set state.FirstToolChange = false if we're past the start sequence
+                //  (i.e. account for start sequences containing toolchanges)
                 state.FirstToolChange = false
                 if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
                     return err

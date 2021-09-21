@@ -86,6 +86,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 return err
             }
             if state.FirstToolChange {
+                // todo: only set state.FirstToolChange = false if we're past the start sequence
+                //  (i.e. account for start sequences containing toolchanges)
                 state.FirstToolChange = false
             } else {
                 state.CurrentTool = int(tool)
