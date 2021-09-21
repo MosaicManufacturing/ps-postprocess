@@ -8,7 +8,6 @@ import (
 
 type msfPreflight struct {
     drivesUsed []bool
-    transitionStarts []float32
     pingStarts []float32
     boundingBox gcode.BoundingBox
     towerBoundingBox gcode.BoundingBox
@@ -19,7 +18,6 @@ type msfPreflight struct {
 func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     results := msfPreflight{
         drivesUsed:       make([]bool, palette.GetInputCount()),
-        transitionStarts: make([]float32, 0),
         pingStarts:       make([]float32, 0),
         boundingBox:      gcode.NewBoundingBox(),
         towerBoundingBox: gcode.NewBoundingBox(),
@@ -93,7 +91,6 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 state.CurrentTool = int(tool)
                 state.CurrentlyTransitioning = true
                 results.drivesUsed[state.CurrentTool] = true
-                results.transitionStarts = append(results.transitionStarts, state.E.TotalExtrusion)
             }
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
