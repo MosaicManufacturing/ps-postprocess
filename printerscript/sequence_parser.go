@@ -2306,7 +2306,7 @@ func (p *SequenceParser) expression(_p int) (localctx IExpressionContext) {
 	_parentState := p.GetState()
 	localctx = NewExpressionContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IExpressionContext = localctx
-	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
+	var _ antlr.ParserRuleContext = _prevctx
 	_startState := 18
 	p.EnterRecursionRule(localctx, 18, SequenceParserRULE_expression, _p)
 	var _la int

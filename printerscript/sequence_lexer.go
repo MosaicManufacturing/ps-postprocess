@@ -199,7 +199,6 @@ type SequenceLexer struct {
 	*antlr.BaseLexer
 	channelNames []string
 	modeNames    []string
-	// TODO: EOF string
 }
 
 // NewSequenceLexer produces a new lexer instance for the optional input antlr.CharStream.
@@ -225,7 +224,6 @@ func NewSequenceLexer(input antlr.CharStream) *SequenceLexer {
 	l.LiteralNames = lexerLiteralNames
 	l.SymbolicNames = lexerSymbolicNames
 	l.GrammarFileName = "SequenceLexer.g4"
-	// TODO: l.EOF = antlr.TokenEOF
 
 	return l
 }
