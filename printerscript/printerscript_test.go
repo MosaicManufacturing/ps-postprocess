@@ -177,6 +177,14 @@ func Test_IdentifiersAssignmentAndExpressions(t *testing.T) {
     }
 }
 
+func Test_OutputPrecision(t *testing.T) {
+    expectOutput(t, "a = 0\n'{{a}}'", "0\n")
+    expectOutput(t, "a = 0.66666666667\n'{{a}}'", "0.66667\n")
+    expectOutput(t, "a = 0.000001\n'{{a}}'", "0\n")
+    expectOutput(t, "a = 1.50\n'{{a}}'", "1.5\n")
+    expectOutput(t, "a = 3\n'{{a}}'", "3\n")
+}
+
 //
 // 3 - Operators
 //

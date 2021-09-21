@@ -3,7 +3,9 @@ package printerscript
 import (
     "fmt"
     "github.com/antlr/antlr4/runtime/Go/antlr"
+    "math"
     "strconv"
+    "strings"
 )
 
 type VisitorOptions struct {
@@ -205,13 +207,27 @@ func (v *Visitor) VisitGCodeEscapedText(ctx *GCodeEscapedTextContext) interface{
     return nil
 }
 
+func formatFloat(value float64) string {
+    // round to 5 decimal places first
+    value = math.Round(value * 10e5) / 10e5
+    // output with exactly 5 decimal places
+    valStr := fmt.Sprintf("%.5f", value)
+    // remove trailing zeros, and the decimal point if we reach it
+    valStr = strings.TrimRight(valStr, "0.")
+    // special-case for numbers that were printed as 0
+    if len(valStr) == 0 {
+        valStr = "0"
+    }
+    return valStr
+}
+
 func (v *Visitor) VisitGCodeSubExpression(ctx *GCodeSubExpressionContext) interface{} {
     if DEBUG { fmt.Println("VisitGCodeSubExpression") }
     value := v.Visit(ctx.Expression())
     if runtimeError, ok := value.(*RuntimeError); ok {
         return runtimeError
     }
-    v.result += strconv.FormatFloat(value.(float64), 'f', -1, 64)
+    v.result += formatFloat(value.(float64))
     return nil
 }
 
