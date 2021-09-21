@@ -6,12 +6,13 @@ import (
     "bufio"
     "log"
     "os"
+    "strconv"
     "strings"
 )
 
 const EOL = "\r\n"
 
-func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]float64) error {
+func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
         return createErr
@@ -23,11 +24,12 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
     if err != nil {
         return err
     }
-    locals["totalLayers"] = float64(preflightResults.totalLayers)
-    locals["totalTime"] = float64(preflightResults.totalTime)
+    locals.Global["totalLayers"] = float64(preflightResults.totalLayers)
+    locals.Global["totalTime"] = float64(preflightResults.totalTime)
 
     // keep track of current state
     positionTracker := gcode.PositionTracker{}
+    currentTool := 0
     currentLayer := float64(0)
     currentPrintTemperature := float64(0)
     currentBedTemperature := float64(0)
@@ -47,6 +49,12 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             if s, ok := line.Params["s"]; ok {
                 currentBedTemperature = float64(s)
             }
+        } else if len(line.Command) > 1 && line.Command[0] == 'T' {
+            tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
+            if err != nil {
+                return err
+            }
+            currentTool = int(tool)
         }
 
         output := line.Raw
@@ -54,7 +62,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          MergeLocals(locals, map[string]float64{
+                Locals:          locals.Prepare(currentTool, map[string]float64{
                     "layer": 0,
                     "nextX": preflightResults.startSequenceNextPos.nextX,
                     "nextY": preflightResults.startSequenceNextPos.nextY,
@@ -72,7 +80,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          MergeLocals(locals, map[string]float64{
+                Locals:          locals.Prepare(currentTool, map[string]float64{
                     "layer": float64(preflightResults.totalLayers),
                     "currentPrintTemperature": currentPrintTemperature,
                     "currentBedTemperature": currentBedTemperature,
@@ -92,7 +100,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          MergeLocals(locals, map[string]float64{
+                Locals:          locals.Prepare(currentTool, map[string]float64{
                     "layer": currentLayer,
                     "currentX": float64(positionTracker.CurrentX),
                     "currentY": float64(positionTracker.CurrentY),
@@ -118,7 +126,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
-                Locals:          MergeLocals(locals, map[string]float64{
+                Locals:          locals.Prepare(currentTool, map[string]float64{
                     "layer": currentLayer,
                     "currentX": float64(positionTracker.CurrentX),
                     "currentY": float64(positionTracker.CurrentY),
@@ -158,15 +166,16 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals map[string]fl
 func ConvertSequences(argv []string) {
     argc := len(argv)
 
-    if argc < 4 {
-        log.Fatalln("expected 4 command-line arguments")
+    if argc < 5 {
+        log.Fatalln("expected 5 command-line arguments")
     }
-    inpath := argv[0] // unmodified G-code file
-    outpath := argv[1] // modified G-code file
-    scriptspath := argv[2] // JSON-stringified scripts to swap in
-    localspath := argv[3] // JSON-stringified locals
+    inPath := argv[0] // unmodified G-code file
+    outPath := argv[1] // modified G-code file
+    scriptsPath := argv[2] // JSON-stringified scripts to swap in
+    localsPath := argv[3] // JSON-stringified locals
+    perExtruderLocalsPath := argv[4] // JSON-stringified locals
 
-    scripts, err := LoadScripts(scriptspath)
+    scripts, err := LoadScripts(scriptsPath)
     if err != nil {
         log.Fatalln(err)
     }
@@ -178,12 +187,15 @@ func ConvertSequences(argv []string) {
     }
 
     // load locals that are available in all scripts
-    locals, err := LoadLocals(localspath)
-    if err != nil {
+    locals := NewLocals()
+    if err := locals.LoadGlobal(localsPath); err != nil {
+        log.Fatalln(err)
+    }
+    if err := locals.LoadPerExtruder(perExtruderLocalsPath); err != nil {
         log.Fatalln(err)
     }
 
-    err = convert(inpath, outpath, parsedScripts, locals)
+    err = convert(inPath, outPath, parsedScripts, locals)
     if err != nil {
         log.Fatalln(err)
     }
