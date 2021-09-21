@@ -183,6 +183,7 @@ func Test_OutputPrecision(t *testing.T) {
     expectOutput(t, "a = 0.000001\n'{{a}}'", "0\n")
     expectOutput(t, "a = 1.50\n'{{a}}'", "1.5\n")
     expectOutput(t, "a = 3\n'{{a}}'", "3\n")
+    expectOutput(t, "a = 3000\n'{{a}}'", "3000\n")
 }
 
 //

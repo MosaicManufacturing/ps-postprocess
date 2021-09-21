@@ -213,8 +213,8 @@ func formatFloat(value float64) string {
     // output with exactly 5 decimal places
     valStr := fmt.Sprintf("%.5f", value)
     // remove trailing zeros, and the decimal point if we reach it
-    valStr = strings.TrimRight(valStr, "0.")
-    // special-case for numbers that were printed as 0
+    valStr = strings.TrimRight(strings.TrimRight(valStr, "0"), ".")
+    // special-case for numbers that were printed as 0.00000
     if len(valStr) == 0 {
         valStr = "0"
     }
