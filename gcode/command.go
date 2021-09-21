@@ -2,7 +2,6 @@ package gcode
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -48,45 +47,6 @@ func (gcc Command) IsSetExtrusionMode() (bool, bool) {
 
 func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
-}
-
-func ParseLine(raw string) Command {
-	params := Params{}
-	flags := Flags{}
-	if len(strings.Trim(raw, " ")) == 0 {
-		return NewCommand(raw, "", "", params, flags)
-	}
-
-	// collect any comments
-	commentSplit := strings.Split(raw, ";")
-	line := strings.Trim(commentSplit[0], " ")
-	comment := strings.Trim(strings.Join(commentSplit[1:], ";"), " ")
-
-	// split the line at spaces
-	argv := strings.Fields(line)
-	argc := len(argv)
-
-	// get the command
-	command := ""
-	if len(argv) > 0 {
-		command = strings.ToUpper(argv[0])
-	}
-
-	// collect arguments
-	for i := 1; i < argc; i++ {
-		key := strings.ToLower(argv[i][0:1])
-		value := argv[i][1:]
-		if len(value) == 0 {
-			flags[key] = true
-		} else {
-			floatValue, err := strconv.ParseFloat(value, 32)
-			if err == nil {
-				params[key] = float32(floatValue)
-			}
-		}
-	}
-
-	return NewCommand(raw, command, comment, params, flags)
 }
 
 func (gcc Command) ToString() string {

@@ -11,9 +11,6 @@ type Scripts struct {
     End string `json:"end"`
     LayerChange string `json:"layerChange"`
     MaterialChange []string `json:"materialChange"`
-    // todo: before side transitioning sequence
-    // todo: side transition sequence
-    // todo: after side transitioning sequence
 }
 
 type ParsedScripts struct {

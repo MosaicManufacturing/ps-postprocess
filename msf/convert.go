@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "../sequences"
     "bufio"
     "errors"
     "fmt"
@@ -19,7 +20,7 @@ import (
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
 
-func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight) error {
+func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight, locals sequences.Locals) error {
     outfile, createErr := os.Create(outpath)
     if createErr != nil {
         return createErr
@@ -31,6 +32,15 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     state := NewState(palette)
     state.MSF = &msfOut
     state.TowerBoundingBox = preflight.towerBoundingBox
+    for _, position := range preflight.transitionNextPositions {
+        state.TransitionNextPositions = append(state.TransitionNextPositions, [3]float32{
+            position.X, position.Y, position.Z,
+        })
+    }
+    locals.Global["totalTime"] = float64(preflight.timeEstimate)
+    locals.Global["totalLayers"] = float64(preflight.totalLayers)
+
+    state.Locals = locals
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
     state.TimeEstimate = preflight.timeEstimate
@@ -59,6 +69,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         }
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
+        state.Temperature.TrackInstruction(line)
         if line.IsLinearMove() {
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
@@ -129,33 +140,43 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             if err != nil {
                 return err
             }
-            if state.FirstToolChange {
-                // todo: only output and set state.FirstToolChange = false if we're past the start sequence
-                //  (i.e. account for start sequences containing toolchanges)
-                state.FirstToolChange = false
-                if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
-                    return err
-                }
-            } else {
-                comment := fmt.Sprintf("; Transitioning to T%d from T%d", tool, state.CurrentTool)
-                if err := writeLine(writer, comment); err != nil {
-                    return err
-                }
-                currentTransitionLength := palette.TransitionLengths[tool][state.CurrentTool]
-                spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
-                if err := msfOut.AddSplice(state.CurrentTool, state.E.TotalExtrusion + spliceOffset); err != nil {
-                    return err
-                }
-                state.CurrentTool = int(tool)
-                state.CurrentlyTransitioning = true
-                if palette.TransitionMethod == SideTransitions {
-                    transition := sideTransition(currentTransitionLength, &state)
-                    if err := writeLines(writer, transition); err != nil {
+            if state.PastStartSequence {
+                if state.FirstToolChange {
+                    state.FirstToolChange = false
+                    if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
                         return err
                     }
-                    state.CurrentlyTransitioning = false
+                } else {
+                    comment := fmt.Sprintf("; Transitioning to T%d from T%d", tool, state.CurrentTool)
+                    if err := writeLine(writer, comment); err != nil {
+                        return err
+                    }
+                    currentTransitionLength := palette.TransitionLengths[tool][state.CurrentTool]
+                    spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
+                    // todo: account for extending transition length to maintain piece lengths
+                    extra := float32(50) // todo: only for testing -- remove!!!
+                    spliceLength := state.E.TotalExtrusion + spliceOffset + extra
+                    if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
+                        return err
+                    }
+                    state.CurrentTool = int(tool)
+                    state.CurrentlyTransitioning = true
+                    if palette.TransitionMethod == SideTransitions {
+                        transition, err := sideTransition(currentTransitionLength, &state)
+                        if err != nil {
+                            return err
+                        }
+                        if err := writeLines(writer, transition); err != nil {
+                            return err
+                        }
+                        state.CurrentlyTransitioning = false
+                    }
                 }
             }
+        } else if line.Raw == ";START_OF_PRINT" {
+            state.PastStartSequence = true
+        } else if line.Raw == ";LAYER_CHANGE" {
+            state.CurrentLayer++
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
             if err := writeLine(writer, line.Raw); err != nil {
@@ -234,16 +255,26 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
 func ConvertForPalette(argv []string) {
     argc := len(argv)
 
-    if argc < 4 {
-        log.Fatalln("expected 4 command-line arguments")
+    if argc < 6 {
+        log.Fatalln("expected 6 command-line arguments")
     }
     inpath := argv[0] // unmodified G-code file
     outpath := argv[1] // modified G-code file
     msfpath := argv[2] // supplementary MSF file, if applicable
     palettepath := argv[3] // serialized Palette data
+    localsPath := argv[4] // JSON-stringified locals
+    perExtruderLocalsPath := argv[5] // JSON-stringified locals
 
     palette, err := LoadFromFile(palettepath)
     if err != nil {
+        log.Fatalln(err)
+    }
+
+    locals := sequences.NewLocals()
+    if err := locals.LoadGlobal(localsPath); err != nil {
+        log.Fatalln(err)
+    }
+    if err := locals.LoadPerExtruder(perExtruderLocalsPath); err != nil {
         log.Fatalln(err)
     }
 
@@ -268,7 +299,7 @@ func ConvertForPalette(argv []string) {
     // - accessory pings (two pauses with precise-ish amount of E between them)
     // - connected pings
     // - print summary in footer
-    err = paletteOutput(inpath, outpath, msfpath, &palette, &preflightResults)
+    err = paletteOutput(inpath, outpath, msfpath, &palette, &preflightResults, locals)
     if err != nil {
         log.Fatalln(err)
     }

@@ -29,10 +29,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 
     // keep track of current state
     positionTracker := gcode.PositionTracker{}
+    temperatureTracker := gcode.TemperatureTracker{}
     currentTool := 0
     currentLayer := float64(0)
-    currentPrintTemperature := float64(0)
-    currentBedTemperature := float64(0)
     nextLayerChangeIdx := 0
     nextMaterialChangeIdx := 0
 
@@ -41,15 +40,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
     err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
         // update current position and/or temperature
         positionTracker.TrackInstruction(line)
-        if line.Command == "M104" || line.Command == "M109" {
-            if s, ok := line.Params["s"]; ok {
-                currentPrintTemperature = float64(s)
-            }
-        } else if line.Command == "M140" || line.Command == "M190" {
-            if s, ok := line.Params["s"]; ok {
-                currentBedTemperature = float64(s)
-            }
-        } else if len(line.Command) > 1 && line.Command[0] == 'T' {
+        temperatureTracker.TrackInstruction(line)
+        if len(line.Command) > 1 && line.Command[0] == 'T' {
             tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
             if err != nil {
                 return err
@@ -68,7 +60,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
                     "nextY": preflightResults.startSequenceNextPos.nextY,
                     "nextZ": preflightResults.startSequenceNextPos.nextZ,
                     "currentPrintTemperature": 0,
-                    "currentBedTemperature": currentBedTemperature,
+                    "currentBedTemperature": float64(temperatureTracker.Bed),
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.Start, opts)
@@ -82,8 +74,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
                 TrailingNewline: false,
                 Locals:          locals.Prepare(currentTool, map[string]float64{
                     "layer": float64(preflightResults.totalLayers),
-                    "currentPrintTemperature": currentPrintTemperature,
-                    "currentBedTemperature": currentBedTemperature,
+                    "currentPrintTemperature": float64(temperatureTracker.Extruder),
+                    "currentBedTemperature": float64(temperatureTracker.Bed),
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.End, opts)
@@ -108,8 +100,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
                     "nextX": preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextX,
                     "nextY": preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextY,
                     "nextZ": layerZ,
-                    "currentPrintTemperature": currentPrintTemperature,
-                    "currentBedTemperature": currentBedTemperature,
+                    "currentPrintTemperature": float64(temperatureTracker.Extruder),
+                    "currentBedTemperature": float64(temperatureTracker.Bed),
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.LayerChange, opts)
@@ -134,8 +126,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
                     "nextX": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextX,
                     "nextY": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextY,
                     "nextZ": preflightResults.layerChangeNextPos[nextMaterialChangeIdx].nextZ,
-                    "currentPrintTemperature": currentPrintTemperature,
-                    "currentBedTemperature": currentBedTemperature,
+                    "currentPrintTemperature": float64(temperatureTracker.Extruder),
+                    "currentBedTemperature": float64(temperatureTracker.Bed),
                 }),
             }
             result, err := printerscript.EvaluateTree(scripts.MaterialChange[toTool], opts)

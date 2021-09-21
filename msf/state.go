@@ -1,15 +1,21 @@
 package msf
 
-import "../gcode"
+import (
+	"../gcode"
+    "../sequences"
+)
 
 type State struct {
     Palette *Palette // reference stored here to reduce arguments passed to routines
     MSF *MSF // reference stored here to reduce arguments passed to routines
 
+    CurrentLayer int
     E gcode.ExtrusionTracker
     XYZF gcode.PositionTracker
+    Temperature gcode.TemperatureTracker
     TimeEstimate float32
 
+    PastStartSequence bool
     FirstToolChange bool // don't treat the first T command as a toolchange
     CurrentTool int
     CurrentlyTransitioning bool
@@ -20,11 +26,15 @@ type State struct {
     CurrentlyPinging bool
     CurrentPingStart float32
     NextPingStart float32
+
+    TransitionNextPositions [][3]float32
+    Locals sequences.Locals // for PrinterScript side transition sequences
 }
 
 func NewState(palette *Palette) State {
     return State{
         Palette: palette,
         FirstToolChange: true,
+        CurrentLayer: -1,
     }
 }

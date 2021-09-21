@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "../printerscript"
     "encoding/json"
     "io/ioutil"
     "math"
@@ -50,6 +51,14 @@ type Palette struct {
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
+    // side transition scripting
+    PreSideTransitionSequence string `json:"preSideTransitionSequence"`
+    SideTransitionSequence string `json:"sideTransitionSequence"`
+    PostSideTransitionSequence string `json:"postSideTransitionSequence"`
+    PreSideTransitionScript printerscript.Tree
+    SideTransitionScript printerscript.Tree
+    PostSideTransitionScript printerscript.Tree
+
     // side transitions
     SideTransitionJog bool `json:"sideTransitionJog"`
     SideTransitionPurgeSpeed float32 `json:"sideTransitionPurgeSpeed"` // mm/s
@@ -89,6 +98,30 @@ func LoadFromFile(path string) (Palette, error) {
     if err := json.Unmarshal(bytes, &palette); err != nil {
         return palette, err
     }
+
+    // lex and parse scripts just once now, and re-use the parse trees when evaluating
+    if len(palette.PreSideTransitionSequence) > 0 {
+        tree, err := printerscript.LexAndParse(palette.PreSideTransitionSequence)
+        if err != nil {
+            return palette, err
+        }
+        palette.PreSideTransitionScript = tree
+    }
+    if len(palette.SideTransitionSequence) > 0 {
+        tree, err := printerscript.LexAndParse(palette.SideTransitionSequence)
+        if err != nil {
+            return palette, err
+        }
+        palette.SideTransitionScript = tree
+    }
+    if len(palette.PostSideTransitionSequence) > 0 {
+        tree, err := printerscript.LexAndParse(palette.PostSideTransitionSequence)
+        if err != nil {
+            return palette, err
+        }
+        palette.PostSideTransitionScript = tree
+    }
+
     return palette, nil
 }
 

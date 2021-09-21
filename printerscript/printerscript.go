@@ -51,7 +51,7 @@ func Lex(input string) (*antlr.CommonTokenStream, error) {
 // parser, returning a parse tree which can be passed to EvaluateTree, along with
 // an error if parsing failed. In the case of a syntax error, the error will be
 // a SyntaxError including line and column information.
-func Parse(tokens *antlr.CommonTokenStream) (ISequenceContext, error) {
+func Parse(tokens *antlr.CommonTokenStream) (Tree, error) {
     if DEBUG { fmt.Println("===== PARSER =====") }
     parser := NewSequenceParser(tokens)
     parserErrorListener := NewSyntaxErrorListener()
@@ -69,7 +69,7 @@ func Parse(tokens *antlr.CommonTokenStream) (ISequenceContext, error) {
 // EvaluateTree. This function is especially useful when scripts may be
 // evaluated more than once, as the parse tree can be generated just once and
 // then re-used with each evaluation.
-func LexAndParse(input string) (ISequenceContext, error) {
+func LexAndParse(input string) (Tree, error) {
     tokens, err := Lex(input)
     if err != nil {
         return nil, err
@@ -88,7 +88,7 @@ func Validate(input string) error {
 // runtime options for the interpreter, and evaluates the tree. It returns
 // a result containing the output string and the final value of all locals,
 // as well as a RuntimeError if evaluation failed.
-func EvaluateTree(tree ISequenceContext, opts InterpreterOptions) (InterpreterResult, error) {
+func EvaluateTree(tree Tree, opts InterpreterOptions) (InterpreterResult, error) {
     result := InterpreterResult{}
 
     // visitor

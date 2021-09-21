@@ -9,25 +9,37 @@ import (
 type msfPreflight struct {
     drivesUsed []bool
     pingStarts []float32
+    transitionNextPositions []sideTransitionLookahead
     boundingBox gcode.BoundingBox
     towerBoundingBox gcode.BoundingBox
     timeEstimate float32 // seconds
+    totalLayers int
     printSummaryStart int // line number before which to output print summary
+}
+
+type sideTransitionLookahead struct {
+    X float32
+    Y float32
+    Z float32
+    Moved bool
 }
 
 func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     results := msfPreflight{
-        drivesUsed:       make([]bool, palette.GetInputCount()),
-        pingStarts:       make([]float32, 0),
-        boundingBox:      gcode.NewBoundingBox(),
-        towerBoundingBox: gcode.NewBoundingBox(),
+        drivesUsed:        make([]bool, palette.GetInputCount()),
+        pingStarts:        make([]float32, 0),
+        boundingBox:       gcode.NewBoundingBox(),
+        towerBoundingBox:  gcode.NewBoundingBox(),
         printSummaryStart: -1,
+        totalLayers:       -1,
     }
 
     // initialize state
     state := NewState(palette)
     // account for a firmware purge (not part of G-code) once
     state.E.TotalExtrusion += palette.FirmwarePurge
+    // prepare to collect lookahead positions
+    transitionNextPosition := sideTransitionLookahead{}
 
     pingExtrusionMM := palette.GetPingExtrusion()
 
@@ -44,7 +56,32 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if z, ok := line.Params["z"]; ok {
                 results.boundingBox.ExpandZ(z)
             }
-            if state.OnWipeTower {
+            if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
+                continueLookahead := true
+                if transitionNextPosition.Moved {
+                    // had X/Y (and maybe Z) movement and now we're extruding
+                    //  - commit the most recent XYZ values, but ignore the ones in this command
+                    if _, ok := line.Params["e"]; ok {
+                        continueLookahead = false
+                        results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
+                        transitionNextPosition = sideTransitionLookahead{}
+                        state.CurrentlyTransitioning = false
+                    }
+                }
+                if continueLookahead {
+                    if x, ok := line.Params["x"]; ok {
+                        transitionNextPosition.X = x
+                        transitionNextPosition.Moved = true
+                    }
+                    if y, ok := line.Params["y"]; ok {
+                        transitionNextPosition.Y = y
+                        transitionNextPosition.Moved = true
+                    }
+                    if z, ok := line.Params["z"]; ok {
+                        transitionNextPosition.Z = z
+                    }
+                }
+            } else if state.OnWipeTower {
                 if _, ok := line.Params["e"]; ok {
                     // extrusion on wipe tower -- update bounding box
                     if state.E.CurrentRetraction == 0 {
@@ -83,15 +120,19 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if err != nil {
                 return err
             }
-            if state.FirstToolChange {
-                // todo: only set state.FirstToolChange = false if we're past the start sequence
-                //  (i.e. account for start sequences containing toolchanges)
-                state.FirstToolChange = false
-            } else {
-                state.CurrentTool = int(tool)
-                state.CurrentlyTransitioning = true
-                results.drivesUsed[state.CurrentTool] = true
+            if state.PastStartSequence {
+                if state.FirstToolChange {
+                    state.FirstToolChange = false
+                } else {
+                    state.CurrentTool = int(tool)
+                    state.CurrentlyTransitioning = true
+                    results.drivesUsed[state.CurrentTool] = true
+                }
             }
+        } else if line.Raw == ";START_OF_PRINT" {
+            state.PastStartSequence = true
+        } else if line.Raw == ";LAYER_CHANGE" {
+            results.totalLayers++
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
@@ -118,6 +159,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
 
         return nil
     })
+    if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
+        results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
+    }
     if results.boundingBox.Min[2] > 0 {
         results.boundingBox.Min[2] = 0
     }

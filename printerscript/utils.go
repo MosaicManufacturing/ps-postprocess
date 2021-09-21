@@ -1,7 +1,6 @@
 package printerscript
 
 import (
-    "bytes"
     "errors"
     "fmt"
     "math"
@@ -9,12 +8,10 @@ import (
 )
 
 func normalizeNewlines(input string) string {
-    d := []byte(input)
     // replace CR LF \r\n (Windows) with LF \n (Unix)
-    d = bytes.Replace(d, []byte{13, 10}, []byte{10}, -1)
+    input = strings.ReplaceAll(input, "\r\n", "\n")
     // replace CF \r (Mac Classic) with LF \n (Unix)
-    d = bytes.Replace(d, []byte{13}, []byte{10}, -1)
-    return string(d)
+    return strings.ReplaceAll(input, "\r", "\n")
 }
 
 func normalizeInput(input string) string {
