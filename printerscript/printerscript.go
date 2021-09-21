@@ -7,6 +7,8 @@ import (
 
 const DEBUG = false
 
+type Tree ISequenceContext
+
 type InterpreterOptions struct {
     MaxLoopIterations int // raise a RuntimeError if we exceed this many iterations (default: 100,000)
     EOL string // line ending to use in output (default: "\n")

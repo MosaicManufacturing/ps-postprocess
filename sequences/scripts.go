@@ -4,7 +4,6 @@ import (
     "../printerscript"
     "encoding/json"
     "io/ioutil"
-    "strings"
 )
 
 type Scripts struct {
@@ -18,17 +17,10 @@ type Scripts struct {
 }
 
 type ParsedScripts struct {
-    Start printerscript.ISequenceContext
-    End printerscript.ISequenceContext
-    LayerChange printerscript.ISequenceContext
-    MaterialChange []printerscript.ISequenceContext
-}
-
-func trimDirective(script string) string {
-    if strings.HasPrefix(script, "@printerscript 1.0") {
-        return script[strings.IndexRune(script, '\n'):]
-    }
-    return script
+    Start printerscript.Tree
+    End printerscript.Tree
+    LayerChange printerscript.Tree
+    MaterialChange []printerscript.Tree
 }
 
 func LoadScripts(jsonPath string) (Scripts, error) {
@@ -48,24 +40,24 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
         Start:          nil,
         End:            nil,
         LayerChange:    nil,
-        MaterialChange: make([]printerscript.ISequenceContext, 0, len(s.MaterialChange)),
+        MaterialChange: make([]printerscript.Tree, 0, len(s.MaterialChange)),
     }
     if len(s.Start) > 0 {
-        tree, err := printerscript.LexAndParse(trimDirective(s.Start))
+        tree, err := printerscript.LexAndParse(s.Start)
         if err != nil {
             return parsed, err
         }
         parsed.Start = tree
     }
     if len(s.End) > 0 {
-        tree, err := printerscript.LexAndParse(trimDirective(s.End))
+        tree, err := printerscript.LexAndParse(s.End)
         if err != nil {
             return parsed, err
         }
         parsed.End = tree
     }
     if len(s.LayerChange) > 0 {
-        tree, err := printerscript.LexAndParse(trimDirective(s.LayerChange))
+        tree, err := printerscript.LexAndParse(s.LayerChange)
         if err != nil {
             return parsed, err
         }
@@ -73,7 +65,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
     }
     for i, script := range s.MaterialChange {
         if len(script) > 0 {
-            tree, err := printerscript.LexAndParse(trimDirective(script))
+            tree, err := printerscript.LexAndParse(script)
             if err != nil {
                 return parsed, err
             }
