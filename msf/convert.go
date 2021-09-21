@@ -153,8 +153,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                     currentTransitionLength := palette.TransitionLengths[tool][state.CurrentTool]
                     spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
-                    // todo: account for extending transition length to maintain piece lengths
-                    extra := float32(50) // todo: only for testing -- remove!!!
+                    extra := float32(0) // todo: account for extending transition length to maintain piece lengths
                     spliceLength := state.E.TotalExtrusion + spliceOffset + extra
                     if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                         return err

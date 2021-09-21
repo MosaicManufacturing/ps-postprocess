@@ -38,6 +38,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
     // todo: any way to cheaply calculate timeElapsed?
 
     err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
+        // todo: hackily replace "Sliced by PrusaSlicer" with "Sliced by Canvas" now
+
         // update current position and/or temperature
         positionTracker.TrackInstruction(line)
         temperatureTracker.TrackInstruction(line)
