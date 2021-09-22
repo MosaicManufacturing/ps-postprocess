@@ -49,7 +49,7 @@ func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
 }
 
-func (gcc Command) ToString() string {
+func (gcc Command) String() string {
 	line := ""
 	if gcc.Command != "" {
 		line += gcc.Command
