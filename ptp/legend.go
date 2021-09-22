@@ -246,10 +246,17 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
     legend := make([]legendEntry, 0, len(temperaturesSeen))
     if len(temperaturesSeen) <= 6 {
         for _, temperature := range temperaturesSeen {
-            t := (temperature - w.minTemperature) / (w.maxTemperature - w.minTemperature)
-            r := lerp(temperatureColorMin[0], temperatureColorMax[0], t)
-            g := lerp(temperatureColorMin[1], temperatureColorMax[1], t)
-            b := lerp(temperatureColorMin[2], temperatureColorMax[2], t)
+            var r, g, b float32
+            if w.maxTemperature == w.minTemperature {
+                r = temperatureColorMax[0]
+                g = temperatureColorMax[1]
+                b = temperatureColorMax[2]
+            } else {
+                t := (temperature - w.minTemperature) / (w.maxTemperature - w.minTemperature)
+                r = lerp(temperatureColorMin[0], temperatureColorMax[0], t)
+                g = lerp(temperatureColorMin[1], temperatureColorMax[1], t)
+                b = lerp(temperatureColorMin[2], temperatureColorMax[2], t)
+            }
             legend = append(legend, legendEntry{
                 Label: fmt.Sprintf("%s °C", prepareFloatForJSON(temperature, maxDecimalsTemperature)),
                 Color: floatsToHex(r, g, b),
