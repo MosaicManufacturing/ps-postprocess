@@ -358,10 +358,6 @@ func (w *Writer) getZValues() []float32 {
     return zSeen
 }
 
-// todo: some of the legend entries
-//   - have indistinguishable entries after rounding the labels (e.g. layer heights)
-//  (fix all of these!)
-
 func (w *Writer) getLegend() ([]byte, error) {
     legend := legend{
         Header:      w.getLegendHeader(),
