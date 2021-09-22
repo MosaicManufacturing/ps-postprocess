@@ -37,7 +37,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
         Start:          nil,
         End:            nil,
         LayerChange:    nil,
-        MaterialChange: make([]printerscript.Tree, 0, len(s.MaterialChange)),
+        MaterialChange: make([]printerscript.Tree, len(s.MaterialChange)),
     }
     if len(s.Start) > 0 {
         tree, err := printerscript.LexAndParse(s.Start)
