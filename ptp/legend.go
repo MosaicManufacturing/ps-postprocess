@@ -197,6 +197,9 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             (fanSpeedsSeen[0] == 255 && fanSpeedsSeen[1] == 0)) {
         legend = append(legend, legendEntry{
             Label: "Off",
+            Color: floatsToHex(fanColorMin[0], fanColorMin[1], fanColorMin[2]),
+        }, legendEntry{
+            Label: "On",
             Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
         })
     } else if len(fanSpeedsSeen) <= 6 {
