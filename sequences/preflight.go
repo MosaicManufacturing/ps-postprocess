@@ -48,7 +48,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
             case lookaheadLayerChange:
                 results.layerChangeNextPos = append(results.layerChangeNextPos, currentLookahead)
             case lookaheadMaterialChange:
-                results.layerChangeNextPos = append(results.materialChangeNextPos, currentLookahead)
+                results.materialChangeNextPos = append(results.materialChangeNextPos, currentLookahead)
             }
         }
         currentLookaheads = make([]lookahead, 0)
