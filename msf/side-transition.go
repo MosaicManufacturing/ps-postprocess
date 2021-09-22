@@ -33,7 +33,6 @@ func moveToSideTransition(transitionLength float32, state *State) (string, error
 
     if state.Palette.PreSideTransitionScript != nil {
         // user script instead of built-in logic
-        transitionIdx := len(state.MSF.SpliceList) - 1
         locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
             "layer": float64(state.CurrentLayer),
             "currentPrintTemperature": float64(state.Temperature.Extruder),
@@ -41,9 +40,9 @@ func moveToSideTransition(transitionLength float32, state *State) (string, error
             "currentX": float64(state.XYZF.CurrentX),
             "currentY": float64(state.XYZF.CurrentY),
             "currentZ": float64(state.XYZF.CurrentZ),
-            "nextX": float64(state.TransitionNextPositions[transitionIdx][0]),
-            "nextY": float64(state.TransitionNextPositions[transitionIdx][1]),
-            "nextZ": float64(state.TransitionNextPositions[transitionIdx][2]),
+            "nextX": float64(state.Palette.SideTransitionX),
+            "nextY": float64(state.Palette.SideTransitionY),
+            "nextZ": float64(state.XYZF.CurrentZ),
             "transitionLength": float64(transitionLength),
         })
         return evaluateScript(state.Palette.PreSideTransitionScript, locals, state)
