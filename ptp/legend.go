@@ -205,7 +205,17 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
     sort.Ints(fanSpeedsSeen)
 
     legend := make([]legendEntry, 0, len(fanSpeedsSeen))
-    if len(fanSpeedsSeen) == 2 &&
+    if len(fanSpeedsSeen) == 1 && fanSpeedsSeen[0] == 0 {
+        legend = append(legend, legendEntry{
+            Label: "Off",
+            Color: floatsToHex(fanColorMin[0], fanColorMin[1], fanColorMin[2]),
+        })
+    } else if len(fanSpeedsSeen) == 1 && fanSpeedsSeen[0] == 255 {
+        legend = append(legend, legendEntry{
+            Label: "On",
+            Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
+        })
+    } else if len(fanSpeedsSeen) == 2 &&
         ((fanSpeedsSeen[0] == 0 && fanSpeedsSeen[1] == 255) ||
             (fanSpeedsSeen[0] == 255 && fanSpeedsSeen[1] == 0)) {
         legend = append(legend, legendEntry{
