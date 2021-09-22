@@ -333,8 +333,6 @@ func (w *Writer) getZValues() []float32 {
 }
 
 // todo: some of the legend entries
-//   - are missing entirely (e.g. fan speed values)
-//   - have broken colors (e.g. print temperature)
 //   - have indistinguishable entries after rounding the labels (e.g. layer heights)
 //  (fix all of these!)
 

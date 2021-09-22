@@ -83,33 +83,42 @@ type ptpPreflight struct {
 }
 
 func toolpathPreflight(inpath string) (ptpPreflight, error) {
-    minFeedrate := math.Inf(1); maxFeedrate := math.Inf(-1)
-    minTemperature := math.Inf(1); maxTemperature := math.Inf(-1)
-    minLayerHeight := math.Inf(1); maxLayerHeight := math.Inf(-1)
+    minFeedrate := float32(math.Inf(1)); maxFeedrate := float32(math.Inf(-1))
+    minTemperature := float32(math.Inf(1)); maxTemperature := float32(math.Inf(-1))
+    minLayerHeight := float32(math.Inf(1)); maxLayerHeight := float32(math.Inf(-1))
+    currentFeedrate := float32(0)
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
         if line.IsLinearMove() {
             // feedrates
             if f, ok := line.Params["f"]; ok {
-                if _, ok := line.Params["e"]; ok {
-                    f64 := float64(f)
-                    if f64 < minFeedrate {
-                        minFeedrate = f64
+                currentFeedrate = f
+            }
+            if _, ok := line.Params["e"]; ok {
+                hasMovement := false
+                if _, ok := line.Params["x"]; ok {
+                    hasMovement = true
+                }
+                if _, ok := line.Params["y"]; ok {
+                    hasMovement = true
+                }
+                if hasMovement {
+                    if currentFeedrate < minFeedrate {
+                        minFeedrate = currentFeedrate
                     }
-                    if f64 > maxFeedrate {
-                        maxFeedrate = f64
+                    if currentFeedrate > maxFeedrate {
+                        maxFeedrate = currentFeedrate
                     }
                 }
             }
         } else if line.Command == "M104" || line.Command == "M109" {
             // temperatures
             if temp, ok := line.Params["s"]; ok {
-                temp64 := float64(temp)
-                if temp64 < minTemperature {
-                    minTemperature = temp64
+                if temp < minTemperature {
+                    minTemperature = temp
                 }
-                if temp64 > maxTemperature {
-                    maxTemperature = temp64
+                if temp > maxTemperature {
+                    maxTemperature = temp
                 }
             }
         } else if line.Comment != "" &&  strings.HasPrefix(line.Comment, "HEIGHT:") {
@@ -118,11 +127,12 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
             if err != nil {
                 return err
             }
-            if height < minLayerHeight {
-                minLayerHeight = height
+            height32 := float32(height)
+            if height32 < minLayerHeight {
+                minLayerHeight = height32
             }
-            if height > maxLayerHeight {
-                maxLayerHeight = height
+            if height32 > maxLayerHeight {
+                maxLayerHeight = height32
             }
         }
         return nil
@@ -131,12 +141,12 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
         return ptpPreflight{}, err
     }
     results := ptpPreflight{
-        minFeedrate:    float32(minFeedrate),
-        maxFeedrate:    float32(maxFeedrate),
-        minTemperature: float32(minTemperature),
-        maxTemperature: float32(maxTemperature),
-        minLayerHeight: float32(minLayerHeight),
-        maxLayerHeight: float32(maxLayerHeight),
+        minFeedrate:    minFeedrate,
+        maxFeedrate:    maxFeedrate,
+        minTemperature: minTemperature,
+        maxTemperature: maxTemperature,
+        minLayerHeight: minLayerHeight,
+        maxLayerHeight: maxLayerHeight,
     }
     return results, err
 }
