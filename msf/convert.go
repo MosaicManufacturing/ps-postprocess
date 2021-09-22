@@ -53,6 +53,16 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         state.NextPingStart = posInf
     }
 
+    if palette.TransitionMethod == CustomTower {
+        tower, needsTower := GenerateTower(palette, preflight)
+        if !needsTower {
+            // todo: if no transitions, signal that Palette postprocessing is not needed
+            //  (don't just exit with an error!)
+            log.Fatalln("should not have generated a tower!")
+        }
+        state.Tower = &tower
+    }
+
     didFinalSplice := false
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
@@ -151,13 +161,16 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     if err := writeLine(writer, comment); err != nil {
                         return err
                     }
-                    currentTransitionLength := palette.TransitionLengths[tool][state.CurrentTool]
+                    currentTransitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
                     spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
                     spliceLength := state.E.TotalExtrusion + spliceOffset
-                    extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
-                    if extra > 0 {
-                        currentTransitionLength += extra
-                        spliceLength += extra
+                    if palette.TransitionMethod == SideTransitions {
+                        // todo: should this logic apply for other transition methods as well?
+                        extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
+                        if extra > 0 {
+                           currentTransitionLength += extra
+                           spliceLength += extra
+                        }
                     }
                     if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                         return err

@@ -6,15 +6,33 @@ import (
     "strings"
 )
 
+type transition struct {
+    layer int
+    from int
+    to int
+    transitionLength float32 // actual transition length as specified by user
+    purgeLength float32 // amount of filament to extrude
+}
+
 type msfPreflight struct {
+    // always used
     drivesUsed []bool
     pingStarts []float32
-    transitionNextPositions []sideTransitionLookahead
+    // used for print summary
+    printSummaryStart int // line number before which to output our own print summary
     boundingBox gcode.BoundingBox
+    // used for PrusaSlicer-generated towers
     towerBoundingBox gcode.BoundingBox
+
+    // used for postprocess-generated towers
+    layerThicknesses []float32
+    layerTopZs []float32
+    transitionsByLayer map[int][]transition
+
+    // used for side transition custom scripts
+    transitionNextPositions []sideTransitionLookahead
     timeEstimate float32 // seconds
     totalLayers int
-    printSummaryStart int // line number before which to output print summary
 }
 
 type sideTransitionLookahead struct {
@@ -32,6 +50,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         towerBoundingBox:  gcode.NewBoundingBox(),
         printSummaryStart: -1,
         totalLayers:       -1,
+        transitionsByLayer: make(map[int][]transition),
     }
 
     // initialize state
@@ -42,6 +61,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     transitionNextPosition := sideTransitionLookahead{}
 
     pingExtrusionMM := palette.GetPingExtrusion()
+
+    transitionCount := 0
+    lastTransitionSpliceLength := float32(0)
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         state.E.TrackInstruction(line)
@@ -124,8 +146,38 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 if state.FirstToolChange {
                     state.FirstToolChange = false
                 } else {
+                    transitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
+                    spliceOffset := transitionLength * (palette.TransitionTarget / 100)
+                    purgeLength := transitionLength
+                    spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
+                    deltaE := spliceLength - lastTransitionSpliceLength
+                    minSpliceLength := MinSpliceLength
+                    if transitionCount == 0 {
+                        minSpliceLength = palette.GetFirstSpliceMinLength()
+                    }
+                    if deltaE < minSpliceLength {
+                        extra := minSpliceLength - deltaE
+                        purgeLength += extra
+                        spliceLength += extra
+                    }
+                    tInfo := transition{
+                        layer:            results.totalLayers,
+                        from:             state.CurrentTool,
+                        to:               int(tool),
+                        transitionLength: transitionLength,
+                        purgeLength:      purgeLength,
+                    }
+                    if _, ok := results.transitionsByLayer[results.totalLayers]; ok {
+                        results.transitionsByLayer[results.totalLayers] = append(results.transitionsByLayer[results.totalLayers], tInfo)
+                    } else {
+                        results.transitionsByLayer[results.totalLayers] = []transition{tInfo}
+                    }
+                    transitionCount++
+                    lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
                     state.CurrentTool = int(tool)
-                    state.CurrentlyTransitioning = true
+                    if palette.TransitionMethod != CustomTower {
+                        state.CurrentlyTransitioning = true
+                    }
                     results.drivesUsed[state.CurrentTool] = true
                 }
             }
@@ -133,6 +185,16 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             state.PastStartSequence = true
         } else if line.Raw == ";LAYER_CHANGE" {
             results.totalLayers++
+        } else if palette.TransitionMethod == CustomTower &&
+            strings.HasPrefix(line.Raw, ";Z:") {
+            if topZ, err := strconv.ParseFloat(line.Raw[3:], 32); err == nil {
+                results.layerTopZs = append(results.layerTopZs, float32(topZ))
+            }
+        } else if palette.TransitionMethod == CustomTower &&
+            strings.HasPrefix(line.Raw, ";HEIGHT:") {
+            if thickness, err := strconv.ParseFloat(line.Raw[8:], 32); err == nil {
+                results.layerThicknesses = append(results.layerThicknesses, float32(thickness))
+            }
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
@@ -165,5 +227,6 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     if results.boundingBox.Min[2] > 0 {
         results.boundingBox.Min[2] = 0
     }
+    // todo: if no transitions, signal that Palette postprocessing is not needed
     return results, err
 }

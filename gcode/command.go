@@ -50,10 +50,15 @@ func (gcc Command) IsSetPosition() bool {
 }
 
 func (gcc Command) String() string {
+	if len(gcc.Raw) > 0 {
+		return gcc.Raw
+	}
+
 	line := ""
 	if gcc.Command != "" {
 		line += gcc.Command
 		for param, value := range gcc.Params {
+			// todo: limit decimal places
 			line += fmt.Sprintf(" %s%f", strings.ToUpper(param), value)
 		}
 		for flag := range gcc.Flags {
@@ -61,6 +66,9 @@ func (gcc Command) String() string {
 		}
 	}
 	if len(gcc.Comment) > 0 {
+		if len(line) > 0 {
+			line += " "
+		}
 		line += fmt.Sprintf("; %s", gcc.Comment)
 	}
 	return line

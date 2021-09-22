@@ -51,6 +51,23 @@ type Palette struct {
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
 
+    // transition tower generation
+    TowerSize [2]float32 `json:"towerSize"`
+    TowerPosition [2]float32 `json:"towerPosition"` // center of tower
+    TowerMinDensity float32 `json:"towerMinDensity"` // 0..100
+    TowerMinFirstLayerDensity float32 `json:"towerMinFirstLayerDensity"` // 0..100
+    TowerMaxDensity float32 `json:"towerMaxDensity"` // 0..100
+    TowerMinBrims int `json:"towerMinBrims"`
+    TowerSpeed []float32 `json:"towerSpeed"` // mm/s
+    TowerExtrusionWidth float32 `json:"towerExtrusionWidth"` // mm
+    TowerExtrusionMultiplier float32 `json:"towerExtrusionMultiplier"` // unitless
+    TowerFirstLayerPerimeters bool `json:"towerFirstLayerPerimeters"`
+    InfillPerimeterOverlap float32 `json:"infillPerimeterOverlap"` // 0..100
+    RaftLayers int `json:"raftLayers"`
+    RaftInflation float32 `json:"raftInflation"` // mm
+    RaftExtrusionWidth float32 `json:"raftExtrusionWidth"` // mm
+    RaftStride float32 `json:"raftStride"` // mm
+
     // side transition scripting
     PreSideTransitionSequence string `json:"preSideTransitionSequence"`
     SideTransitionSequence string `json:"sideTransitionSequence"`
@@ -200,4 +217,8 @@ func (p Palette) GetEffectiveLoadingOffset() float32 {
         return 0
     }
     return (float32(p.LoadingOffset) / ppm) + CutterToScrollWheel
+}
+
+func (p Palette) GetTransitionLength(toTool, fromTool int) float32 {
+    return p.TransitionLengths[toTool][fromTool]
 }

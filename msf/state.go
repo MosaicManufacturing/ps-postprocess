@@ -8,6 +8,7 @@ import (
 type State struct {
     Palette *Palette // reference stored here to reduce arguments passed to routines
     MSF *MSF // reference stored here to reduce arguments passed to routines
+    Tower *Tower
 
     CurrentLayer int
     E gcode.ExtrusionTracker
