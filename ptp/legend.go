@@ -107,6 +107,18 @@ type legend struct {
     ZValues []float32 `json:"zValues"` // Z values for UI sliders
 }
 
+func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
+    labelsSeen := make(map[string]bool)
+    uniqueLegend := make([]legendEntry, 0)
+    for _, entry := range legend {
+        if _, seen := labelsSeen[entry.Label]; !seen {
+            labelsSeen[entry.Label] = true
+            uniqueLegend = append(uniqueLegend, entry)
+        }
+    }
+    return uniqueLegend
+}
+
 func (w *Writer) getToolLegend() []legendEntry {
     toolsSeen := make([]int, 0, len(w.state.toolsSeen))
     for tool := range w.state.toolsSeen {
@@ -181,7 +193,8 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
             Color: floatsToHex(feedrateColorMax[0], feedrateColorMax[1], feedrateColorMax[2]),
         })
     }
-    return legend
+    // de-duplicate legend entries with labels that are identical after rounding
+    return removeDuplicateLegendEntries(legend)
 }
 
 func (w *Writer) getFanSpeedLegend() []legendEntry {
@@ -233,7 +246,8 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
             Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
         })
     }
-    return legend
+    // de-duplicate legend entries with labels that are identical after rounding
+    return removeDuplicateLegendEntries(legend)
 }
 
 func (w *Writer) getTemperatureLegend() []legendEntry {
@@ -280,7 +294,8 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
             Color: floatsToHex(temperatureColorMax[0], temperatureColorMax[1], temperatureColorMax[2]),
         })
     }
-    return legend
+    // de-duplicate legend entries with labels that are identical after rounding
+    return removeDuplicateLegendEntries(legend)
 }
 
 func (w *Writer) getLayerHeightLegend() []legendEntry {
@@ -320,7 +335,8 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
             Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
         })
     }
-    return legend
+    // de-duplicate legend entries with labels that are identical after rounding
+    return removeDuplicateLegendEntries(legend)
 }
 
 func (w *Writer) getZValues() []float32 {
