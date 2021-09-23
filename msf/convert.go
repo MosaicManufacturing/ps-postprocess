@@ -161,38 +161,57 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     if err := writeLine(writer, comment); err != nil {
                         return err
                     }
-                    currentTransitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
-                    spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
-                    spliceLength := state.E.TotalExtrusion + spliceOffset
-                    if palette.TransitionMethod == SideTransitions {
-                        // todo: should this logic apply for other transition methods as well?
-                        extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
-                        if extra > 0 {
-                           currentTransitionLength += extra
-                           spliceLength += extra
-                        }
-                    }
-                    if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
-                        return err
-                    }
-                    state.CurrentTool = int(tool)
-                    state.CurrentlyTransitioning = true
-                    if palette.TransitionMethod == SideTransitions {
-                        transition, err := sideTransition(currentTransitionLength, &state)
-                        if err != nil {
+                    if palette.TransitionMethod == CustomTower {
+                        currentTransitionLength := state.Tower.GetCurrentTransitionInfo().TransitionLength
+                        spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
+                        spliceLength := state.E.TotalExtrusion + spliceOffset
+                        if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                             return err
                         }
+                        state.CurrentTool = int(tool)
+                        state.CurrentlyTransitioning = true
+                        transition := state.Tower.GetNextTransitionPaths(&state)
                         if err := writeLines(writer, transition); err != nil {
                             return err
                         }
                         state.CurrentlyTransitioning = false
+                    } else {
+                        currentTransitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
+                        spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
+                        spliceLength := state.E.TotalExtrusion + spliceOffset
+                        if palette.TransitionMethod == SideTransitions {
+                            // todo: should this logic apply for other transition methods as well?
+                            extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
+                            if extra > 0 {
+                               currentTransitionLength += extra
+                               spliceLength += extra
+                            }
+                        }
+                        if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
+                            return err
+                        }
+                        state.CurrentTool = int(tool)
+                        state.CurrentlyTransitioning = true
+                        if palette.TransitionMethod == SideTransitions {
+                            transition, err := sideTransition(currentTransitionLength, &state)
+                            if err != nil {
+                                return err
+                            }
+                            if err := writeLines(writer, transition); err != nil {
+                                return err
+                            }
+                            state.CurrentlyTransitioning = false
+                        }
                     }
                 }
             }
         } else if line.Raw == ";START_OF_PRINT" {
             state.PastStartSequence = true
+            return writeLine(writer, line.Raw)
         } else if line.Raw == ";LAYER_CHANGE" {
             state.CurrentLayer++
+            // todo: insert any necessary sparse layers now
+            return writeLine(writer, line.Raw)
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
             if err := writeLine(writer, line.Raw); err != nil {

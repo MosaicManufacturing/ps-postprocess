@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "fmt"
     "math"
 )
 
@@ -9,6 +10,11 @@ type TowerLayer struct {
     TopZ float32 // Z value of the top of this layer
     Thickness float32 // height of extruded paths
     Density float32 // 0..1
+    Transitions []Transition
+}
+
+func (l TowerLayer) String() string {
+    return fmt.Sprintf("TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d", l.TopZ, l.Thickness, l.Density * 100, len(l.Transitions))
 }
 
 type Tower struct {
@@ -19,9 +25,9 @@ type Tower struct {
 
     // for use during output
     CurrentLayerPaths []gcode.Command // feedrates, raw strings, real E values not included yet
-    CurrentLayerTransitions int // total transitions on this layer
+    CurrentLayerIndex int // total transitions on this layer
     CurrentLayerTransitionIndex int // current transition on this layer
-    CurrentTransitionCommandIndex int // index into CurrentLayerPaths
+    CurrentLayerCommandIndex int // index into CurrentLayerPaths
 }
 
 func filamentVolume(filamentDiameter, length float32) float32 {
@@ -37,13 +43,17 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
         BoundingBox:                   gcode.NewBoundingBox(),
         Layers:                        nil,
         CurrentLayerPaths:             nil,
-        CurrentLayerTransitions:       0,
+        CurrentLayerIndex:             0,
         CurrentLayerTransitionIndex:   0,
-        CurrentTransitionCommandIndex: 0,
+        CurrentLayerCommandIndex:      0,
     }
 
     // tower must have at least this many mm3 of extrusion to be able to fit pings!
     minLayerVolume := filamentVolume(1.75, palette.GetPingExtrusion())
+
+    minDensity := float64(palette.TowerMinDensity) / 100
+    minFirstLayerDensity := float64(palette.TowerMinFirstLayerDensity) / 100
+    maxDensity := float64(palette.TowerMaxDensity) / 100
 
     // 1. determine the number of transitions required on each layer
 
@@ -97,17 +107,17 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     for layer, transitions := range preflight.transitionsByLayer {
         layerPurgeVolume := float32(0) // mm3
         for _, transition := range transitions {
-            purgeVolume := filamentVolume(1.75, transition.purgeLength)
+            purgeVolume := filamentVolume(1.75, transition.PurgeLength)
             // adjust volume based on extrusion multiplier
             purgeVolume /= palette.TowerExtrusionMultiplier
             layerPurgeVolume += purgeVolume
         }
         // adjust for max density
-        layerPurgeVolume /= palette.TowerMaxDensity
+        layerPurgeVolume /= float32(maxDensity)
         // raise the volume slightly to account for errors in total toolpath extrusion
         layerPurgeVolume *= 1.05
         // ensure the layer has room for at least one ping
-        layerPurgeVolume = float32(math.Max(float64(layerPurgeVolume), float64(minLayerVolume / palette.TowerMaxDensity)))
+        layerPurgeVolume = float32(math.Max(float64(layerPurgeVolume), float64(minLayerVolume) / maxDensity))
 
         layerFootprintArea := layerPurgeVolume / layerThicknesses[layer]
         layerFootprintAreas[layer] = layerFootprintArea
@@ -128,11 +138,11 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
         footprintArea := layerFootprintAreas[layer]
         density := float64(footprintArea) / minFootprintArea
         if layer == 0 {
-            density = math.Max(density, float64(palette.TowerMinFirstLayerDensity))
+            density = math.Max(density, minFirstLayerDensity)
         } else {
-            density = math.Max(density, float64(palette.TowerMinDensity))
+            density = math.Max(density, minDensity)
         }
-        density = math.Min(density, float64(palette.TowerMaxDensity))
+        density = math.Min(density, maxDensity)
         layerDensities[layer] = float32(density)
     }
 
@@ -158,6 +168,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
             TopZ:      layerTopZs[layer],
             Thickness: layerThicknesses[layer],
             Density:   layerDensities[layer],
+            Transitions: preflight.transitionsByLayer[layer],
         }
     }
 
@@ -367,4 +378,82 @@ func (t *Tower) rasterizeLayer(layer int) {
         }
     }
 
+}
+
+func (t *Tower) GetCurrentTransitionInfo() *Transition {
+    if t.CurrentLayerIndex >= len(t.Layers) {
+        return nil
+    }
+    if t.CurrentLayerTransitionIndex >= len(t.Layers[t.CurrentLayerIndex].Transitions) {
+        return nil
+    }
+    return &t.Layers[t.CurrentLayerIndex].Transitions[t.CurrentLayerTransitionIndex]
+}
+
+func getExtrusionAmount(extrusionWidth, layerHeight, length float32) float32 {
+    // TODO: this is super incorrect, apparently
+    // https://manual.slic3r.org/advanced/flow-math -- "Extruding on top of a surface"
+    area := (extrusionWidth /*- layerHeight*/) * layerHeight + math.Pi * float32(math.Pow(float64(layerHeight) / 2, 2))
+    return area * length
+}
+
+func (t *Tower) GetNextTransitionPaths(state *State) string {
+    if t.CurrentLayerTransitionIndex == 0 && len(t.CurrentLayerPaths) == 0 {
+        t.rasterizeLayer(t.CurrentLayerIndex)
+    }
+    transitionInfo := t.GetCurrentTransitionInfo()
+    totalPurge := float32(0)
+
+    travelFeedrate := t.Palette.TravelSpeedXY
+    printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
+    if t.Palette.TowerSpeed[transitionInfo.From] < t.Palette.TowerSpeed[transitionInfo.To] {
+        // use the slower of the two material settings for this transition
+        printFeedrate = t.Palette.TowerSpeed[transitionInfo.From] * 60
+    }
+    extrusionWidth :=  t.Palette.TowerExtrusionWidth
+    layerHeight := t.Layers[t.CurrentLayerIndex].Thickness
+    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier
+
+    sequence := ""
+
+    for totalPurge < transitionInfo.PurgeLength &&
+       t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
+    //for t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
+
+        command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+        if _, ok := command.Params["e"]; ok {
+            // extrusion command
+            lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"])
+            deltaE := getExtrusionAmount(extrusionWidth, layerHeight, lineLength) * extrusionMultiplier
+            if state.E.RelativeExtrusion {
+                command.Params["e"] = deltaE
+            } else {
+                command.Params["e"] = state.E.CurrentExtrusionValue + deltaE
+            }
+            command.Params["f"] = printFeedrate
+            totalPurge += deltaE
+        } else {
+            // travel command
+            command.Params["f"] = travelFeedrate
+        }
+        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"], command.Params["f"])
+        state.XYZF.TrackInstruction(command)
+        state.E.TrackInstruction(command)
+        sequence += command.String() + EOL
+
+        t.CurrentLayerCommandIndex++
+    }
+    fmt.Println("total purge:", totalPurge, "mm, desired:", transitionInfo.PurgeLength, "mm")
+
+    // move to the next transition on this layer
+    t.CurrentLayerTransitionIndex++
+    if t.CurrentLayerTransitionIndex >= len(t.Layers[t.CurrentLayerIndex].Transitions) {
+        // move to the first transition on the next layer
+        t.CurrentLayerIndex++
+        t.CurrentLayerTransitionIndex = 0
+        t.CurrentLayerCommandIndex = 0
+        t.CurrentLayerPaths = nil
+    }
+
+    return sequence
 }

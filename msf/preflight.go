@@ -6,12 +6,12 @@ import (
     "strings"
 )
 
-type transition struct {
-    layer int
-    from int
-    to int
-    transitionLength float32 // actual transition length as specified by user
-    purgeLength float32 // amount of filament to extrude
+type Transition struct {
+    Layer int
+    From int
+    To int
+    TransitionLength float32 // actual transition length as specified by user
+    PurgeLength float32 // amount of filament to extrude
 }
 
 type msfPreflight struct {
@@ -27,7 +27,7 @@ type msfPreflight struct {
     // used for postprocess-generated towers
     layerThicknesses []float32
     layerTopZs []float32
-    transitionsByLayer map[int][]transition
+    transitionsByLayer map[int][]Transition
 
     // used for side transition custom scripts
     transitionNextPositions []sideTransitionLookahead
@@ -50,7 +50,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         towerBoundingBox:  gcode.NewBoundingBox(),
         printSummaryStart: -1,
         totalLayers:       -1,
-        transitionsByLayer: make(map[int][]transition),
+        transitionsByLayer: make(map[int][]Transition),
     }
 
     // initialize state
@@ -160,17 +160,17 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         purgeLength += extra
                         spliceLength += extra
                     }
-                    tInfo := transition{
-                        layer:            results.totalLayers,
-                        from:             state.CurrentTool,
-                        to:               int(tool),
-                        transitionLength: transitionLength,
-                        purgeLength:      purgeLength,
+                    tInfo := Transition{
+                        Layer:            results.totalLayers,
+                        From:             state.CurrentTool,
+                        To:               int(tool),
+                        TransitionLength: transitionLength,
+                        PurgeLength:      purgeLength,
                     }
                     if _, ok := results.transitionsByLayer[results.totalLayers]; ok {
                         results.transitionsByLayer[results.totalLayers] = append(results.transitionsByLayer[results.totalLayers], tInfo)
                     } else {
-                        results.transitionsByLayer[results.totalLayers] = []transition{tInfo}
+                        results.transitionsByLayer[results.totalLayers] = []Transition{tInfo}
                     }
                     transitionCount++
                     lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
