@@ -2,6 +2,8 @@ package gcode
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"strings"
 )
 
@@ -49,6 +51,37 @@ func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
 }
 
+func FormatFloat(value float64) string {
+	// round to 5 decimal places first
+	value = math.Round(value * 10e5) / 10e5
+	// output with exactly 5 decimal places
+	valStr := fmt.Sprintf("%.5f", value)
+	// remove trailing zeros, and the decimal point if we reach it
+	valStr = strings.TrimRight(strings.TrimRight(valStr, "0"), ".")
+	// special-case for numbers that were printed as 0.00000
+	if len(valStr) == 0 {
+		valStr = "0"
+	}
+	return valStr
+}
+
+func scoreParamKey(letter string) int {
+	switch letter {
+	case "X":
+		return 5
+	case "Y":
+		return 4
+	case "Z":
+		return 3
+	case "E":
+		return 2
+	case "F":
+		return 1
+	default:
+		return 0
+	}
+}
+
 func (gcc Command) String() string {
 	if len(gcc.Raw) > 0 {
 		return gcc.Raw
@@ -57,12 +90,30 @@ func (gcc Command) String() string {
 	line := ""
 	if gcc.Command != "" {
 		line += gcc.Command
+		paramsAndFlags := make([]string, 0, len(gcc.Params) + len(gcc.Flags))
+
 		for param, value := range gcc.Params {
-			// todo: limit decimal places
-			line += fmt.Sprintf(" %s%f", strings.ToUpper(param), value)
+			paramString := fmt.Sprintf("%s%s", strings.ToUpper(param), FormatFloat(float64(value)))
+			paramsAndFlags = append(paramsAndFlags, paramString)
 		}
 		for flag := range gcc.Flags {
-			line += fmt.Sprintf(" %s", strings.ToUpper(flag))
+			flagString := strings.ToUpper(flag)
+			paramsAndFlags = append(paramsAndFlags, flagString)
+		}
+		sort.Slice(paramsAndFlags, func(i, j int) bool {
+			// sorting logic:
+			// X, Y, Z, E, F, then alphabetical
+			iKey := paramsAndFlags[i][0:1]; iScore := scoreParamKey(iKey)
+			jKey := paramsAndFlags[j][0:1]; jScore := scoreParamKey(jKey)
+			if iScore == 0 && jScore == 0 {
+				// just alphabetical
+				return iKey < jKey
+			}
+			// at least one element with a priority
+			return iScore > jScore
+		})
+		if len(paramsAndFlags) > 0 {
+			line += " " + strings.Join(paramsAndFlags, " ")
 		}
 	}
 	if len(gcc.Comment) > 0 {
