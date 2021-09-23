@@ -83,6 +83,30 @@ func lerp(minVal, maxVal, t float32) float32 {
     return ((1 - boundedT) * minVal) + (t * maxVal)
 }
 
+const filamentRadius = 1.75 / 2
+const filamentPiRSquared = math.Pi * filamentRadius * filamentRadius
+
+func filamentLengthToVolume(length float32) float32 {
+    // V = Pi * (r^2) * h
+    return filamentPiRSquared * length
+}
+
+func filamentVolumeToLength(volume float32) float32 {
+    // h = V / (Pi * (r^2))
+    return volume / filamentPiRSquared
+}
+
+func getExtrusionVolume(extrusionWidth, layerHeight, length float32) float32 {
+    // https://manual.slic3r.org/advanced/flow-math -- "Extruding on top of a surface"
+    area := (extrusionWidth - layerHeight) * layerHeight + math.Pi * float32(math.Pow(float64(layerHeight) / 2, 2))
+    return area * length
+}
+
+func getExtrusionLength(extrusionWidth, layerHeight, length float32) float32 {
+    volume := getExtrusionVolume(extrusionWidth, layerHeight, length)
+    return filamentVolumeToLength(volume)
+}
+
 func getPrintSummary(msf *MSF, timeEstimate float32) string {
     totalFilament := msf.GetTotalFilamentLength()
     filamentByDrive := msf.GetFilamentLengthsByDrive()
