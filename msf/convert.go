@@ -212,8 +212,11 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             state.CurrentLayer++
             if palette.TransitionMethod == CustomTower && !state.Tower.IsComplete() {
                 // check for sparse layer insertion
-                // todo: may need to z-lift here
                 if state.Tower.NeedsSparseLayers(state.CurrentLayer) {
+                    if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                        return err
+                    }
+                    // todo: may need to z-lift here
                     layerPaths, err := state.Tower.GetNextSegment(&state, false)
                     if err != nil {
                         return err
@@ -223,6 +226,9 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                     // should we double up and print the next sparse layer now too?
                     if !state.Tower.CurrentLayerIsDense() {
+                        if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                            return err
+                        }
                         // todo: probably need to move in Z here
                         layerPaths, err = state.Tower.GetNextSegment(&state, false)
                         if err != nil {
