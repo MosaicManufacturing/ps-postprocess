@@ -84,9 +84,17 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
 
     layerThicknesses := make([]float32, totalLayers)
     layerTopZs := make([]float32, totalLayers)
+    lastTopZ := float32(0)
     for i := 0; i < totalLayers; i++ {
-        layerThicknesses[i] = preflight.layerThicknesses[i]
-        layerTopZs[i] = preflight.layerTopZs[i]
+        topZ := preflight.layerTopZs[i]
+        thickness := preflight.layerThicknesses[i]
+        if thickness > topZ - lastTopZ {
+            // ensure layer is no thicker than this Z minus the previous Z
+            thickness = topZ - lastTopZ
+        }
+        layerTopZs[i] = topZ
+        layerThicknesses[i] = thickness
+        lastTopZ = topZ
     }
 
     // 4. determine the volume of filament required on each layer
