@@ -458,9 +458,12 @@ func (t *Tower) getNextSegmentPaths(state *State) string {
 
     sequence := ""
 
-    for totalPurge < transitionInfo.PurgeLength &&
+    thisLayerTransitions := len(t.Layers[t.CurrentLayerIndex].Transitions)
+
+    // last segment of the layer: finish the layer
+    // all other segments: extrude just the purge length of this segment
+    for (totalPurge < transitionInfo.PurgeLength || t.CurrentLayerTransitionIndex == thisLayerTransitions - 1) &&
        t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
-    //for t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
 
         command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
         // when printing a segment, all commands use the print feedrate
