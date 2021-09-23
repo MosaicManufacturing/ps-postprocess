@@ -407,7 +407,9 @@ func getExtrusionAmount(extrusionWidth, layerHeight, length float32) float32 {
 }
 
 func (t *Tower) moveToTower(state *State) (string, error) {
-    sequence := ""
+    sequence := ";TYPE:Wipe tower" + EOL
+    sequence += fmt.Sprintf(";WIDTH:%s%s", gcode.FormatFloat(float64(t.Palette.TowerExtrusionWidth)), EOL)
+    sequence += fmt.Sprintf(";HEIGHT:%s%s", gcode.FormatFloat(float64(t.Layers[t.CurrentLayerIndex].Thickness)), EOL)
 
     // next tower command should always be a travel
     travel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
