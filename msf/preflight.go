@@ -35,6 +35,16 @@ type msfPreflight struct {
     totalLayers int
 }
 
+func (mp *msfPreflight) totalDrivesUsed() int {
+    total := 0
+    for _, used := range mp.drivesUsed {
+        if used {
+            total++
+        }
+    }
+    return total
+}
+
 type sideTransitionLookahead struct {
     X float32
     Y float32
@@ -227,6 +237,5 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     if results.boundingBox.Min[2] > 0 {
         results.boundingBox.Min[2] = 0
     }
-    // todo: if no transitions, signal that Palette postprocessing is not needed
     return results, err
 }

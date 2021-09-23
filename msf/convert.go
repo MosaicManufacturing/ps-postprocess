@@ -56,8 +56,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     if palette.TransitionMethod == CustomTower {
         tower, needsTower := GenerateTower(palette, preflight)
         if !needsTower {
-            // todo: if no transitions, signal that Palette postprocessing is not needed
-            //  (don't just exit with an error!)
             log.Fatalln("should not have generated a tower!")
         }
         state.Tower = &tower
@@ -326,6 +324,10 @@ func ConvertForPalette(argv []string) {
     preflightResults, err := preflight(inpath, &palette)
     if err != nil {
         log.Fatalln(err)
+    }
+    if preflightResults.totalDrivesUsed() <= 1 {
+        fmt.Println("NO_PALETTE")
+        os.Exit(0)
     }
 
     // output: run through the G-code once and apply modifications
