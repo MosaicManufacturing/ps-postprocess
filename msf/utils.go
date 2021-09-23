@@ -67,6 +67,12 @@ func estimateMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
     return lineLength / mmPerS
 }
 
+func estimateZMoveTime(z1, z2, feedrate float32) float32 {
+    lineLength := float32(math.Abs(float64(z2 - z1)))
+    mmPerS := feedrate / 60
+    return lineLength / mmPerS
+}
+
 func estimatePurgeTime(eDelta, feedrate float32) float32 {
     mmPerS := feedrate / 60
     return eDelta / mmPerS

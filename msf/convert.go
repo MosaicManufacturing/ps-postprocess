@@ -170,7 +170,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         }
                         state.CurrentTool = int(tool)
                         state.CurrentlyTransitioning = true
-                        transition := state.Tower.GetNextTransitionPaths(&state)
+                        transition, err := state.Tower.GetNextSegment(&state, true)
+                        if err != nil {
+                            return err
+                        }
                         if err := writeLines(writer, transition); err != nil {
                             return err
                         }

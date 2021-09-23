@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "errors"
     "fmt"
     "math"
 )
@@ -54,6 +55,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     minDensity := float64(palette.TowerMinDensity) / 100
     minFirstLayerDensity := float64(palette.TowerMinFirstLayerDensity) / 100
     maxDensity := float64(palette.TowerMaxDensity) / 100
+    extrusionMultiplier := palette.TowerExtrusionMultiplier / 100
 
     // 1. determine the number of transitions required on each layer
 
@@ -117,7 +119,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
         for _, transition := range transitions {
             purgeVolume := filamentVolume(1.75, transition.PurgeLength)
             // adjust volume based on extrusion multiplier
-            purgeVolume /= palette.TowerExtrusionMultiplier
+            purgeVolume /= extrusionMultiplier
             layerPurgeVolume += purgeVolume
         }
         // adjust for max density
@@ -399,20 +401,49 @@ func (t *Tower) GetCurrentTransitionInfo() *Transition {
 }
 
 func getExtrusionAmount(extrusionWidth, layerHeight, length float32) float32 {
-    // TODO: this is super incorrect, apparently
     // https://manual.slic3r.org/advanced/flow-math -- "Extruding on top of a surface"
-    area := (extrusionWidth /*- layerHeight*/) * layerHeight + math.Pi * float32(math.Pow(float64(layerHeight) / 2, 2))
+    area := (extrusionWidth - layerHeight) * layerHeight + math.Pi * float32(math.Pow(float64(layerHeight) / 2, 2))
     return area * length
 }
 
-func (t *Tower) GetNextTransitionPaths(state *State) string {
-    if t.CurrentLayerTransitionIndex == 0 && len(t.CurrentLayerPaths) == 0 {
-        t.rasterizeLayer(t.CurrentLayerIndex)
+func (t *Tower) moveToTower(state *State) (string, error) {
+    sequence := ""
+
+    // next tower command should always be a travel
+    travel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+    if _, ok := travel.Params["e"]; ok {
+        return "", errors.New("tower segment started with extrusion, not travel")
     }
+    travel.Params["f"] = state.Palette.TravelSpeedXY
+    travel.Comment = "move to tower"
+    t.CurrentLayerCommandIndex++ // use up the command
+    sequence += travel.String() + EOL
+
+    state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, travel.Params["x"], travel.Params["y"], travel.Params["f"])
+    state.XYZF.TrackInstruction(travel)
+
+    // z-lift down if needed
+    if state.XYZF.CurrentZ > t.Layers[t.CurrentLayerIndex].TopZ {
+        zLift := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "z": t.Layers[t.CurrentLayerIndex].TopZ,
+                "f": state.Palette.TravelSpeedZ,
+            },
+            Comment: "restore layer Z",
+        }
+        sequence += zLift.String() + EOL
+        state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
+        state.XYZF.TrackInstruction(zLift)
+    }
+
+    return sequence, nil
+}
+
+func (t *Tower) getNextSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
     totalPurge := float32(0)
 
-    travelFeedrate := t.Palette.TravelSpeedXY
     printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
     if t.Palette.TowerSpeed[transitionInfo.From] < t.Palette.TowerSpeed[transitionInfo.To] {
         // use the slower of the two material settings for this transition
@@ -420,7 +451,8 @@ func (t *Tower) GetNextTransitionPaths(state *State) string {
     }
     extrusionWidth :=  t.Palette.TowerExtrusionWidth
     layerHeight := t.Layers[t.CurrentLayerIndex].Thickness
-    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier
+    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier / 100
+    fmt.Println("extrusionMultiplier", extrusionMultiplier)
 
     sequence := ""
 
@@ -429,24 +461,35 @@ func (t *Tower) GetNextTransitionPaths(state *State) string {
     //for t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
 
         command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+        // when printing a segment, all commands use the print feedrate
+        // so as not to alternate feedrates constantly
+        command.Params["f"] = printFeedrate
         if _, ok := command.Params["e"]; ok {
             // extrusion command
-            lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"])
+            lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"]) // mm
             deltaE := getExtrusionAmount(extrusionWidth, layerHeight, lineLength) * extrusionMultiplier
             if state.E.RelativeExtrusion {
                 command.Params["e"] = deltaE
             } else {
                 command.Params["e"] = state.E.CurrentExtrusionValue + deltaE
             }
-            command.Params["f"] = printFeedrate
             totalPurge += deltaE
         } else {
             // travel command
-            command.Params["f"] = travelFeedrate
         }
-        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"], command.Params["f"])
+        currentX := state.XYZF.CurrentX
+        currentY := state.XYZF.CurrentY
+        currentFeedrate := state.XYZF.CurrentFeedrate
+
+        state.TimeEstimate += estimateMoveTime(currentX, currentY, command.Params["x"], command.Params["y"], command.Params["f"])
         state.XYZF.TrackInstruction(command)
         state.E.TrackInstruction(command)
+
+        // optimize output size by taking advantage of sticky parameters
+        if currentFeedrate == command.Params["f"] {
+            delete(command.Params, "f")
+        }
+
         sequence += command.String() + EOL
 
         t.CurrentLayerCommandIndex++
@@ -464,4 +507,29 @@ func (t *Tower) GetNextTransitionPaths(state *State) string {
     }
 
     return sequence
+}
+
+func (t *Tower) GetNextSegment(state *State, shouldBeDense bool) (string, error) {
+    if t.CurrentLayerTransitionIndex == 0 && len(t.CurrentLayerPaths) == 0 {
+        t.rasterizeLayer(t.CurrentLayerIndex)
+    }
+
+    // assertions for current layer being dense/sparse
+    if shouldBeDense {
+        if len(t.Layers[t.CurrentLayerIndex].Transitions) == 0 {
+            return "", errors.New("expected dense layer but layer is sparse")
+        }
+    } else {
+        if len(t.Layers[t.CurrentLayerIndex].Transitions) > 0 {
+            return "", errors.New("expected sparse layer but layer is dense")
+        }
+    }
+
+    sequence, err := t.moveToTower(state)
+    if err != nil {
+        return "", err
+    }
+    sequence += t.getNextSegmentPaths(state)
+
+    return sequence, nil
 }
