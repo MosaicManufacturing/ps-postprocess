@@ -99,7 +99,6 @@ func (msf *MSF) AddLastSplice(drive int, finalLength float32) error {
         prevSpliceLength = prevSplice.Length
         requiredLength = MinSpliceLength
     }
-    fmt.Println("AddLastSplice", finalLength, prevSpliceLength)
     extraLength := (finalLength - prevSpliceLength) * 0.04
     if (finalLength - prevSpliceLength) < requiredLength {
         extraLength += requiredLength - (finalLength - prevSpliceLength)

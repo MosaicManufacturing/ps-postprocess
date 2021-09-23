@@ -32,7 +32,7 @@ type Tower struct {
 }
 
 func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
-    totalLayers := len(preflight.transitionsByLayer)
+    totalLayers := preflight.totalLayers + 1
     tower := Tower{
         Palette:                       palette,
         BoundingBox:                   gcode.NewBoundingBox(),
@@ -382,6 +382,24 @@ func (t *Tower) rasterizeLayer(layer int) {
 
 }
 
+func (t *Tower) IsComplete() bool {
+    return t.CurrentLayerIndex >= len(t.Layers)
+}
+
+func (t *Tower) CurrentLayerIsDense() bool {
+    if t.IsComplete() {
+        // no more layers -- N/A
+        return false
+    }
+    return len(t.Layers[t.CurrentLayerIndex].Transitions) > 0
+}
+
+func (t *Tower) NeedsSparseLayers(nextLayer int) bool {
+    // if true, tower has not been printed to the current layer height yet
+    // -- at least one sparse layer should be inserted
+    return nextLayer > t.CurrentLayerIndex
+}
+
 func (t *Tower) GetCurrentTransitionInfo() *Transition {
     if t.CurrentLayerIndex >= len(t.Layers) {
         return nil
@@ -428,7 +446,51 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     return sequence, nil
 }
 
-func (t *Tower) getNextSegmentPaths(state *State) string {
+func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float32) {
+    extrusionWidth :=  t.Palette.TowerExtrusionWidth
+    layerHeight := t.Layers[t.CurrentLayerIndex].Thickness
+    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier / 100
+
+    command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+    commandExtrusion := float32(0)
+
+    // when printing a segment, all commands use the print feedrate
+    // so as not to alternate feedrates constantly
+    command.Params["f"] = printFeedrate
+    if _, ok := command.Params["e"]; ok {
+        // extrusion command
+        lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"]) // mm
+        deltaE := getExtrusionLength(extrusionWidth, layerHeight, lineLength) * extrusionMultiplier
+        if state.E.RelativeExtrusion {
+            command.Params["e"] = deltaE
+        } else {
+            command.Params["e"] = state.E.CurrentExtrusionValue + deltaE
+        }
+        commandExtrusion = deltaE
+    } else {
+        // travel command
+    }
+    currentX := state.XYZF.CurrentX
+    currentY := state.XYZF.CurrentY
+    currentFeedrate := state.XYZF.CurrentFeedrate
+
+    state.TimeEstimate += estimateMoveTime(currentX, currentY, command.Params["x"], command.Params["y"], command.Params["f"])
+    state.XYZF.TrackInstruction(command)
+    state.E.TrackInstruction(command)
+
+    // optimize output size by taking advantage of sticky parameters
+    if currentFeedrate == command.Params["f"] {
+        delete(command.Params, "f")
+    }
+
+    sequence := command.String() + EOL
+
+    t.CurrentLayerCommandIndex++
+
+    return sequence, commandExtrusion
+}
+
+func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
     totalPurge := float32(0)
 
@@ -437,9 +499,6 @@ func (t *Tower) getNextSegmentPaths(state *State) string {
         // use the slower of the two material settings for this transition
         printFeedrate = t.Palette.TowerSpeed[transitionInfo.From] * 60
     }
-    extrusionWidth :=  t.Palette.TowerExtrusionWidth
-    layerHeight := t.Layers[t.CurrentLayerIndex].Thickness
-    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier / 100
 
     sequence := ""
 
@@ -448,40 +507,52 @@ func (t *Tower) getNextSegmentPaths(state *State) string {
     thisLayerTransitions := len(t.Layers[t.CurrentLayerIndex].Transitions)
     for (totalPurge < transitionInfo.PurgeLength || t.CurrentLayerTransitionIndex == thisLayerTransitions - 1) &&
       t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
+        commandString, commandExtrusion := t.getNextPath(state, printFeedrate)
+        sequence += commandString
+        totalPurge += commandExtrusion
+    }
 
-        command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
-        // when printing a segment, all commands use the print feedrate
-        // so as not to alternate feedrates constantly
-        command.Params["f"] = printFeedrate
-        if _, ok := command.Params["e"]; ok {
-            // extrusion command
-            lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"]) // mm
-            deltaE := getExtrusionLength(extrusionWidth, layerHeight, lineLength) * extrusionMultiplier
-            if state.E.RelativeExtrusion {
-                command.Params["e"] = deltaE
-            } else {
-                command.Params["e"] = state.E.CurrentExtrusionValue + deltaE
-            }
-            totalPurge += deltaE
-        } else {
-            // travel command
+    return sequence
+}
+
+func (t *Tower) getNextSparseLayerPaths(state *State) string {
+    printFeedrate := t.Palette.TowerSpeed[state.CurrentTool] * 60
+
+    sequence := ""
+
+    // sparse layer: do the entire layer
+    for t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
+        commandString, _ := t.getNextPath(state, printFeedrate)
+        sequence += commandString
+    }
+
+    return sequence
+}
+
+func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error) {
+    if t.CurrentLayerTransitionIndex == 0 && len(t.CurrentLayerPaths) == 0 {
+        t.rasterizeLayer(t.CurrentLayerIndex)
+    }
+
+    // assertions for current layer being dense/sparse
+    if expectingDense {
+        if !t.CurrentLayerIsDense() {
+            return "", fmt.Errorf("expected dense layer but layer %d is sparse", t.CurrentLayerIndex)
         }
-        currentX := state.XYZF.CurrentX
-        currentY := state.XYZF.CurrentY
-        currentFeedrate := state.XYZF.CurrentFeedrate
-
-        state.TimeEstimate += estimateMoveTime(currentX, currentY, command.Params["x"], command.Params["y"], command.Params["f"])
-        state.XYZF.TrackInstruction(command)
-        state.E.TrackInstruction(command)
-
-        // optimize output size by taking advantage of sticky parameters
-        if currentFeedrate == command.Params["f"] {
-            delete(command.Params, "f")
+    } else {
+        if t.CurrentLayerIsDense() {
+            return "", fmt.Errorf("expected sparse layer but layer %d is dense", t.CurrentLayerIndex)
         }
+    }
 
-        sequence += command.String() + EOL
-
-        t.CurrentLayerCommandIndex++
+    sequence, err := t.moveToTower(state)
+    if err != nil {
+        return "", err
+    }
+    if expectingDense {
+        sequence += t.getNextDenseSegmentPaths(state)
+    } else {
+        sequence += t.getNextSparseLayerPaths(state)
     }
 
     // move to the next transition on this layer
@@ -493,31 +564,6 @@ func (t *Tower) getNextSegmentPaths(state *State) string {
         t.CurrentLayerCommandIndex = 0
         t.CurrentLayerPaths = nil
     }
-
-    return sequence
-}
-
-func (t *Tower) GetNextSegment(state *State, shouldBeDense bool) (string, error) {
-    if t.CurrentLayerTransitionIndex == 0 && len(t.CurrentLayerPaths) == 0 {
-        t.rasterizeLayer(t.CurrentLayerIndex)
-    }
-
-    // assertions for current layer being dense/sparse
-    if shouldBeDense {
-        if len(t.Layers[t.CurrentLayerIndex].Transitions) == 0 {
-            return "", errors.New("expected dense layer but layer is sparse")
-        }
-    } else {
-        if len(t.Layers[t.CurrentLayerIndex].Transitions) > 0 {
-            return "", errors.New("expected sparse layer but layer is dense")
-        }
-    }
-
-    sequence, err := t.moveToTower(state)
-    if err != nil {
-        return "", err
-    }
-    sequence += t.getNextSegmentPaths(state)
 
     return sequence, nil
 }

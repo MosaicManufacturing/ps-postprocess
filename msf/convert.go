@@ -181,7 +181,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
                         spliceLength := state.E.TotalExtrusion + spliceOffset
                         if palette.TransitionMethod == SideTransitions {
-                            // todo: should this logic apply for other transition methods as well?
                             extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
                             if extra > 0 {
                                currentTransitionLength += extra
@@ -211,7 +210,31 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             return writeLine(writer, line.Raw)
         } else if line.Raw == ";LAYER_CHANGE" {
             state.CurrentLayer++
-            // todo: insert any necessary sparse layers now
+            if palette.TransitionMethod == CustomTower && !state.Tower.IsComplete() {
+                // check for sparse layer insertion
+                // todo: may need to z-lift here
+                if state.Tower.NeedsSparseLayers(state.CurrentLayer) {
+                    layerPaths, err := state.Tower.GetNextSegment(&state, false)
+                    if err != nil {
+                        return err
+                    }
+                    if err := writeLines(writer, layerPaths); err != nil {
+                        return err
+                    }
+                    // should we double up and print the next sparse layer now too?
+                    if !state.Tower.CurrentLayerIsDense() {
+                        // todo: probably need to move in Z here
+                        layerPaths, err = state.Tower.GetNextSegment(&state, false)
+                        if err != nil {
+                            return err
+                        }
+                        if err := writeLines(writer, layerPaths); err != nil {
+                            return err
+                        }
+                    }
+                    // todo: may need to z-unlift here
+                }
+            }
             return writeLine(writer, line.Raw)
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
