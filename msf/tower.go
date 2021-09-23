@@ -157,8 +157,8 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
         // prefer to use the provided aspect ratio, but not necessarily size
         aspectRatio = math.Sqrt(towerWidth / towerHeight)
     }
-    towerHalfWidth := float32(math.Round(squareLength / aspectRatio)) / 2
-    towerHalfHeight := float32(math.Round(squareLength * aspectRatio)) / 2
+    towerHalfHeight := float32(squareLength / aspectRatio) / 2
+    towerHalfWidth := float32(squareLength * aspectRatio) / 2
 
     // 9. store everything relevant
 
