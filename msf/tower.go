@@ -453,23 +453,7 @@ func (t *Tower) moveToTower(state *State) (string, error) {
 
     if state.E.CurrentRetraction < 0 {
         // un-retract
-        eParam := -state.E.CurrentRetraction
-        if !state.E.RelativeExtrusion {
-            eParam = state.E.CurrentExtrusionValue - state.E.CurrentRetraction
-        }
-        fParam := state.Palette.RestartFeedrate[state.CurrentTool]
-        restart := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "e": eParam,
-                "f": fParam,
-            },
-            Comment: "unretract",
-        }
-        sequence += restart.String() + EOL
-        state.TimeEstimate += estimatePurgeTime(state.E.CurrentRetraction, fParam)
-        state.XYZF.TrackInstruction(restart)
-        state.E.TrackInstruction(restart)
+        sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
     }
     return sequence, nil
 }
@@ -478,36 +462,9 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
     sequence := ""
     if retractDistance != 0 {
         // restore any retraction from before tower was started
-        eParam := retractDistance
-        if !state.E.RelativeExtrusion {
-            eParam = state.E.CurrentExtrusionValue + retractDistance
-        }
-        fParam := state.Palette.RetractFeedrate[state.CurrentTool]
-        retract := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "e": eParam,
-                "f": fParam,
-            },
-            Comment: "retract",
-        }
-        sequence += retract.String() + EOL
-        state.TimeEstimate += estimatePurgeTime(retractDistance, fParam)
-        state.XYZF.TrackInstruction(retract)
-        state.E.TrackInstruction(retract)
+        sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
     }
-    if !state.E.RelativeExtrusion {
-        // reset extrusion distance
-        reset := gcode.Command{
-            Command: "G92",
-            Params:  map[string]float32{
-                "e": 0,
-            },
-            Comment: "reset extrusion distance",
-        }
-        sequence += reset.String() + EOL
-        state.E.TrackInstruction(reset)
-    }
+    sequence += resetEAxis(state)
     if state.Palette.ZLift[state.CurrentTool] > 0 {
         // lift z
         zLift := gcode.Command{
