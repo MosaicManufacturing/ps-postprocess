@@ -67,6 +67,11 @@ type Palette struct {
     RaftInflation float32 `json:"raftInflation"` // mm
     RaftExtrusionWidth float32 `json:"raftExtrusionWidth"` // mm
     RaftStride float32 `json:"raftStride"` // mm
+    RetractDistance []float32 `json:"retractDistance"` // mm
+    RestartDistance []float32 `json:"restartDistance"` // mm
+    RetractFeedrate []float32 `json:"retractFeedrate"` // mm/min
+    RestartFeedrate []float32 `json:"restartFeedrate"` // mm/min
+    ZLift []float32 `json:"zLift"` // mm
 
     // side transition scripting
     PreSideTransitionSequence string `json:"preSideTransitionSequence"`

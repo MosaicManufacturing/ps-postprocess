@@ -386,6 +386,14 @@ func (t *Tower) IsComplete() bool {
     return t.CurrentLayerIndex >= len(t.Layers)
 }
 
+func (t *Tower) CurrentLayerTopZ() float32 {
+    if t.IsComplete() {
+        // no more layers -- N/A
+        return -1
+    }
+    return t.Layers[t.CurrentLayerIndex].TopZ
+}
+
 func (t *Tower) CurrentLayerIsDense() bool {
     if t.IsComplete() {
         // no more layers -- N/A
@@ -429,11 +437,11 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     state.XYZF.TrackInstruction(travel)
 
     // z-lift down if needed
-    if state.XYZF.CurrentZ > t.Layers[t.CurrentLayerIndex].TopZ {
+    if topZ := t.CurrentLayerTopZ(); state.XYZF.CurrentZ > topZ {
         zLift := gcode.Command{
             Command: "G1",
             Params:  map[string]float32{
-                "z": t.Layers[t.CurrentLayerIndex].TopZ,
+                "z": topZ,
                 "f": state.Palette.TravelSpeedZ,
             },
             Comment: "restore layer Z",
@@ -443,7 +451,79 @@ func (t *Tower) moveToTower(state *State) (string, error) {
         state.XYZF.TrackInstruction(zLift)
     }
 
+    // un-retract
+    if state.E.CurrentRetraction < 0 {
+        // CurrentRetraction is negative
+        eParam := -state.E.CurrentRetraction
+        if !state.E.RelativeExtrusion {
+            eParam = state.E.CurrentExtrusionValue - state.E.CurrentRetraction
+        }
+        fParam := state.Palette.RestartFeedrate[state.CurrentTool]
+        restart := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "e": eParam,
+                "f": fParam,
+            },
+            Comment: "unretract",
+        }
+        sequence += restart.String() + EOL
+        state.TimeEstimate += estimatePurgeTime(state.E.CurrentRetraction, fParam)
+        state.XYZF.TrackInstruction(restart)
+        state.E.TrackInstruction(restart)
+    }
     return sequence, nil
+}
+
+func (t *Tower) leaveTower(state *State, retractDistance float32) string {
+    sequence := ""
+    if retractDistance != 0 {
+        // restore any retraction from before tower was started
+        eParam := retractDistance
+        if !state.E.RelativeExtrusion {
+            eParam = state.E.CurrentExtrusionValue + retractDistance
+        }
+        fParam := state.Palette.RetractFeedrate[state.CurrentTool]
+        retract := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "e": eParam,
+                "f": fParam,
+            },
+            Comment: "retract",
+        }
+        sequence += retract.String() + EOL
+        state.TimeEstimate += estimatePurgeTime(retractDistance, fParam)
+        state.XYZF.TrackInstruction(retract)
+        state.E.TrackInstruction(retract)
+    }
+    if !state.E.RelativeExtrusion {
+        // reset extrusion distance
+        reset := gcode.Command{
+            Command: "G92",
+            Params:  map[string]float32{
+                "e": 0,
+            },
+            Comment: "reset extrusion distance",
+        }
+        sequence += reset.String() + EOL
+        state.E.TrackInstruction(reset)
+    }
+    if state.Palette.ZLift[state.CurrentTool] > 0 {
+        // lift z
+        zLift := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "z": state.XYZF.CurrentZ + state.Palette.ZLift[state.CurrentTool],
+                "f": state.Palette.TravelSpeedZ,
+            },
+            Comment: "lift Z",
+        }
+        sequence += zLift.String() + EOL
+        state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
+        state.XYZF.TrackInstruction(zLift)
+    }
+    return sequence
 }
 
 func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float32) {
@@ -545,6 +625,8 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
         }
     }
 
+    currentRetraction := state.E.CurrentRetraction
+
     sequence, err := t.moveToTower(state)
     if err != nil {
         return "", err
@@ -554,6 +636,8 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
     } else {
         sequence += t.getNextSparseLayerPaths(state)
     }
+
+    sequence += t.leaveTower(state, currentRetraction)
 
     // move to the next transition on this layer
     t.CurrentLayerTransitionIndex++

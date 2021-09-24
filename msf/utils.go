@@ -75,7 +75,7 @@ func estimateZMoveTime(z1, z2, feedrate float32) float32 {
 
 func estimatePurgeTime(eDelta, feedrate float32) float32 {
     mmPerS := feedrate / 60
-    return eDelta / mmPerS
+    return float32(math.Abs(float64(eDelta))) / mmPerS
 }
 
 func lerp(minVal, maxVal, t float32) float32 {

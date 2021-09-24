@@ -62,6 +62,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     }
 
     didFinalSplice := false
+    needsSparseLayers := false
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
@@ -143,6 +144,47 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                 }
             }
+        } else if needsSparseLayers && len(line.Command) == 0 && strings.HasPrefix(line.Comment, "printing object") {
+            if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                return err
+            }
+            // todo: may need to store current Z for later
+            layerPaths, err := state.Tower.GetNextSegment(&state, false)
+            if err != nil {
+                return err
+            }
+            if err := writeLines(writer, layerPaths); err != nil {
+                return err
+            }
+            // should we double up and print the next sparse layer now too?
+            if !state.Tower.CurrentLayerIsDense() {
+                if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                    return err
+                }
+                // need to manually move up to next layer
+                topZ := state.Tower.CurrentLayerTopZ()
+                zLift := gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "z": topZ,
+                        "f": state.Palette.TravelSpeedZ,
+                    },
+                }
+                if err := writeLine(writer, zLift.String()); err != nil {
+                    return err
+                }
+                state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
+                state.XYZF.TrackInstruction(zLift)
+                layerPaths, err = state.Tower.GetNextSegment(&state, false)
+                if err != nil {
+                    return err
+                }
+                if err := writeLines(writer, layerPaths); err != nil {
+                    return err
+                }
+            }
+            // todo: may need to re-z-unlift here
+            needsSparseLayers = false
         } else if len(line.Command) > 1 && line.Command[0] == 'T' {
             tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
             if err != nil {
@@ -164,6 +206,9 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         return err
                     }
                     if palette.TransitionMethod == CustomTower {
+                        if err := writeLine(writer, "; Dense tower segment"); err != nil {
+                            return err
+                        }
                         currentTransitionLength := state.Tower.GetCurrentTransitionInfo().TransitionLength
                         spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
                         spliceLength := state.E.TotalExtrusion + spliceOffset
@@ -217,32 +262,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             if palette.TransitionMethod == CustomTower && !state.Tower.IsComplete() {
                 // check for sparse layer insertion
                 if state.Tower.NeedsSparseLayers(state.CurrentLayer) {
-                    if err := writeLine(writer, "; Sparse tower layer"); err != nil {
-                        return err
-                    }
-                    // todo: may need to z-lift here
-                    layerPaths, err := state.Tower.GetNextSegment(&state, false)
-                    if err != nil {
-                        return err
-                    }
-                    if err := writeLines(writer, layerPaths); err != nil {
-                        return err
-                    }
-                    // should we double up and print the next sparse layer now too?
-                    if !state.Tower.CurrentLayerIsDense() {
-                        if err := writeLine(writer, "; Sparse tower layer"); err != nil {
-                            return err
-                        }
-                        // todo: probably need to move in Z here
-                        layerPaths, err = state.Tower.GetNextSegment(&state, false)
-                        if err != nil {
-                            return err
-                        }
-                        if err := writeLines(writer, layerPaths); err != nil {
-                            return err
-                        }
-                    }
-                    // todo: may need to z-unlift here
+                    needsSparseLayers = true
                 }
             }
             return writeLine(writer, line.Raw)
