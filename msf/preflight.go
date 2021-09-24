@@ -13,6 +13,7 @@ type Transition struct {
     To int
     TransitionLength float32 // actual transition length as specified by user
     PurgeLength float32 // amount of filament to extrude
+    UsableInfill float32 // subtract this amount from the splice length
 }
 
 type msfPreflight struct {
@@ -29,6 +30,7 @@ type msfPreflight struct {
     layerThicknesses []float32
     layerTopZs []float32
     transitionsByLayer map[int][]Transition
+    transitions []Transition
 
     // used for side transition custom scripts
     transitionNextPositions []sideTransitionLookahead
@@ -62,6 +64,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         printSummaryStart: -1,
         totalLayers:       -1,
         transitionsByLayer: make(map[int][]Transition),
+        transitions:        make([]Transition, 0),
     }
 
     // initialize state
@@ -167,8 +170,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     purgeLength := transitionLength
                     spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
                     // start by subtracting usable infill from splice and purge length
+                    usableInfill := float32(0)
                     if currentInfillStartE >= 0 {
-                        usableInfill := state.E.TotalExtrusion - currentInfillStartE
+                        usableInfill = state.E.TotalExtrusion - currentInfillStartE
                         fmt.Println("usableInfill", usableInfill)
                         purgeLength -= usableInfill
                         spliceLength -= usableInfill
@@ -183,6 +187,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         extra := minSpliceLength - deltaE
                         purgeLength += extra
                         spliceLength += extra
+                        usableInfill -= extra
                     }
                     tInfo := Transition{
                         Layer:            results.totalLayers,
@@ -190,7 +195,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         To:               int(tool),
                         TransitionLength: transitionLength,
                         PurgeLength:      purgeLength,
+                        UsableInfill:     usableInfill,
                     }
+                    results.transitions = append(results.transitions, tInfo)
                     if _, ok := results.transitionsByLayer[results.totalLayers]; ok {
                         results.transitionsByLayer[results.totalLayers] = append(results.transitionsByLayer[results.totalLayers], tInfo)
                     } else {

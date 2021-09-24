@@ -192,9 +192,9 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if err := writeLine(writer, "; Dense tower segment"); err != nil {
                             return err
                         }
-                        currentTransitionLength := state.Tower.GetCurrentTransitionInfo().TransitionLength
-                        spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
-                        spliceLength := state.E.TotalExtrusion + spliceOffset
+                        currentTransition := state.Tower.GetCurrentTransitionInfo()
+                        spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+                        spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
                         if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                             return err
                         }
@@ -209,13 +209,14 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         }
                         state.CurrentlyTransitioning = false
                     } else {
-                        currentTransitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
-                        spliceOffset := currentTransitionLength * (palette.TransitionTarget / 100)
-                        spliceLength := state.E.TotalExtrusion + spliceOffset
+                        currentTransition := preflight.transitions[len(msfOut.SpliceList)]
+                        currentPurgeLength := currentTransition.PurgeLength
+                        spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+                        spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
                         if palette.TransitionMethod == SideTransitions {
                             extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
                             if extra > 0 {
-                                currentTransitionLength += extra
+                                currentPurgeLength += extra
                                 spliceLength += extra
                             }
                         }
@@ -225,9 +226,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentTool = int(tool)
                         state.CurrentlyTransitioning = true
                         if palette.TransitionMethod == SideTransitions {
-                            // todo: use purge length from preflight.transitionsByLayer instead!
-                            //  (will have already accounted for infill available for transitioning)
-                            transition, err := sideTransition(currentTransitionLength, &state)
+                            transition, err := sideTransition(currentPurgeLength, &state)
                             if err != nil {
                                 return err
                             }
