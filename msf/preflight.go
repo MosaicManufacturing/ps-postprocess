@@ -2,7 +2,6 @@ package msf
 
 import (
     "../gcode"
-    "fmt"
     "strconv"
     "strings"
 )
@@ -174,7 +173,6 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     usableInfill := float32(0)
                     if currentInfillStartE >= 0 {
                         usableInfill = state.E.TotalExtrusion - currentInfillStartE
-                        fmt.Println("usableInfill", usableInfill)
                         purgeLength -= usableInfill
                         spliceLength -= usableInfill
                     }
