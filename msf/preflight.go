@@ -182,8 +182,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     deltaE := spliceLength - lastTransitionSpliceLength
                     // try to account for any sparse layers that will be added between the last
                     // dense layer and this one (note: sparse layer extrusion may be more than this)
-                    if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer {
-                        sparseLayers := results.totalLayers - lastTransitionLayer
+                    if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer + 1 {
+                        sparseLayers := results.totalLayers - (lastTransitionLayer + 1)
                         sparseLayerExtrusionEstimate := pingExtrusionMM * float32(sparseLayers)
                         deltaE += sparseLayerExtrusionEstimate
                     }
