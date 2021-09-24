@@ -202,10 +202,14 @@ func (t *Tower) rasterizeLayer(layer int) {
     yMin := t.BoundingBox.Min[1]
     yMax := t.BoundingBox.Max[1]
     if layer < t.Palette.RaftLayers {
-        xMin -= t.Palette.RaftInflation
-        yMin -= t.Palette.RaftInflation
-        xMax += t.Palette.RaftInflation
-        yMax += t.Palette.RaftInflation
+        inflation := t.Palette.RaftInflation
+        if layer == 0 {
+            inflation *= 2
+        }
+        xMin -= inflation
+        yMin -= inflation
+        xMax += inflation
+        yMax += inflation
     }
 
     t.CurrentLayerPaths = make([]gcode.Command, 0)
@@ -297,6 +301,7 @@ func (t *Tower) rasterizeLayer(layer int) {
     }
     axisAlignedStride := float32(math.Sqrt(float64(stride * stride * 2)))
 
+    firstLine := true
     needsMoreLines := true
     xBoundReached := false
     yBoundReached := false
@@ -349,27 +354,34 @@ func (t *Tower) rasterizeLayer(layer int) {
             x2 = currentXMax + currentXMin - x2
         }
 
-        t.CurrentLayerPaths = append(t.CurrentLayerPaths,
-            // travel to (x1, y1)
-            gcode.Command{
-                Command: "G1",
-                Params:  map[string]float32{
-                    "x": x1,
-                    "y": y1,
-                    "f": 0,
-                },
+        // travel to (x1, y1)
+        travel := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": x1,
+                "y": y1,
+                "f": 0,
             },
-            // extrude to (x2, y2)
-            gcode.Command{
-                Command: "G1",
-                Params:  map[string]float32{
-                    "x": x2,
-                    "y": y2,
-                    "e": 0,
-                    "f": 0,
-                },
+        }
+        // extrude to (x2, y2)
+        extrude := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "x": x2,
+                "y": y2,
+                "e": 0,
+                "f": 0,
             },
-        )
+        }
+
+        if !firstLine && layer < t.Palette.RaftLayers {
+            // raft layers should have continuous extrusion
+            // (but the first command should still be travel)
+            travel.Params["e"] = 0
+        }
+
+        t.CurrentLayerPaths = append(t.CurrentLayerPaths, travel, extrude)
+        firstLine = false
 
         if neX - currentXMin < axisAlignedStride && currentYMax - swY < axisAlignedStride {
             // layer has been fully rasterized
