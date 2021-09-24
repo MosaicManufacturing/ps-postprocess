@@ -579,6 +579,11 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
     if err != nil {
         return "", err
     }
+
+    // TODO: add tower brims if first segment of first layer
+    //  - respect user's minimum brim count
+    //  - auto-increase brim count to ensure minimum first piece length
+
     if expectingDense {
         sequence += t.getNextDenseSegmentPaths(state)
     } else {
