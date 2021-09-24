@@ -6,18 +6,18 @@ import (
     "math"
 )
 
-func getPingRetract(palette *Palette) (bool, string) {
-    if palette.PingRetractDistance == 0 {
+func getPingRetract(state *State) (bool, string) {
+    if state.Palette.PingRetractDistance == 0 {
         return false, ""
     }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", -palette.PingRetractDistance, palette.PingRetractFeedrate)
+    return true, getRetract(state, state.Palette.PingRetractDistance, state.Palette.PingRetractFeedrate)
 }
 
-func getPingRestart(palette *Palette) (bool, string) {
-    if palette.PingRestartDistance == 0 {
+func getPingRestart(state *State) (bool, string) {
+    if state.Palette.PingRestartDistance == 0 {
         return false, ""
     }
-    return true, fmt.Sprintf("G1 E%.5f F%.1f", palette.PingRestartDistance, palette.PingRestartFeedrate)
+    return true, getRestart(state, state.Palette.PingRestartDistance, state.Palette.PingRestartFeedrate)
 }
 
 func getDwellPause(durationMS int) string {
@@ -84,7 +84,7 @@ func getTowerJogPause(durationMS int, state *State) string {
 
 func getTowerPause(durationMS int, state *State) string {
     sequence := ""
-    if useRetract, retract := getPingRetract(state.Palette); useRetract {
+    if useRetract, retract := getPingRetract(state); useRetract {
         sequence += retract + EOL
     }
     currentF := state.XYZF.CurrentFeedrate
@@ -136,7 +136,7 @@ func getTowerPause(durationMS int, state *State) string {
         state.XYZF.TrackInstruction(move)
         sequence += move.Raw + EOL
     }
-    if useRestart, restart := getPingRestart(state.Palette); useRestart {
+    if useRestart, restart := getPingRestart(state); useRestart {
         sequence += restart + EOL
     }
     return sequence
