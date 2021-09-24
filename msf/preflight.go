@@ -77,6 +77,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     pingExtrusionMM := palette.GetPingExtrusion()
 
     transitionCount := 0
+    lastTransitionLayer := 0
     lastTransitionSpliceLength := float32(0)
 
     // calculate available infill per transition
@@ -179,6 +180,13 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     }
                     // safety check to ensure minimum piece lengths
                     deltaE := spliceLength - lastTransitionSpliceLength
+                    // try to account for any sparse layers that will be added between the last
+                    // dense layer and this one (note: sparse layer extrusion may be more than this)
+                    if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer {
+                        sparseLayers := results.totalLayers - lastTransitionLayer
+                        sparseLayerExtrusionEstimate := pingExtrusionMM * float32(sparseLayers)
+                        deltaE += sparseLayerExtrusionEstimate
+                    }
                     minSpliceLength := MinSpliceLength
                     if transitionCount == 0 {
                         minSpliceLength = palette.GetFirstSpliceMinLength()
@@ -205,6 +213,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     }
                     transitionCount++
                     lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
+                    lastTransitionLayer = results.totalLayers
                     state.CurrentTool = int(tool)
                     if palette.TransitionMethod != CustomTower {
                         state.CurrentlyTransitioning = true
