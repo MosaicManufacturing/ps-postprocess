@@ -189,22 +189,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
     // extrusion between pauses
     pingStartExtrusion := state.E.TotalExtrusion
     purgeLength := state.Palette.GetPingExtrusion()
-    eValue := purgeLength
-    if !state.E.RelativeExtrusion {
-        eValue += state.E.CurrentExtrusionValue
-    }
-    purge := gcode.Command{
-        Raw:     fmt.Sprintf("G1 E%.5f F%.1f", eValue, state.Palette.SideTransitionPurgeSpeed),
-        Command: "G1",
-        Params:  map[string]float32{
-            "e": eValue,
-            "f": state.Palette.SideTransitionPurgeSpeed,
-        },
-        Flags: map[string]bool{},
-    }
-    state.TimeEstimate += estimatePurgeTime(purgeLength, state.Palette.SideTransitionPurgeSpeed)
-    state.E.TrackInstruction(purge)
-    sequence += purge.Raw + EOL
+    sequence += getPurge(state, purgeLength, state.Palette.SideTransitionPurgeSpeed * 60)
 
     // second pause
     sequence += fmt.Sprintf("; Ping %d pause 2", len(state.MSF.PingList) + 1)
@@ -253,8 +238,10 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 
     // extrusion between pauses
     pingStartExtrusion := state.E.TotalExtrusion
-    nextX := state.XYZF.CurrentX
-    nextY := state.XYZF.CurrentY
+    currentX := state.XYZF.CurrentX
+    currentY := state.XYZF.CurrentY
+    nextX := currentX
+    nextY := currentY
     switch jogPauseDirection {
     case gcode.North:
         if state.Palette.PrintBedMaxY - state.XYZF.CurrentY < 20 {
@@ -288,44 +275,10 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
     purgePerJog := purgeLength / (totalJogs * 2)
 
     for i := 0; i < totalJogs; i++ {
-        eValue := purgePerJog
-        if !state.E.RelativeExtrusion {
-            eValue += state.E.CurrentExtrusionValue
-        }
         // jog out
-        purge := gcode.Command{
-            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%d", nextX, nextY, eValue, feedrate),
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": nextX,
-                "y": nextY,
-                "e": eValue,
-                "f": feedrate,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, feedrate)
-        state.E.TrackInstruction(purge)
-        sequence += purge.Raw + EOL
-
+        sequence += getXYExtrusion(state, nextX, nextY, purgePerJog, feedrate)
         // jog back in
-        if !state.E.RelativeExtrusion {
-            eValue += purgePerJog
-        }
-        purge = gcode.Command{
-            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%d", state.XYZF.CurrentX, state.XYZF.CurrentY, eValue, feedrate),
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": state.XYZF.CurrentX,
-                "y": state.XYZF.CurrentY,
-                "e": eValue,
-                "f": feedrate,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimateMoveTime(nextX, nextY, state.XYZF.CurrentX, state.XYZF.CurrentY, feedrate)
-        state.E.TrackInstruction(purge)
-        sequence += purge.Raw + EOL
+        sequence += getXYExtrusion(state, currentX, currentY, purgePerJog, feedrate)
     }
 
     // second pause

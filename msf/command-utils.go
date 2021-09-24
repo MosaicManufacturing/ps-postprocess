@@ -111,3 +111,45 @@ func getXYTravel(state *State, toX, toY, feedrate float32, comment string) strin
     state.XYZF.TrackInstruction(xyTravel)
     return xyTravel.String() + EOL
 }
+
+func getPurge(state *State, distance, feedrate float32) string {
+    if distance == 0 {
+        return ""
+    }
+    eValue := distance
+    if !state.E.RelativeExtrusion {
+        eValue += state.E.CurrentExtrusionValue
+    }
+    purge := gcode.Command{
+        Command: "G1",
+        Params:  map[string]float32{
+            "e": eValue,
+            "f": feedrate,
+        },
+        Flags: map[string]bool{},
+    }
+    state.TimeEstimate += estimatePurgeTime(distance, feedrate)
+    state.E.TrackInstruction(purge)
+    return purge.String() + EOL
+}
+
+func getXYExtrusion(state *State, toX, toY, distance, feedrate float32) string {
+    eValue := distance
+    if !state.E.RelativeExtrusion {
+        eValue += state.E.CurrentExtrusionValue
+    }
+    purge := gcode.Command{
+        Command: "G1",
+        Params:  map[string]float32{
+            "x": toX,
+            "y": toY,
+            "e": eValue,
+            "f": feedrate,
+        },
+        Flags: map[string]bool{},
+    }
+    state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
+    state.XYZF.TrackInstruction(purge)
+    state.E.TrackInstruction(purge)
+    return purge.String() + EOL
+}

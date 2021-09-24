@@ -115,7 +115,6 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 }
 
 func sideTransitionInPlace(transitionLength float32, state *State) (string, error) {
-    feedrate := state.Palette.SideTransitionPurgeSpeed * 60
     transitionSoFar := float32(0)
     startX, startY := getSideTransitionStartPosition(state)
     currentRetraction := state.E.CurrentRetraction
@@ -130,22 +129,7 @@ func sideTransitionInPlace(transitionLength float32, state *State) (string, erro
             sequence += pingSequence
         }
         nextPurgeExtrusion := float32(math.Min(10, float64(transitionLength - transitionSoFar)))
-        nextE := nextPurgeExtrusion
-        if !state.E.RelativeExtrusion {
-            nextE = state.E.CurrentExtrusionValue + nextPurgeExtrusion
-        }
-        purge := gcode.Command{
-            Raw:     fmt.Sprintf("G1 E%.5f F%.1f", nextE, feedrate),
-            Command: "G1",
-            Params:  map[string]float32{
-                "e": nextE,
-                "f": feedrate,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimatePurgeTime(nextPurgeExtrusion, feedrate)
-        state.E.TrackInstruction(purge)
-        sequence += purge.Raw + EOL
+        sequence += getPurge(state, nextPurgeExtrusion, state.Palette.SideTransitionPurgeSpeed * 60)
         transitionSoFar += nextPurgeExtrusion
     }
 
@@ -240,25 +224,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
                 nextX = lerp(state.XYZF.CurrentX, nextX, t)
             }
         }
-        nextE := nextPurgeExtrusion
-        if !state.E.RelativeExtrusion {
-            nextE = state.E.CurrentExtrusionValue + nextPurgeExtrusion
-        }
-        purge := gcode.Command{
-            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f E%.5f F%.1f", nextX, nextY, nextE, xyFeedrate),
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": nextX,
-                "y": nextY,
-                "e": nextE,
-                "f": xyFeedrate,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, xyFeedrate)
-        state.E.TrackInstruction(purge)
-        state.XYZF.TrackInstruction(purge)
-        sequence += purge.Raw + EOL
+        sequence += getXYExtrusion(state, nextX, nextY, nextPurgeExtrusion, xyFeedrate)
         transitionSoFar += nextPurgeExtrusion
         switch nextPurgeDirection {
         case gcode.North:
