@@ -162,7 +162,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
                 // need to manually move up to next layer
                 topZ := state.Tower.CurrentLayerTopZ()
-                zLift := getZTravel(&state, topZ)
+                zLift := getZTravel(&state, topZ, "")
                 if err := writeLines(writer, zLift); err != nil {
                     return err
                 }
