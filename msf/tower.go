@@ -581,6 +581,7 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
     }
 
     // TODO: add tower brims if first segment of first layer
+    //  - disable if t.Palette.RaftLayers > 0
     //  - respect user's minimum brim count
     //  - auto-increase brim count to ensure minimum first piece length
 
