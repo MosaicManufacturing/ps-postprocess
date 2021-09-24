@@ -148,7 +148,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             if err := writeLine(writer, "; Sparse tower layer"); err != nil {
                 return err
             }
-            // todo: may need to store current Z for later
             layerPaths, err := state.Tower.GetNextSegment(&state, false)
             if err != nil {
                 return err
@@ -183,7 +182,6 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     return err
                 }
             }
-            // todo: may need to re-z-unlift here
             needsSparseLayers = false
         } else if len(line.Command) > 1 && line.Command[0] == 'T' {
             tool, err := strconv.ParseInt(line.Command[1:], 10, 32)

@@ -60,10 +60,32 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
     state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, startX, startY, state.Palette.TravelSpeedXY)
     state.XYZF.TrackInstruction(travel)
     sequence += travel.Raw + EOL
+
+    if state.E.CurrentRetraction < 0 {
+        // un-retract
+        eParam := -state.E.CurrentRetraction
+        if !state.E.RelativeExtrusion {
+            eParam = state.E.CurrentExtrusionValue - state.E.CurrentRetraction
+        }
+        fParam := state.Palette.RestartFeedrate[state.CurrentTool]
+        restart := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "e": eParam,
+                "f": fParam,
+            },
+            Comment: "unretract",
+        }
+        sequence += restart.String() + EOL
+        state.TimeEstimate += estimatePurgeTime(state.E.CurrentRetraction, fParam)
+        state.XYZF.TrackInstruction(restart)
+        state.E.TrackInstruction(restart)
+    }
+
     return sequence, nil
 }
 
-func leaveSideTransition(transitionLength float32, state *State) (string, error) {
+func leaveSideTransition(transitionLength float32, state *State, retractDistance float32) (string, error) {
     if state.Palette.PostSideTransitionScript != nil {
         // user script instead of built-in logic
         transitionIdx := len(state.MSF.SpliceList) - 1
@@ -82,7 +104,43 @@ func leaveSideTransition(transitionLength float32, state *State) (string, error)
         return evaluateScript(state.Palette.PostSideTransitionScript, locals, state)
     }
 
-    return "; leave side transition" + EOL, nil
+    sequence := ""
+
+    if retractDistance != 0 {
+        // restore any retraction from before the side transition
+        eParam := retractDistance
+        if !state.E.RelativeExtrusion {
+            eParam = state.E.CurrentExtrusionValue + retractDistance
+        }
+        fParam := state.Palette.RetractFeedrate[state.CurrentTool]
+        retract := gcode.Command{
+            Command: "G1",
+            Params:  map[string]float32{
+                "e": eParam,
+                "f": fParam,
+            },
+            Comment: "retract",
+        }
+        sequence += retract.String() + EOL
+        state.TimeEstimate += estimatePurgeTime(retractDistance, fParam)
+        state.XYZF.TrackInstruction(retract)
+        state.E.TrackInstruction(retract)
+    }
+    if !state.E.RelativeExtrusion {
+        // reset extrusion distance
+        reset := gcode.Command{
+            Command: "G92",
+            Params:  map[string]float32{
+                "e": 0,
+            },
+            Comment: "reset extrusion distance",
+        }
+        sequence += reset.String() + EOL
+        state.E.TrackInstruction(reset)
+    }
+
+    sequence += "; leave side transition" + EOL
+    return sequence, nil
 }
 
 func checkSideTransitionPings(state *State) (bool, string, float32) {
@@ -116,6 +174,7 @@ func sideTransitionInPlace(transitionLength float32, state *State) (string, erro
     feedrate := state.Palette.SideTransitionPurgeSpeed * 60
     transitionSoFar := float32(0)
     startX, startY := getSideTransitionStartPosition(state)
+    currentRetraction := state.E.CurrentRetraction
     sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
     if err != nil {
         return sequence, err
@@ -151,7 +210,7 @@ func sideTransitionInPlace(transitionLength float32, state *State) (string, erro
         sequence += pingSequence
     }
 
-    leave, err := leaveSideTransition(transitionLength, state)
+    leave, err := leaveSideTransition(transitionLength, state, currentRetraction)
     if err != nil {
         return sequence, err
     }
@@ -193,6 +252,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
     }
 
     // move to starting position
+    currentRetraction := state.E.CurrentRetraction
     sequence, err := moveToSideTransition(transitionLength, state, nextX, nextY)
     if err != nil {
         return sequence, err
@@ -273,7 +333,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
         sequence += pingSequence
     }
 
-    leave, err := leaveSideTransition(transitionLength, state)
+    leave, err := leaveSideTransition(transitionLength, state, currentRetraction)
     if err != nil {
         return sequence, err
     }
@@ -283,6 +343,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
 
 func sideTransitionCustom(transitionLength float32, state *State) (string, error) {
     startX, startY := getSideTransitionStartPosition(state)
+    currentRetraction := state.E.CurrentRetraction
     sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
     if err != nil {
         return sequence, err
@@ -315,7 +376,7 @@ func sideTransitionCustom(transitionLength float32, state *State) (string, error
         sequence += pingSequence
     }
 
-    leave, err := leaveSideTransition(transitionLength, state)
+    leave, err := leaveSideTransition(transitionLength, state, currentRetraction)
     if err != nil {
         return sequence, err
     }

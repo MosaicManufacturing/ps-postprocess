@@ -451,9 +451,8 @@ func (t *Tower) moveToTower(state *State) (string, error) {
         state.XYZF.TrackInstruction(zLift)
     }
 
-    // un-retract
     if state.E.CurrentRetraction < 0 {
-        // CurrentRetraction is negative
+        // un-retract
         eParam := -state.E.CurrentRetraction
         if !state.E.RelativeExtrusion {
             eParam = state.E.CurrentExtrusionValue - state.E.CurrentRetraction
