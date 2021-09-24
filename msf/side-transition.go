@@ -28,9 +28,7 @@ func getSideTransitionStartPosition(state *State) (x, y float32) {
     return
 }
 
-func moveToSideTransition(transitionLength float32, state *State) (string, error) {
-    startX, startY := getSideTransitionStartPosition(state)
-
+func moveToSideTransition(transitionLength float32, state *State, startX, startY float32) (string, error) {
     if state.Palette.PreSideTransitionScript != nil {
         // user script instead of built-in logic
         locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
@@ -40,8 +38,8 @@ func moveToSideTransition(transitionLength float32, state *State) (string, error
             "currentX": float64(state.XYZF.CurrentX),
             "currentY": float64(state.XYZF.CurrentY),
             "currentZ": float64(state.XYZF.CurrentZ),
-            "nextX": float64(state.Palette.SideTransitionX),
-            "nextY": float64(state.Palette.SideTransitionY),
+            "nextX": float64(startX),
+            "nextY": float64(startY),
             "nextZ": float64(state.XYZF.CurrentZ),
             "transitionLength": float64(transitionLength),
         })
@@ -117,7 +115,8 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 func sideTransitionInPlace(transitionLength float32, state *State) (string, error) {
     feedrate := state.Palette.SideTransitionPurgeSpeed * 60
     transitionSoFar := float32(0)
-    sequence, err := moveToSideTransition(transitionLength, state)
+    startX, startY := getSideTransitionStartPosition(state)
+    sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
     if err != nil {
         return sequence, err
     }
@@ -194,7 +193,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
     }
 
     // move to starting position
-    sequence, err := moveToSideTransition(transitionLength, state)
+    sequence, err := moveToSideTransition(transitionLength, state, nextX, nextY)
     if err != nil {
         return sequence, err
     }
@@ -283,7 +282,8 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
 }
 
 func sideTransitionCustom(transitionLength float32, state *State) (string, error) {
-    sequence, err := moveToSideTransition(transitionLength, state)
+    startX, startY := getSideTransitionStartPosition(state)
+    sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
     if err != nil {
         return sequence, err
     }
