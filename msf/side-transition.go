@@ -46,20 +46,7 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
         return evaluateScript(state.Palette.PreSideTransitionScript, locals, state)
     }
 
-    sequence := "; move to side transition" + EOL
-    travel := gcode.Command{
-        Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", startX, startY, state.Palette.TravelSpeedXY),
-        Command: "G1",
-        Params:  map[string]float32{
-            "x": startX,
-            "y": startY,
-            "f": state.Palette.TravelSpeedXY,
-        },
-        Flags: map[string]bool{},
-    }
-    state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, startX, startY, state.Palette.TravelSpeedXY)
-    state.XYZF.TrackInstruction(travel)
-    sequence += travel.Raw + EOL
+    sequence := getXYTravel(state, startX, startY, state.Palette.TravelSpeedXY, "move to side transition")
 
     if state.E.CurrentRetraction < 0 {
         // un-retract

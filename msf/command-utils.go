@@ -75,3 +75,39 @@ func getRestart(state *State, distance, feedrate float32) string {
     state.E.TrackInstruction(restart)
     return restart.String() + EOL
 }
+
+func getZTravel(state *State, toZ float32, comment string) string {
+    if state.XYZF.CurrentZ == toZ {
+        return ""
+    }
+    zTravel := gcode.Command{
+        Command: "G1",
+        Comment: comment,
+        Params:  map[string]float32{
+            "z": toZ,
+            "f": state.Palette.TravelSpeedZ,
+        },
+    }
+    state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, toZ, state.Palette.TravelSpeedZ)
+    state.XYZF.TrackInstruction(zTravel)
+    return zTravel.String() + EOL
+}
+
+func getXYTravel(state *State, toX, toY, feedrate float32, comment string) string {
+    if state.XYZF.CurrentX == toX && state.XYZF.CurrentY == toY {
+        return ""
+    }
+    xyTravel := gcode.Command{
+        Command: "G1",
+        Comment: comment,
+        Params:  map[string]float32{
+            "x": toX,
+            "y": toY,
+            "f": feedrate,
+        },
+        Flags: map[string]bool{},
+    }
+    state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
+    state.XYZF.TrackInstruction(xyTravel)
+    return xyTravel.String() + EOL
+}

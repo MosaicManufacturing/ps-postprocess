@@ -438,17 +438,7 @@ func (t *Tower) moveToTower(state *State) (string, error) {
 
     // z-lift down if needed
     if topZ := t.CurrentLayerTopZ(); state.XYZF.CurrentZ > topZ {
-        zLift := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "z": topZ,
-                "f": state.Palette.TravelSpeedZ,
-            },
-            Comment: "restore layer Z",
-        }
-        sequence += zLift.String() + EOL
-        state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
-        state.XYZF.TrackInstruction(zLift)
+        sequence += getZTravel(state, topZ, "restore layer Z")
     }
 
     if state.E.CurrentRetraction < 0 {
@@ -467,17 +457,7 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
     sequence += resetEAxis(state)
     if state.Palette.ZLift[state.CurrentTool] > 0 {
         // lift z
-        zLift := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "z": state.XYZF.CurrentZ + state.Palette.ZLift[state.CurrentTool],
-                "f": state.Palette.TravelSpeedZ,
-            },
-            Comment: "lift Z",
-        }
-        sequence += zLift.String() + EOL
-        state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
-        state.XYZF.TrackInstruction(zLift)
+        sequence += getZTravel(state, state.XYZF.CurrentZ + state.Palette.ZLift[state.CurrentTool], "lift Z")
     }
     return sequence
 }

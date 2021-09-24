@@ -162,18 +162,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
                 // need to manually move up to next layer
                 topZ := state.Tower.CurrentLayerTopZ()
-                zLift := gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "z": topZ,
-                        "f": state.Palette.TravelSpeedZ,
-                    },
-                }
-                if err := writeLine(writer, zLift.String()); err != nil {
+                zLift := getZTravel(&state, topZ)
+                if err := writeLines(writer, zLift); err != nil {
                     return err
                 }
-                state.TimeEstimate += estimateZMoveTime(state.XYZF.CurrentZ, zLift.Params["z"], zLift.Params["f"])
-                state.XYZF.TrackInstruction(zLift)
                 layerPaths, err = state.Tower.GetNextSegment(&state, false)
                 if err != nil {
                     return err

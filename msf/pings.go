@@ -100,19 +100,7 @@ func getTowerPause(durationMS int, state *State) string {
         } else {
             pauseX += state.Palette.PingOffTowerDistance
         }
-        move := gcode.Command{
-            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", pauseX, pauseY, currentF),
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": pauseX,
-                "y": pauseY,
-                "f": currentF,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimateMoveTime(currentX, currentY, pauseX, pauseY, currentF)
-        state.XYZF.TrackInstruction(move)
-        sequence += move.Raw + EOL
+        sequence += getXYTravel(state, pauseX, pauseY, currentF, "")
     }
     if state.Palette.JogPauses {
         sequence += getTowerJogPause(durationMS, state)
@@ -122,19 +110,7 @@ func getTowerPause(durationMS int, state *State) string {
     state.TimeEstimate += float32(durationMS / 1000)
     if state.Palette.PingOffTowerDistance > 0 {
         // move back onto the tower after pausing
-        move := gcode.Command{
-            Raw:     fmt.Sprintf("G1 X%.3f Y%.3f F%.1f", currentX, currentY, currentF),
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": currentX,
-                "y": currentY,
-                "f": currentF,
-            },
-            Flags: map[string]bool{},
-        }
-        state.TimeEstimate += estimateMoveTime(pauseX, pauseY, currentX, currentY, currentF)
-        state.XYZF.TrackInstruction(move)
-        sequence += move.Raw + EOL
+        sequence += getXYTravel(state, currentX, currentY, currentF, "")
     }
     if useRestart, restart := getPingRestart(state); useRestart {
         sequence += restart + EOL
