@@ -155,6 +155,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if state.PastStartSequence {
                 if state.FirstToolChange {
                     state.FirstToolChange = false
+                    state.CurrentTool = int(tool)
+                    results.drivesUsed[state.CurrentTool] = true
                 } else {
                     transitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
                     spliceOffset := transitionLength * (palette.TransitionTarget / 100)

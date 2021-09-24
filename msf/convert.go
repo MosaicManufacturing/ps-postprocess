@@ -154,6 +154,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
                         return err
                     }
+                    state.CurrentTool = int(tool)
                 } else {
                     comment := fmt.Sprintf("; Transitioning to T%d from T%d", tool, state.CurrentTool)
                     if err := writeLine(writer, comment); err != nil {
