@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "fmt"
     "strconv"
     "strings"
 )
@@ -74,6 +75,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
 
     transitionCount := 0
     lastTransitionSpliceLength := float32(0)
+
+    // calculate available infill per transition
+    currentInfillStartE := float32(-1) // < 0 indicates not to use this value
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         state.E.TrackInstruction(line)
@@ -162,6 +166,14 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     spliceOffset := transitionLength * (palette.TransitionTarget / 100)
                     purgeLength := transitionLength
                     spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
+                    // start by subtracting usable infill from splice and purge length
+                    if currentInfillStartE >= 0 {
+                        usableInfill := state.E.TotalExtrusion - currentInfillStartE
+                        fmt.Println("usableInfill", usableInfill)
+                        purgeLength -= usableInfill
+                        spliceLength -= usableInfill
+                    }
+                    // safety check to ensure minimum piece lengths
                     deltaE := spliceLength - lastTransitionSpliceLength
                     minSpliceLength := MinSpliceLength
                     if transitionCount == 0 {
@@ -207,8 +219,15 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if thickness, err := strconv.ParseFloat(line.Raw[8:], 32); err == nil {
                 results.layerThicknesses = append(results.layerThicknesses, float32(thickness))
             }
-        } else if palette.TransitionMethod == TransitionTower &&
+        } else if (palette.TransitionMethod == TransitionTower || palette.InfillTransitioning) &&
             strings.HasPrefix(line.Comment, "TYPE:") {
+            if line.Comment == "TYPE:Internal infill" {
+                // changed to infill -- initialize accumulated value
+                currentInfillStartE = state.E.TotalExtrusion
+            } else {
+                // changed to non-infill -- reset accumulated value
+                currentInfillStartE = -1
+            }
             startingWipeTower := line.Comment == "TYPE:Wipe tower"
             if !state.OnWipeTower && startingWipeTower {
                 // start of the actual transition being printed

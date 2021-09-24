@@ -50,6 +50,7 @@ type Palette struct {
     TransitionMethod TransitionMethod `json:"TransitionMethod"`
     TransitionLengths [][]float32 `json:"transitionLengths"` // mm
     TransitionTarget float32 `json:"transitionTarget"` // 0..100
+    InfillTransitioning bool `json:"infillTransitioning"`
 
     // transition tower generation
     TowerSize [2]float32 `json:"towerSize"`

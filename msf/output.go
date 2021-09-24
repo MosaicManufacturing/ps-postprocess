@@ -54,8 +54,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         state.Tower = &tower
     }
 
-    didFinalSplice := false
-    needsSparseLayers := false
+    didFinalSplice := false // used to prevent calling msfOut.AddLastSplice multiple times
+    needsSparseLayers := false // used at end-of-layer to postpone sparse layer insertion slightly
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
@@ -225,6 +225,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentTool = int(tool)
                         state.CurrentlyTransitioning = true
                         if palette.TransitionMethod == SideTransitions {
+                            // todo: use purge length from preflight.transitionsByLayer instead!
+                            //  (will have already accounted for infill available for transitioning)
                             transition, err := sideTransition(currentTransitionLength, &state)
                             if err != nil {
                                 return err
