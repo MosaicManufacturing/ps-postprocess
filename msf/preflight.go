@@ -10,6 +10,7 @@ type Transition struct {
     Layer int
     From int
     To int
+    TotalExtrusion float32 // total non-tower extrusion at start of transition
     TransitionLength float32 // actual transition length as specified by user
     PurgeLength float32 // amount of filament to extrude
     UsableInfill float32 // subtract this amount from the splice length
@@ -199,6 +200,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         Layer:            results.totalLayers,
                         From:             state.CurrentTool,
                         To:               int(tool),
+                        TotalExtrusion:   state.E.TotalExtrusion,
                         TransitionLength: transitionLength,
                         PurgeLength:      purgeLength,
                         UsableInfill:     usableInfill,

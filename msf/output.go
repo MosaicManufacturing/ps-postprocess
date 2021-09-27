@@ -195,6 +195,9 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         currentTransition := state.Tower.GetCurrentTransitionInfo()
                         spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
                         spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+                        if len(msfOut.SpliceList) == 0 {
+                            spliceLength += state.Tower.BrimExtrusion
+                        }
                         if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                             return err
                         }

@@ -23,6 +23,8 @@ type Tower struct {
     Palette *Palette
     BoundingBox gcode.BoundingBox
     Layers []TowerLayer
+    BrimCount int
+    BrimExtrusion float32
 
     // for use during output
     CurrentLayerPaths []gcode.Command // feedrates, raw strings, real E values not included yet
@@ -34,13 +36,8 @@ type Tower struct {
 func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     totalLayers := preflight.totalLayers + 1
     tower := Tower{
-        Palette:                       palette,
-        BoundingBox:                   gcode.NewBoundingBox(),
-        Layers:                        nil,
-        CurrentLayerPaths:             nil,
-        CurrentLayerIndex:             0,
-        CurrentLayerTransitionIndex:   0,
-        CurrentLayerCommandIndex:      0,
+        Palette:     palette,
+        BoundingBox: gcode.NewBoundingBox(),
     }
 
     minDensity := float64(palette.TowerMinDensity) / 100
@@ -48,8 +45,9 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     maxDensity := float64(palette.TowerMaxDensity) / 100
     extrusionMultiplier := palette.TowerExtrusionMultiplier / 100
 
-    // tower must have at least this many mm3 of extrusion to be able to fit pings!
-    minLayerVolume := float64(filamentLengthToVolume(palette.GetPingExtrusion())) / maxDensity
+    // tower layers must have at least this much extrusion to be able to fit pings!
+    minLayerExtrusion := palette.GetPingExtrusion() / float32(maxDensity) // mm
+    minLayerVolume := float64(filamentLengthToVolume(minLayerExtrusion)) // mm3
 
     // 1. determine the number of transitions required on each layer
 
@@ -181,6 +179,25 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     tower.BoundingBox.Min[2] = layerTopZs[0] - layerThicknesses[0]
     tower.BoundingBox.Max[2] = layerTopZs[len(layerTopZs)-1]
 
+    // 10. determine number of first-layer brims needed
+    if palette.RaftLayers == 0 {
+        firstTransitionTotalE := preflight.transitions[0].TotalExtrusion
+        firstTransitionTotalE += minLayerExtrusion * float32(preflight.transitions[0].Layer)
+        extrusionWidth := palette.TowerExtrusionWidth
+        firstLayerThickness := tower.Layers[0].Thickness
+        minFirstSpliceLength := palette.GetFirstSpliceMinLength()
+        perimeterLength := (towerHalfWidth * 4) + (towerHalfHeight * 4) + (palette.TowerExtrusionWidth * 8)
+        for firstTransitionTotalE < minFirstSpliceLength {
+            tower.BrimCount++
+            brimExtrusion := getExtrusionLength(extrusionWidth, firstLayerThickness, perimeterLength) * extrusionMultiplier
+            firstTransitionTotalE += brimExtrusion
+            tower.BrimExtrusion += brimExtrusion
+        }
+        if tower.BrimCount < palette.TowerMinBrims {
+            tower.BrimCount = palette.TowerMinBrims
+        }
+    }
+
     return tower, true
 }
 
@@ -189,8 +206,9 @@ func (t *Tower) layerNeedsPerimeters(layer int, density float32) bool {
         // raft layers never get perimeters
         return false
     }
-    if layer == t.Palette.RaftLayers && t.Palette.TowerFirstLayerPerimeters {
-        // first layer -- force a perimeter if desired by user
+    if layer == t.Palette.RaftLayers &&
+        (t.Palette.TowerFirstLayerPerimeters || t.BrimCount > 0) {
+        // first non-raft layer -- force a perimeter if desired by user or if using brims
         return true
     }
     return density <= TowerPerimeterThreshold
@@ -228,7 +246,16 @@ func (t *Tower) rasterizeLayer(layer int) {
     // create perimeters
 
     if addPerimeters {
-        for i := 0; i < TowerPerimeterCount; i++ {
+        perimeterCount := TowerPerimeterCount
+        if layer == 0 && t.BrimCount > 0 {
+            perimeterCount += t.BrimCount
+            inflation := extrusionWidth * float32(t.BrimCount)
+            currentXMin -= inflation
+            currentYMin -= inflation
+            currentXMax += inflation
+            currentYMax += inflation
+        }
+        for i := 0; i < perimeterCount; i++ {
             t.CurrentLayerPaths = append(t.CurrentLayerPaths,
                 // travel to southeast corner
                 gcode.Command{
@@ -520,6 +547,10 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
 
 func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
+    requiredPurge := transitionInfo.PurgeLength
+    if t.CurrentLayerIndex == 0 && t.CurrentLayerTransitionIndex == 0 {
+        requiredPurge += t.BrimExtrusion
+    }
     totalPurge := float32(0)
 
     printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
@@ -533,7 +564,7 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     // last segment of the layer: finish the layer
     // all other segments: extrude just the purge length of this segment
     thisLayerTransitions := len(t.Layers[t.CurrentLayerIndex].Transitions)
-    for (totalPurge < transitionInfo.PurgeLength || t.CurrentLayerTransitionIndex == thisLayerTransitions - 1) &&
+    for (totalPurge < requiredPurge || t.CurrentLayerTransitionIndex == thisLayerTransitions - 1) &&
       t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
         commandString, commandExtrusion := t.getNextPath(state, printFeedrate)
         sequence += commandString
@@ -579,11 +610,6 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
     if err != nil {
         return "", err
     }
-
-    // TODO: add tower brims if first segment of first layer
-    //  - disable if t.Palette.RaftLayers > 0
-    //  - respect user's minimum brim count
-    //  - auto-increase brim count to ensure minimum first piece length
 
     if expectingDense {
         sequence += t.getNextDenseSegmentPaths(state)
