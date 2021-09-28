@@ -1,8 +1,8 @@
-package msf
+package sequences
 
 import (
-    "encoding/json"
-    "io/ioutil"
+"encoding/json"
+"io/ioutil"
 )
 
 type PreheatHints struct {

@@ -306,19 +306,5 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         }
     }
 
-    // MSF 3 preheat hints
-    if palette.Type == TypeP3 {
-        preheatHintsPath := inpath + ".preheat"
-        firstTool := msfOut.SpliceList[0].Drive
-        hints := PreheatHints{
-            Extruder: palette.FirstLayerTemperatures[firstTool],
-            Bed:      palette.FirstLayerBedTemperatures[firstTool],
-            Chamber:  0,
-        }
-        if err := hints.Save(preheatHintsPath); err != nil {
-            return err
-        }
-    }
-
     return nil
 }

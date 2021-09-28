@@ -30,8 +30,6 @@ type Palette struct {
     Model Model `json:"model"`
     MaterialMeta []Material `json:"materialMeta"`
     SpliceSettings []SpliceSettings `json:"spliceSettings"`
-    FirstLayerTemperatures []float32 `json:"firstLayerTemperatures"`
-    FirstLayerBedTemperatures []float32 `json:"firstLayerBedTemperatures"`
 
     // physical
     PrintExtruder int `json:"printExtruder"`

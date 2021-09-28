@@ -21,6 +21,7 @@ type lookahead struct {
 }
 
 type sequencesPreflight struct {
+    preheat PreheatHints
     totalLayers int
     totalTime int
     startSequenceNextPos lookahead
@@ -66,6 +67,21 @@ func preflight(inpath string) (sequencesPreflight, error) {
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNum int) error {
         position.TrackInstruction(line)
 
+        if results.preheat.Extruder == 0 &&
+            (line.Command == "M104" || line.Command == "M109") {
+            if s, ok := line.Params["s"]; ok {
+                results.preheat.Extruder = s
+            }
+            return nil
+        } else if results.preheat.Bed == 0 &&
+            (line.Command == "M140" || line.Command == "M190") {
+            if s, ok := line.Params["s"]; ok {
+                results.preheat.Bed = s
+            }
+            return nil
+        }
+        // TODO: check for first chamber temperature
+
         if len(currentLookaheads) > 0 {
             // logic: keep applying Z changes, and commit when we see X and/or Y change
             if line.IsLinearMove() {
@@ -90,6 +106,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
                 if needsCommit {
                     commitCurrentLookaheads()
                 }
+                return nil
             }
         }
 

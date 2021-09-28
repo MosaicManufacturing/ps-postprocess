@@ -161,6 +161,11 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
     if err := outfile.Close(); err != nil {
         return err
     }
+
+    if err := preflightResults.preheat.Save(outpath + ".preheat"); err != nil {
+        return err
+    }
+
     return nil
 }
 
