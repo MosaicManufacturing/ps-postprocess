@@ -47,14 +47,14 @@ func (p *palette3Json) marshal(connected bool) (string, error) {
             PingCount:  len(p.Pings),
             Algorithms: p.Algorithms,
         }
-        bytes, err := json.Marshal(pc)
+        bytes, err := json.MarshalIndent(pc, "", "  ")
         if err != nil {
             return "", err
         }
         return string(bytes), nil
     }
     // in accessory mode, include the actual ping data
-    bytes, err := json.Marshal(p)
+    bytes, err := json.MarshalIndent(p, "", "  ")
     if err != nil {
         return "", err
     }
