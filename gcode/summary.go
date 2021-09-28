@@ -7,12 +7,10 @@ import (
     "strconv"
 )
 
+var timeEstimateRegexp = regexp.MustCompile("estimated printing time \\(normal mode\\) = (?:(\\d+)d ?)?(?:(\\d+)h ?)?(?:(\\d+)m ?)?(?:(\\d+)s ?)")
+
 func ParseTimeString(str string) (float32, error) {
-    r, err := regexp.Compile("estimated printing time \\(normal mode\\) = (?:(\\d+)d ?)?(?:(\\d+)h ?)?(?:(\\d+)m ?)?(?:(\\d+)s ?)")
-    if err != nil {
-        return 0, err
-    }
-    matches := r.FindStringSubmatch(str)
+    matches := timeEstimateRegexp.FindStringSubmatch(str)
     timeTotal := 0
     if len(matches[1]) > 0 {
         // days

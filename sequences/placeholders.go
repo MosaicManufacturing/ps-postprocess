@@ -10,12 +10,11 @@ const endPlaceholder = ";*/*/*/*/* END SEQUENCE */*/*/*/*"
 const layerChangePrefix = ";*/*/*/*/* LAYER CHANGE SEQUENCE ("
 const materialChangePrefix = ";*/*/*/*/* MATERIAL CHANGE SEQUENCE ("
 
+var layerChangeRegexp = regexp.MustCompile(";\\*/\\*/\\*/\\*/\\* LAYER CHANGE SEQUENCE \\((\\d+), (\\d+(?:\\.\\d+)?)\\) \\*/\\*/\\*/\\*/\\*")
+var materialChangeRegexp = regexp.MustCompile(";\\*/\\*/\\*/\\*/\\* MATERIAL CHANGE SEQUENCE \\((\\d+)\\) \\*/\\*/\\*/\\*/\\*")
+
 func parseLayerChangePlaceholder(placeholder string) (layer int, layerZ float64, err error) {
-    r, err := regexp.Compile(";\\*/\\*/\\*/\\*/\\* LAYER CHANGE SEQUENCE \\((\\d+), (\\d+(?:\\.\\d+)?)\\) \\*/\\*/\\*/\\*/\\*")
-    if err != nil {
-        return 0, 0, err
-    }
-    matches := r.FindStringSubmatch(placeholder)
+    matches := layerChangeRegexp.FindStringSubmatch(placeholder)
     if len(matches[1]) > 0 {
         // layer number
         parsed, err := strconv.ParseInt(matches[1], 10, 32)
@@ -32,11 +31,10 @@ func parseLayerChangePlaceholder(placeholder string) (layer int, layerZ float64,
 }
 
 func parseMaterialChangePlaceholder(placeholder string) (toTool int, err error) {
-    r, err := regexp.Compile(";\\*/\\*/\\*/\\*/\\* MATERIAL CHANGE SEQUENCE \\((\\d+)\\) \\*/\\*/\\*/\\*/\\*")
     if err != nil {
         return 0, err
     }
-    matches := r.FindStringSubmatch(placeholder)
+    matches := materialChangeRegexp.FindStringSubmatch(placeholder)
     if len(matches[1]) > 0 {
         // layer number
         parsed, err := strconv.ParseInt(matches[1], 10, 32)
