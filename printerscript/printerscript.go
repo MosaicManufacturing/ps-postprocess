@@ -6,6 +6,8 @@ import (
     "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
+type TokenStream antlr.CommonTokenStream
+
 type Tree interpreter.ISequenceContext
 
 type InterpreterOptions struct {
@@ -24,7 +26,7 @@ type InterpreterResult struct {
 // returning a token stream which can be passed to Parse, along with an error
 // if lexing failed. In the case of a syntax error, the error will be a
 // SyntaxError including line and column information.
-func Lex(input string) (*antlr.CommonTokenStream, error) {
+func Lex(input string) (*TokenStream, error) {
     input = normalizeInput(input)
     if interpreter.DEBUG { fmt.Println("===== LEXER =====") }
     istream := antlr.NewInputStream(input)
@@ -43,16 +45,16 @@ func Lex(input string) (*antlr.CommonTokenStream, error) {
         }
         fmt.Println()
     }
-    return tokens, nil
+    return (*TokenStream)(tokens), nil
 }
 
 // Parse takes a token stream produced by Lex as input and runs the PrinterScript
 // parser, returning a parse tree which can be passed to EvaluateTree, along with
 // an error if parsing failed. In the case of a syntax error, the error will be
 // a SyntaxError including line and column information.
-func Parse(tokens *antlr.CommonTokenStream) (Tree, error) {
+func Parse(tokens *TokenStream) (Tree, error) {
     if interpreter.DEBUG { fmt.Println("===== PARSER =====") }
-    parser := interpreter.NewSequenceParser(tokens)
+    parser := interpreter.NewSequenceParser((*antlr.CommonTokenStream)(tokens))
     parserErrorListener := interpreter.NewSyntaxErrorListener()
     parser.RemoveErrorListeners()
     parser.AddErrorListener(parserErrorListener)
