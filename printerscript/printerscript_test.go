@@ -1,6 +1,7 @@
 package printerscript
 
 import (
+    "./interpreter"
     "fmt"
     "math"
     "testing"
@@ -43,7 +44,7 @@ func expectLocalClose(t *testing.T, input, local string, expectedValue float64) 
         return
     }
     if math.Abs(result.Locals[local] - expectedValue) > 10e-5 {
-        if DEBUG {
+        if interpreter.DEBUG {
             fmt.Printf("EXPECTED: locals[%s] = %f\n", local, expectedValue)
             fmt.Printf("RESULT: locals[%s] = %f\n", local, result.Locals[local])
         }
@@ -60,7 +61,7 @@ func expectSuccess(t *testing.T, input string) {
 func expectSyntaxError(t *testing.T, input string) {
     _, err := Evaluate(input)
     if err != nil {
-        if _, ok := err.(*SyntaxError); ok {
+        if _, ok := err.(*interpreter.SyntaxError); ok {
             // got what we expected
             return
         }
@@ -71,7 +72,7 @@ func expectSyntaxError(t *testing.T, input string) {
 func expectRuntimeError(t *testing.T, input string) {
     _, err := Evaluate(input)
     if err != nil {
-        if _, ok := err.(*RuntimeError); ok {
+        if _, ok := err.(*interpreter.RuntimeError); ok {
             // got what we expected
             return
         }
@@ -209,12 +210,6 @@ func Test_UnaryMinus(t *testing.T) {
     expectLocal(t, "x=1\na = --x", "a", 1.0)
     expectLocal(t, "a = - -1", "a", 1.0)
     expectLocal(t, "a = -0", "a", 0.0)
-}
-
-func Test_UndefinedUnaryOp(t *testing.T) {
-    if _, err := evaluateUnaryOp("foo", 0); err == nil {
-        t.Error("expected error for undefined unary operator")
-    }
 }
 
 func Test_Mult(t *testing.T) {
@@ -369,12 +364,6 @@ func Test_And(t *testing.T) {
     expectLocal(t, "a = 1 && 0", "a", 0.0)
     expectLocal(t, "a = 0 && 1", "a", 0.0)
     expectLocal(t, "a = 1 && 1", "a", 1.0)
-}
-
-func Test_UndefinedBinaryOp(t *testing.T) {
-    if _, err := evaluateBinaryOp("foo", 0, 0); err == nil {
-        t.Error("expected error for undefined binary operator")
-    }
 }
 
 //
@@ -585,12 +574,6 @@ func Test_Atan(t *testing.T) {
     expectLocalClose(t, "a = atan(1 / sqrt(3))", "a", math.Pi / 6.0)
     expectLocalClose(t, "a = atan(1)", "a", math.Pi / 4)
     expectLocalClose(t, "a = atan(sqrt(3))", "a", math.Pi / 3.0)
-}
-
-func Test_UndefinedFunction(t *testing.T) {
-    if _, err := evaluateFunction("foo", []float64{}); err == nil {
-        t.Error("expected error for undefined function")
-    }
 }
 
 //

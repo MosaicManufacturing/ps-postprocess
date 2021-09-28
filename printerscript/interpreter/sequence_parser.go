@@ -1,6 +1,6 @@
 // Code generated from SequenceParser.g4 by ANTLR 4.9. DO NOT EDIT.
 
-package printerscript // SequenceParser
+package interpreter // SequenceParser
 import (
 	"fmt"
 	"reflect"

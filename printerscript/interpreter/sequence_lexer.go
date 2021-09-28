@@ -1,6 +1,6 @@
 // Code generated from SequenceLexer.g4 by ANTLR 4.9. DO NOT EDIT.
 
-package printerscript
+package interpreter
 
 import (
 	"fmt"

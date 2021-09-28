@@ -1,11 +1,13 @@
-package printerscript
+package interpreter
 
 import (
-    "../gcode"
+    "../../gcode"
     "fmt"
     "github.com/antlr/antlr4/runtime/Go/antlr"
     "strconv"
 )
+
+const DEBUG = false
 
 type VisitorOptions struct {
     MaxLoopIterations int

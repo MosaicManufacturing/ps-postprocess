@@ -1,13 +1,12 @@
 package printerscript
 
 import (
+    "./interpreter"
     "fmt"
     "github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
-const DEBUG = false
-
-type Tree ISequenceContext
+type Tree interpreter.ISequenceContext
 
 type InterpreterOptions struct {
     MaxLoopIterations int // raise a RuntimeError if we exceed this many iterations (default: 100,000)
@@ -27,10 +26,10 @@ type InterpreterResult struct {
 // SyntaxError including line and column information.
 func Lex(input string) (*antlr.CommonTokenStream, error) {
     input = normalizeInput(input)
-    if DEBUG { fmt.Println("===== LEXER =====") }
+    if interpreter.DEBUG { fmt.Println("===== LEXER =====") }
     istream := antlr.NewInputStream(input)
-    lexer := NewSequenceLexer(istream)
-    lexerErrorListener := NewSyntaxErrorListener()
+    lexer := interpreter.NewSequenceLexer(istream)
+    lexerErrorListener := interpreter.NewSyntaxErrorListener()
     lexer.RemoveErrorListeners()
     lexer.AddErrorListener(lexerErrorListener)
     tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
@@ -38,7 +37,7 @@ func Lex(input string) (*antlr.CommonTokenStream, error) {
     if err := lexerErrorListener.GetError(); err != nil {
         return nil, err
     }
-    if DEBUG {
+    if interpreter.DEBUG {
         for _, token := range tokens.GetAllTokens() {
             fmt.Print(token.GetText())
         }
@@ -52,9 +51,9 @@ func Lex(input string) (*antlr.CommonTokenStream, error) {
 // an error if parsing failed. In the case of a syntax error, the error will be
 // a SyntaxError including line and column information.
 func Parse(tokens *antlr.CommonTokenStream) (Tree, error) {
-    if DEBUG { fmt.Println("===== PARSER =====") }
-    parser := NewSequenceParser(tokens)
-    parserErrorListener := NewSyntaxErrorListener()
+    if interpreter.DEBUG { fmt.Println("===== PARSER =====") }
+    parser := interpreter.NewSequenceParser(tokens)
+    parserErrorListener := interpreter.NewSyntaxErrorListener()
     parser.RemoveErrorListeners()
     parser.AddErrorListener(parserErrorListener)
     tree := parser.Sequence()
@@ -92,8 +91,8 @@ func EvaluateTree(tree Tree, opts InterpreterOptions) (InterpreterResult, error)
     result := InterpreterResult{}
 
     // visitor
-    if DEBUG { fmt.Println("===== VISITOR =====") }
-    visitorOpts := VisitorOptions{
+    if interpreter.DEBUG { fmt.Println("===== VISITOR =====") }
+    visitorOpts := interpreter.VisitorOptions{
         MaxLoopIterations: 1e6, // 100k total iterations, including nesting
         EOL:               "\n",
         Locals:            make(map[string]float64),
@@ -107,18 +106,18 @@ func EvaluateTree(tree Tree, opts InterpreterOptions) (InterpreterResult, error)
     if opts.Locals != nil {
         for k, v := range opts.Locals {
             visitorOpts.Locals[k] = v
-            if DEBUG { fmt.Printf("%s: %f\n", k, v) }
+            if interpreter.DEBUG { fmt.Printf("%s: %f\n", k, v) }
         }
     }
-    visitor := NewVisitor(visitorOpts)
+    visitor := interpreter.NewVisitor(visitorOpts)
     if err := visitor.Visit(tree); err != nil {
-        if runtimeErr, ok := err.(*RuntimeError); ok {
+        if runtimeErr, ok := err.(*interpreter.RuntimeError); ok {
             return result, runtimeErr
         }
     }
 
     // result
-    if DEBUG { fmt.Println("===== RESULT =====") }
+    if interpreter.DEBUG { fmt.Println("===== RESULT =====") }
     result.Output = visitor.GetResult()
     if !opts.TrailingNewline {
         // trailing newlines are always generated -- remove now if disabled

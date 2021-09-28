@@ -1,4 +1,4 @@
-package printerscript
+package interpreter
 
 import (
     "fmt"
