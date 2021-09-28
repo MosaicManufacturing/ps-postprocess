@@ -99,7 +99,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
                 continueLookahead := true
                 if transitionNextPosition.Moved {
-                    // had X/Y (and maybe Z) movement and now we're extruding
+                    // had X/Y (and maybe Z) movement, and now we're extruding
                     //  - commit the most recent XYZ values, but ignore the ones in this command
                     if _, ok := line.Params["e"]; ok {
                         continueLookahead = false
@@ -155,18 +155,14 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     }
                 }
             }
-        } else if len(line.Command) > 1 && line.Command[0] == 'T' {
-            tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
-            if err != nil {
-                return err
-            }
+        } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
                 if state.FirstToolChange {
                     state.FirstToolChange = false
-                    state.CurrentTool = int(tool)
+                    state.CurrentTool = tool
                     results.drivesUsed[state.CurrentTool] = true
                 } else {
-                    transitionLength := palette.GetTransitionLength(int(tool), state.CurrentTool)
+                    transitionLength := palette.GetTransitionLength(tool, state.CurrentTool)
                     spliceOffset := transitionLength * (palette.TransitionTarget / 100)
                     purgeLength := transitionLength
                     spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
@@ -199,7 +195,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     tInfo := Transition{
                         Layer:            results.totalLayers,
                         From:             state.CurrentTool,
-                        To:               int(tool),
+                        To:               tool,
                         TotalExtrusion:   state.E.TotalExtrusion,
                         TransitionLength: transitionLength,
                         PurgeLength:      purgeLength,
@@ -214,7 +210,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     transitionCount++
                     lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
                     lastTransitionLayer = results.totalLayers
-                    state.CurrentTool = int(tool)
+                    state.CurrentTool = tool
                     if palette.TransitionMethod != CustomTower {
                         state.CurrentlyTransitioning = true
                     }

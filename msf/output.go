@@ -9,7 +9,6 @@ import (
     "io/ioutil"
     "log"
     "os"
-    "strconv"
     "strings"
 )
 
@@ -168,18 +167,14 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
             }
             needsSparseLayers = false
-        } else if len(line.Command) > 1 && line.Command[0] == 'T' {
-            tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
-            if err != nil {
-                return err
-            }
+        } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
                 if state.FirstToolChange {
                     state.FirstToolChange = false
                     if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
                         return err
                     }
-                    state.CurrentTool = int(tool)
+                    state.CurrentTool = tool
                     if err := writeLine(writer, fmt.Sprintf("; Printing with input %d", state.CurrentTool)); err != nil {
                         return err
                     }
@@ -201,7 +196,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                             return err
                         }
-                        state.CurrentTool = int(tool)
+                        state.CurrentTool = tool
                         state.CurrentlyTransitioning = true
                         transition, err := state.Tower.GetNextSegment(&state, true)
                         if err != nil {
@@ -226,7 +221,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
                             return err
                         }
-                        state.CurrentTool = int(tool)
+                        state.CurrentTool = tool
                         state.CurrentlyTransitioning = true
                         if palette.TransitionMethod == SideTransitions {
                             transition, err := sideTransition(currentPurgeLength, &state)

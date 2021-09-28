@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -49,6 +50,27 @@ func (gcc Command) IsSetExtrusionMode() (bool, bool) {
 
 func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
+}
+
+func (gcc Command) IsToolChange() (bool, int) {
+	if gcc.Command == "M135" {
+		// Makerbot/Sailfish (e.g. M135 T0)
+		if t, ok := gcc.Params["t"]; ok {
+			tool := int(t + 0.5)
+			return true, tool
+		} else {
+			return false, -1
+		}
+	}
+	if len(gcc.Command) > 1 && gcc.Command[0] == 'T' {
+		// RepRap (e.g. T0)
+		tool, err := strconv.ParseInt(gcc.Command[1:], 10, 32)
+		if err != nil {
+			return false, -1
+		}
+		return true, int(tool)
+	}
+	return false, -1
 }
 
 func FormatFloat(value float64) string {
