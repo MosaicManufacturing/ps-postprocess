@@ -1,7 +1,7 @@
 package msf
 
 import (
-	"../gcode"
+    "../gcode"
     "../sequences"
 )
 

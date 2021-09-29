@@ -18,6 +18,11 @@ func (l TowerLayer) String() string {
     return fmt.Sprintf("TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d", l.TopZ, l.Thickness, l.Density * 100, len(l.Transitions))
 }
 
+type AnnotatedCommand struct {
+    gcode gcode.Command
+    extrusion float32
+}
+
 type Tower struct {
     // constant or pre-calculated
     Palette *Palette
@@ -27,10 +32,11 @@ type Tower struct {
     BrimExtrusion float32
 
     // for use during output
-    CurrentLayerPaths []gcode.Command // feedrates, raw strings, real E values not included yet
+    CurrentLayerPaths []AnnotatedCommand // feedrates, raw strings, real E values not included yet
     CurrentLayerIndex int // total transitions on this layer
     CurrentLayerTransitionIndex int // current transition on this layer
     CurrentLayerCommandIndex int // index into CurrentLayerPaths
+    CurrentLayerExtrusion float32 // sum of extrusions in CurrentLayerPaths
 }
 
 func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
@@ -230,14 +236,17 @@ func (t *Tower) rasterizeLayer(layer int) {
         yMax += inflation
     }
 
-    t.CurrentLayerPaths = make([]gcode.Command, 0)
+    t.CurrentLayerPaths = make([]AnnotatedCommand, 0)
+    t.CurrentLayerExtrusion = 0
     currentXMin := xMin
     currentXMax := xMax
     currentYMin := yMin
     currentYMax := yMax
 
+    layerThickness := t.Layers[layer].Thickness
     density := t.Layers[layer].Density
     extrusionWidth := t.Palette.TowerExtrusionWidth
+    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier / 100
     if layer < t.Palette.RaftLayers {
         extrusionWidth = t.Palette.RaftExtrusionWidth
     }
@@ -256,62 +265,112 @@ func (t *Tower) rasterizeLayer(layer int) {
             currentYMax += inflation
         }
         for i := 0; i < perimeterCount; i++ {
+            // TODO: remove placeholder E and F params and refer to command.extrusion only
+            // travel to southeast corner
+            nextX, nextY := currentXMax, currentYMin
+            travel := AnnotatedCommand{
+                gcode: gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "x": nextX,
+                        "y": nextY,
+                        "f": 0, // TODO: remove
+                    },
+                },
+            }
+            // for next extrusion line's length
+            fromX, fromY := nextX, nextY
+
+            // extrude to northeast corner
+            nextX, nextY = currentXMax, currentYMax
+            lineLength := getLineLength(fromX, fromY, nextX, nextY) // mm
+            deltaE := getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+            t.CurrentLayerExtrusion += deltaE
+            extrudeNorth := AnnotatedCommand{
+                gcode: gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "x": nextX,
+                        "y": nextY,
+                        "e": 0, // TODO: remove
+                        "f": 0, // TODO: remove
+                    },
+                },
+                extrusion: deltaE,
+            }
+            fromX, fromY = nextX, nextY
+
+            // extrude to northwest corner
+            nextX, nextY = currentXMin, currentYMax
+            lineLength = getLineLength(fromX, fromY, nextX, nextY) // mm
+            deltaE = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+            t.CurrentLayerExtrusion += deltaE
+            extrudeWest := AnnotatedCommand{
+                gcode: gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "x": nextX,
+                        "y": nextY,
+                        "e": 0, // TODO: remove
+                        "f": 0, // TODO: remove
+                    },
+                },
+                extrusion: deltaE,
+            }
+            fromX, fromY = nextX, nextY
+
+            // extrude to southwest corner
+            nextX, nextY = currentXMin, currentYMin
+            lineLength = getLineLength(fromX, fromY, nextX, nextY) // mm
+            deltaE = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+            t.CurrentLayerExtrusion += deltaE
+            extrudeSouth := AnnotatedCommand{
+                gcode: gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "x": nextX,
+                        "y": nextY,
+                        "e": 0, // TODO: remove
+                        "f": 0, // TODO: remove
+                    },
+                },
+                extrusion: deltaE,
+            }
+            fromX, fromY = nextX, nextY
+
+            // extrude to southeast corner
+            nextX, nextY = currentXMax, currentYMin
+            lineLength = getLineLength(fromX, fromY, nextX, nextY) // mm
+            deltaE = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+            t.CurrentLayerExtrusion += deltaE
+            extrudeEast := AnnotatedCommand{
+                gcode: gcode.Command{
+                    Command: "G1",
+                    Params:  map[string]float32{
+                        "x": nextX,
+                        "y": nextY,
+                        "e": 0, // TODO: remove
+                        "f": 0, // TODO: remove
+                    },
+                },
+                extrusion: deltaE,
+            }
+            fromX, fromY = nextX, nextY
+
             t.CurrentLayerPaths = append(t.CurrentLayerPaths,
-                // travel to southeast corner
-                gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "x": currentXMax,
-                        "y": currentYMin,
-                        "f": 0,
-                    },
-                },
-                // extrude to northeast corner
-                gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "x": currentXMax,
-                        "y": currentYMax,
-                        "e": 0,
-                        "f": 0,
-                    },
-                },
-                // extrude to northwest corner
-                gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "x": currentXMin,
-                        "y": currentYMax,
-                        "e": 0,
-                        "f": 0,
-                    },
-                },
-                // extrude to southwest corner
-                gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "x": currentXMin,
-                        "y": currentYMin,
-                        "e": 0,
-                        "f": 0,
-                    },
-                },
-                // extrude to southeast corner
-                gcode.Command{
-                    Command: "G1",
-                    Params:  map[string]float32{
-                        "x": currentXMax,
-                        "y": currentYMin,
-                        "e": 0,
-                        "f": 0,
-                    },
-                },
+                travel,
+                extrudeNorth,
+                extrudeWest,
+                extrudeSouth,
+                extrudeEast,
             )
+            // step inward by 1 extrusion width
             currentXMin += extrusionWidth
             currentYMin += extrusionWidth
             currentXMax -= extrusionWidth
             currentYMax -= extrusionWidth
         }
+        // step outward slightly to produce an infill-perimeter overlap
         overlap := extrusionWidth * (t.Palette.InfillPerimeterOverlap / 100)
         currentXMin -= overlap
         currentYMin -= overlap
@@ -321,7 +380,6 @@ func (t *Tower) rasterizeLayer(layer int) {
 
     // create infill
 
-    reverse := layer % 2 == 1
     stride := (1 / t.Layers[layer].Density) * extrusionWidth
     if layer < t.Palette.RaftLayers {
         stride = t.Palette.RaftStride
@@ -329,12 +387,12 @@ func (t *Tower) rasterizeLayer(layer int) {
     axisAlignedStride := float32(math.Sqrt(float64(stride * stride * 2)))
 
     firstLine := true
+    var lastX, lastY float32 // populated once firstLine == false
     needsMoreLines := true
-    xBoundReached := false
-    yBoundReached := false
-    // assume infill is drawn southwest/northeast
-    // (X coordinates will be mirrored if reverse == true)
-    printSouthwest := true
+    xBoundReached := false // once reached, step southwest vertex north instead of west
+    yBoundReached := false // once reached, step northeast vertex west instead of north
+    printSouthwest := true // direction of the next extrusion line ("back" or "forth")
+    reverseLayer := layer % 2 == 1 // mirror every other layer's X coordinates
 
     neX := currentXMax
     neY := currentYMin
@@ -375,40 +433,48 @@ func (t *Tower) rasterizeLayer(layer int) {
             x2, y2, x1, y1 = x1, y1, x2, y2
         }
 
-        if reverse {
+        if reverseLayer {
             // mirror layer's X values
             x1 = currentXMax + currentXMin - x1
             x2 = currentXMax + currentXMin - x2
         }
 
         // travel to (x1, y1)
-        travel := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": x1,
-                "y": y1,
-                "f": 0,
+        travel := AnnotatedCommand{
+            gcode: gcode.Command{
+                Command: "G1",
+                Params:  map[string]float32{
+                    "x": x1,
+                    "y": y1,
+                    "f": 0, // TODO: remove
+                },
             },
         }
-        // extrude to (x2, y2)
-        extrude := gcode.Command{
-            Command: "G1",
-            Params:  map[string]float32{
-                "x": x2,
-                "y": y2,
-                "e": 0,
-                "f": 0,
-            },
-        }
-
+        lastX, lastY = x1, y1
         if !firstLine && layer < t.Palette.RaftLayers {
-            // raft layers should have continuous extrusion
-            // (but the first command should still be travel)
-            travel.Params["e"] = 0
+            // raft layers should have continuous extrusion after the initial travel
+            lineLength := getLineLength(lastX, lastY, x1, y1) // mm
+            travel.extrusion = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+            t.CurrentLayerExtrusion += travel.extrusion
         }
+        firstLine = false
+        // extrude to (x2, y2)
+        extrude := AnnotatedCommand{
+            gcode: gcode.Command{
+                Command: "G1",
+                Params:  map[string]float32{
+                    "x": x2,
+                    "y": y2,
+                    "e": 0, // TODO: remove
+                    "f": 0, // TODO: remove
+                },
+            },
+        }
+        lineLength := getLineLength(lastX, lastY, x2, y2) // mm
+        extrude.extrusion = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
+        t.CurrentLayerExtrusion += extrude.extrusion
 
         t.CurrentLayerPaths = append(t.CurrentLayerPaths, travel, extrude)
-        firstLine = false
 
         if neX - currentXMin < axisAlignedStride && currentYMax - swY < axisAlignedStride {
             // layer has been fully rasterized
@@ -463,7 +529,7 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     sequence += fmt.Sprintf(";HEIGHT:%s%s", gcode.FormatFloat(float64(t.Layers[t.CurrentLayerIndex].Thickness)), EOL)
 
     // next tower command should always be a travel
-    travel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+    travel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].gcode
     if _, ok := travel.Params["e"]; ok {
         return "", errors.New("tower segment started with extrusion, not travel")
     }
@@ -502,26 +568,19 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
 }
 
 func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float32) {
-    extrusionWidth :=  t.Palette.TowerExtrusionWidth
-    layerHeight := t.Layers[t.CurrentLayerIndex].Thickness
-    extrusionMultiplier :=  t.Palette.TowerExtrusionMultiplier / 100
-
-    command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
-    commandExtrusion := float32(0)
+    command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].gcode
+    commandExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].extrusion
 
     // when printing a segment, all commands use the print feedrate
     // so as not to alternate feedrates constantly
     command.Params["f"] = printFeedrate
-    if _, ok := command.Params["e"]; ok {
+    if commandExtrusion > 0 {
         // extrusion command
-        lineLength := getLineLength(state.XYZF.CurrentX, state.XYZF.CurrentY, command.Params["x"], command.Params["y"]) // mm
-        deltaE := getExtrusionLength(extrusionWidth, layerHeight, lineLength) * extrusionMultiplier
         if state.E.RelativeExtrusion {
-            command.Params["e"] = deltaE
+            command.Params["e"] = commandExtrusion
         } else {
-            command.Params["e"] = state.E.CurrentExtrusionValue + deltaE
+            command.Params["e"] = state.E.CurrentExtrusionValue + commandExtrusion
         }
-        commandExtrusion = deltaE
     } else {
         // travel command
     }
