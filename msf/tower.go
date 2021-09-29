@@ -460,7 +460,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                 },
             },
         }
-        lastX, lastY = x1, y1
         if !firstLine && layer < t.Palette.RaftLayers {
             // raft layers should have continuous extrusion after the initial travel
             lineLength := getLineLength(lastX, lastY, x1, y1) // mm
@@ -468,6 +467,8 @@ func (t *Tower) rasterizeLayer(layer int) {
             t.CurrentLayerExtrusion += travel.extrusion
         }
         firstLine = false
+        lastX, lastY = x1, y1
+
         // extrude to (x2, y2)
         extrude := AnnotatedCommand{
             gcode: gcode.Command{
@@ -481,6 +482,7 @@ func (t *Tower) rasterizeLayer(layer int) {
         lineLength := getLineLength(lastX, lastY, x2, y2) // mm
         extrude.extrusion = getExtrusionLength(extrusionWidth, layerThickness, lineLength) * extrusionMultiplier
         t.CurrentLayerExtrusion += extrude.extrusion
+        lastX, lastY = x2, y2
 
         t.CurrentLayerPaths = append(t.CurrentLayerPaths, travel, extrude)
 
@@ -537,8 +539,9 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     sequence += fmt.Sprintf(";HEIGHT:%s%s", gcode.FormatFloat(float64(t.Layers[t.CurrentLayerIndex].Thickness)), EOL)
 
     // next tower command should always be a travel
-    travel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].gcode
-    if _, ok := travel.Params["e"]; ok {
+    annotatedTravel := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+    travel := annotatedTravel.gcode
+    if annotatedTravel.extrusion > 0 {
         return "", errors.New("tower segment started with extrusion, not travel")
     }
     travel.Params["f"] = state.Palette.TravelSpeedXY
@@ -579,8 +582,9 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
 }
 
 func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float32) {
-    command := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].gcode
-    commandExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex].extrusion
+    annotatedCommand := t.CurrentLayerPaths[t.CurrentLayerCommandIndex]
+    command := annotatedCommand.gcode
+    commandExtrusion := annotatedCommand.extrusion
 
     // when printing a segment, all commands use the print feedrate
     // so as not to alternate feedrates constantly
