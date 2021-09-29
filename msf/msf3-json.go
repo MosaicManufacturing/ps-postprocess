@@ -24,7 +24,7 @@ type palette3Json struct {
     Version string `json:"version"`
     Drives []int `json:"drives"`
     Splices []palette3Splice `json:"splices"`
-    Pings []palette3Ping `json:"pingCount"`
+    Pings []palette3Ping `json:"pings"`
     Algorithms []palette3Algorithm `json:"algorithms"`
 }
 
