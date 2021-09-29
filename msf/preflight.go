@@ -74,8 +74,6 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     // prepare to collect lookahead positions
     transitionNextPosition := sideTransitionLookahead{}
 
-    pingExtrusionMM := palette.GetPingExtrusion()
-
     transitionCount := 0
     lastTransitionLayer := 0
     lastTransitionSpliceLength := float32(0)
@@ -136,7 +134,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                 // check for ping actions
                 if state.CurrentlyPinging {
                     // currentlyPinging == true implies accessory mode
-                    if state.E.TotalExtrusion >= state.CurrentPingStart + pingExtrusionMM {
+                    if state.E.TotalExtrusion >= state.CurrentPingStart + state.PingExtrusion {
                         // commit to the accessory ping sequence
                         results.pingStarts = append(results.pingStarts, state.CurrentPingStart)
                         state.LastPingStart = state.CurrentPingStart
@@ -179,7 +177,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     // dense layer and this one (note: sparse layer extrusion may be more than this)
                     if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer + 1 {
                         sparseLayers := results.totalLayers - (lastTransitionLayer + 1)
-                        sparseLayerExtrusionEstimate := pingExtrusionMM * float32(sparseLayers)
+                        sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
                         deltaE += sparseLayerExtrusionEstimate
                     }
                     minSpliceLength := MinSpliceLength

@@ -37,12 +37,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     state.E.TotalExtrusion += palette.FirmwarePurge
     state.TimeEstimate = preflight.timeEstimate
 
-    pingExtrusionMM := palette.GetPingExtrusion()
-
     if len(preflight.pingStarts) > 0 {
         state.NextPingStart = preflight.pingStarts[0]
     } else {
-        state.NextPingStart = posInf
+        state.NextPingStart = PingMinSpacing
     }
 
     if palette.TransitionMethod == CustomTower {
@@ -79,7 +77,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 // check for ping actions
                 if state.CurrentlyPinging {
                     // currentlyPinging == true implies accessory mode
-                    if state.E.TotalExtrusion >= state.LastPingStart + pingExtrusionMM {
+                    if state.E.TotalExtrusion >= state.LastPingStart + state.PingExtrusion {
                         // finish the accessory ping sequence
                         comment := fmt.Sprintf("; Ping %d pause 2", len(msfOut.PingList) + 1)
                         if err := writeLine(writer, comment); err != nil {

@@ -286,7 +286,6 @@ func (t *Tower) rasterizeLayer(layer int) {
             currentYMax += inflation
         }
         for i := 0; i < perimeterCount; i++ {
-            // TODO: remove placeholder E and F params and refer to command.extrusion only
             // travel to southeast corner
             nextX, nextY := currentXMax, currentYMin
             travel := AnnotatedCommand{
@@ -295,7 +294,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                     Params:  map[string]float32{
                         "x": nextX,
                         "y": nextY,
-                        "f": 0, // TODO: remove
                     },
                 },
             }
@@ -313,8 +311,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                     Params:  map[string]float32{
                         "x": nextX,
                         "y": nextY,
-                        "e": 0, // TODO: remove
-                        "f": 0, // TODO: remove
                     },
                 },
                 extrusion: deltaE,
@@ -332,8 +328,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                     Params:  map[string]float32{
                         "x": nextX,
                         "y": nextY,
-                        "e": 0, // TODO: remove
-                        "f": 0, // TODO: remove
                     },
                 },
                 extrusion: deltaE,
@@ -351,8 +345,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                     Params:  map[string]float32{
                         "x": nextX,
                         "y": nextY,
-                        "e": 0, // TODO: remove
-                        "f": 0, // TODO: remove
                     },
                 },
                 extrusion: deltaE,
@@ -370,8 +362,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                     Params:  map[string]float32{
                         "x": nextX,
                         "y": nextY,
-                        "e": 0, // TODO: remove
-                        "f": 0, // TODO: remove
                     },
                 },
                 extrusion: deltaE,
@@ -467,7 +457,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                 Params:  map[string]float32{
                     "x": x1,
                     "y": y1,
-                    "f": 0, // TODO: remove
                 },
             },
         }
@@ -486,8 +475,6 @@ func (t *Tower) rasterizeLayer(layer int) {
                 Params:  map[string]float32{
                     "x": x2,
                     "y": y2,
-                    "e": 0, // TODO: remove
-                    "f": 0, // TODO: remove
                 },
             },
         }
@@ -576,6 +563,9 @@ func (t *Tower) moveToTower(state *State) (string, error) {
 
 func (t *Tower) leaveTower(state *State, retractDistance float32) string {
     sequence := ""
+    if state.CurrentlyPinging {
+        sequence += t.checkTowerPingEnd(state, true)
+    }
     if retractDistance != 0 {
         // restore any retraction from before tower was started
         sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
@@ -625,6 +615,81 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
     return sequence, commandExtrusion
 }
 
+func (t *Tower) isTowerPingStartConditionMet(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) bool {
+    // have we extruded enough since the last ping to warrant starting the next one?
+    if state.E.TotalExtrusion < state.NextPingStart {
+        return false
+    }
+
+    // if we start a ping now, can we fit the required extrusion in the remainder of the segment?
+    if segmentExtrusionSoFar + (state.PingExtrusion * 0.9) >= totalSegmentExtrusion {
+        return false
+    }
+
+    // do we want to avoid starting a ping right at the beginning of the segment?
+    return (totalSegmentExtrusion < (state.PingExtrusion * 2.2)) || // small (sparse) tower segments can start a ping right away
+        (segmentExtrusionSoFar >= state.PingExtrusion) // larger (dense) tower segments must wait ~20 mm to start a ping
+}
+
+func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) string {
+    totalExtrusion := state.E.TotalExtrusion
+    sequence := ""
+    if state.Palette.ConnectedMode && totalExtrusion >= state.NextPingStart {
+        // connected pings
+        state.MSF.AddPing(totalExtrusion)
+        state.NextPingStart = totalExtrusion + PingMinSpacing
+        sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
+        state.MSF.AddPing(totalExtrusion)
+        sequence += "G4 P0" + EOL
+        sequence += state.MSF.GetConnectedPingLine()
+    } else if t.isTowerPingStartConditionMet(state, segmentExtrusionSoFar, totalSegmentExtrusion) {
+        // start the accessory ping sequence
+        sequence += fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList) + 1, EOL)
+        sequence += getTowerPause(Ping1PauseLength, state)
+        state.CurrentPingStart = totalExtrusion
+        state.NextPingStart = totalExtrusion + PingMinSpacing
+    }
+    return sequence
+}
+
+func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
+    totalExtrusion := state.E.TotalExtrusion
+    nextPingEnd := state.CurrentPingStart + state.PingExtrusion
+    finish := force || totalExtrusion >= nextPingEnd
+    if !finish {
+        // tower segment is not finished, and we haven't extruded PingExtrusion yet,
+        // but we may be better off finishing the ping anyway
+        if t.CurrentLayerCommandIndex + 1 < len(t.CurrentLayerPaths) {
+            nextPathExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex + 1].extrusion
+            if math.Abs(float64(nextPingEnd + 0.5 - totalExtrusion)) <
+                math.Abs(float64(totalExtrusion + nextPathExtrusion - 0.5)) {
+                // the next path would put us further from PingExtrusion (in absolute value)
+                // than we currently are -- finish the ping now to increase chance of detection
+                finish = true
+            }
+        }
+    }
+    sequence := ""
+    if finish {
+        // finish the accessory ping sequence
+        sequence += fmt.Sprintf("; Ping %d pause 2%s", len(state.MSF.PingList) + 1, EOL)
+        sequence += getTowerPause(Ping2PauseLength, state)
+        state.MSF.AddPingWithExtrusion(state.CurrentPingStart, totalExtrusion - state.CurrentPingStart)
+        state.LastPingStart = state.CurrentPingStart
+        state.NextPingStart = state.CurrentPingStart + PingMinSpacing
+        state.CurrentlyPinging = false
+    }
+    return sequence
+}
+
+func (t *Tower) checkTowerPingActions(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) string {
+    if state.CurrentlyPinging {
+        return t.checkTowerPingEnd(state, false)
+    } else {
+        return t.checkTowerPingStart(state, segmentExtrusionSoFar, totalSegmentExtrusion)
+    }
+}
+
 func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
     requiredPurge := transitionInfo.PurgeLength
@@ -660,6 +725,7 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     thisLayerTransitions := len(t.Layers[t.CurrentLayerIndex].Transitions)
     for (totalPurge < requiredPurge || t.CurrentLayerTransitionIndex == thisLayerTransitions - 1) &&
       t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
+        sequence += t.checkTowerPingActions(state, totalPurge, requiredPurge)
         commandString, commandExtrusion := t.getNextPath(state, printFeedrate)
         sequence += commandString
         totalPurge += commandExtrusion

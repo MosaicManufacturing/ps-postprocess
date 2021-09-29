@@ -9,6 +9,7 @@ type State struct {
     Palette *Palette // reference stored here to reduce arguments passed to routines
     MSF *MSF // reference stored here to reduce arguments passed to routines
     Tower *Tower
+    PingExtrusion float32 // stored to avoid re-calculating every time
 
     CurrentLayer int
     E gcode.ExtrusionTracker
@@ -37,5 +38,6 @@ func NewState(palette *Palette) State {
         Palette: palette,
         FirstToolChange: true,
         CurrentLayer: -1,
+        PingExtrusion: palette.GetPingExtrusion(),
     }
 }

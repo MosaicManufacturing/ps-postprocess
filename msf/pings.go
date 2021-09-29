@@ -174,7 +174,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
 
     // extrusion between pauses
     pingStartExtrusion := state.E.TotalExtrusion
-    purgeLength := state.Palette.GetPingExtrusion()
+    purgeLength := state.PingExtrusion
     sequence += getPurge(state, purgeLength, state.Palette.SideTransitionPurgeSpeed * 60)
 
     // second pause
@@ -257,7 +257,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 
     const totalJogs = 5
     const feedrate = 600
-    purgeLength := state.Palette.GetPingExtrusion()
+    purgeLength := state.PingExtrusion
     purgePerJog := purgeLength / (totalJogs * 2)
 
     for i := 0; i < totalJogs; i++ {
