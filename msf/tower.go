@@ -749,9 +749,12 @@ func (t *Tower) getNextSparseLayerPaths(state *State) string {
     sequence := ""
 
     // sparse layer: do the entire layer
+    totalPurge := float32(0)
     for t.CurrentLayerCommandIndex < len(t.CurrentLayerPaths) {
-        commandString, _ := t.getNextPath(state, printFeedrate)
+        sequence += t.checkTowerPingActions(state, totalPurge, t.CurrentLayerExtrusion)
+        commandString, commandExtrusion := t.getNextPath(state, printFeedrate)
         sequence += commandString
+        totalPurge += commandExtrusion
     }
 
     return sequence
