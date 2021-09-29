@@ -631,6 +631,20 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     if t.CurrentLayerIndex == 0 && t.CurrentLayerTransitionIndex == 0 {
         requiredPurge += t.BrimExtrusion
     }
+    // if this layer is denser than expected, distribute the extra extrusion
+    // equally between transitions on this layer
+    if t.CurrentLayerIsDense() {
+        transitionCount := 0
+        totalRequiredPurge := float32(0)
+        for _, transition := range t.Layers[t.CurrentLayerIndex].Transitions {
+            transitionCount++
+            totalRequiredPurge += transition.PurgeLength
+        }
+        if t.CurrentLayerExtrusion > totalRequiredPurge {
+            extra := t.CurrentLayerExtrusion - totalRequiredPurge
+            requiredPurge += extra / float32(transitionCount)
+        }
+    }
     totalPurge := float32(0)
 
     printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
