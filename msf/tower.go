@@ -619,7 +619,7 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
     return sequence, commandExtrusion
 }
 
-func (t *Tower) isTowerPingStartConditionMet(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) bool {
+func (t *Tower) isAccessoryPingStartConditionMet(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) bool {
     // have we extruded enough since the last ping to warrant starting the next one?
     if state.E.TotalExtrusion < state.NextPingStart {
         return false
@@ -638,20 +638,25 @@ func (t *Tower) isTowerPingStartConditionMet(state *State, segmentExtrusionSoFar
 func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) string {
     totalExtrusion := state.E.TotalExtrusion
     sequence := ""
-    if state.Palette.ConnectedMode && totalExtrusion >= state.NextPingStart {
-        // connected pings
-        state.MSF.AddPing(totalExtrusion)
-        state.NextPingStart = totalExtrusion + PingMinSpacing
-        sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
-        state.MSF.AddPing(totalExtrusion)
-        sequence += "G4 P0" + EOL
-        sequence += state.MSF.GetConnectedPingLine()
-    } else if t.isTowerPingStartConditionMet(state, segmentExtrusionSoFar, totalSegmentExtrusion) {
-        // start the accessory ping sequence
-        sequence += fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList) + 1, EOL)
-        sequence += getTowerPause(Ping1PauseLength, state)
-        state.CurrentPingStart = totalExtrusion
-        state.NextPingStart = totalExtrusion + PingMinSpacing
+    if state.Palette.ConnectedMode {
+        if totalExtrusion >= state.NextPingStart {
+            // connected pings
+            state.MSF.AddPing(totalExtrusion)
+            state.NextPingStart = totalExtrusion + PingMinSpacing
+            sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
+            state.MSF.AddPing(totalExtrusion)
+            sequence += "G4 P0" + EOL
+            sequence += state.MSF.GetConnectedPingLine()
+        }
+    } else {
+        if t.isAccessoryPingStartConditionMet(state, segmentExtrusionSoFar, totalSegmentExtrusion) {
+            // start the accessory ping sequence
+            sequence += fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList) + 1, EOL)
+            sequence += getTowerPause(Ping1PauseLength, state)
+            state.CurrentPingStart = totalExtrusion
+            state.NextPingStart = totalExtrusion + PingMinSpacing
+            state.CurrentlyPinging = true
+        }
     }
     return sequence
 }
