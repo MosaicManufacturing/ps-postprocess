@@ -49,6 +49,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     minDensity := float64(palette.TowerMinDensity) / 100
     minFirstLayerDensity := float64(palette.TowerMinFirstLayerDensity) / 100
     maxDensity := float64(palette.TowerMaxDensity) / 100
+    extrusionWidth := palette.TowerExtrusionWidth
     extrusionMultiplier := palette.TowerExtrusionMultiplier / 100
 
     // tower layers must have at least this much extrusion to be able to fit pings!
@@ -111,38 +112,73 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     //    - calculated as the greatest 2D footprint of all the layers
 
     layerFootprintAreas := make([]float32, totalLayers)
-    minFootprintArea := float64(0)
+    footprintArea := float64(0)
     for layer, transitions := range preflight.transitionsByLayer {
         layerPurgeLength := float32(0) // mm
         for _, transition := range transitions {
             layerPurgeLength += transition.PurgeLength / extrusionMultiplier
         }
-        layerPurgeVolume := filamentLengthToVolume(layerPurgeLength) // mm3
+        layerPurgeVolume := float64(filamentLengthToVolume(layerPurgeLength)) // mm3
         // adjust for max density
-        layerPurgeVolume /= float32(maxDensity)
+        layerPurgeVolume /= maxDensity
         // raise the volume slightly to account for errors in total toolpath extrusion
         layerPurgeVolume *= 1.05
         // ensure the layer has room for at least one ping
-        layerPurgeVolume = float32(math.Max(float64(layerPurgeVolume), minLayerVolume))
+        layerPurgeVolume = math.Max(layerPurgeVolume, minLayerVolume)
 
-        layerFootprintArea := layerPurgeVolume / layerThicknesses[layer]
+        layerFootprintArea := float32(layerPurgeVolume) / layerThicknesses[layer]
         layerFootprintAreas[layer] = layerFootprintArea
-        if layerPurgeVolume > 0 {
-            minFootprintArea = math.Max(minFootprintArea, float64(layerFootprintArea))
-        }
+        footprintArea = math.Max(footprintArea, float64(layerFootprintArea))
     }
-    if minFootprintArea == 0 {
+    if footprintArea == 0 {
         // no dense layers == no Palette processing
         return tower, false
     }
 
-    // 7. determine the density of each layer
+    // 7. finalize the tower dimensions
+    //    - try and maintain the current aspect ratio
+
+    towerWidth := float64(palette.TowerSize[0])
+    towerHeight := float64(palette.TowerSize[1])
+    squareLength := math.Sqrt(footprintArea)
+    aspectRatio := 1 / math.SqrtPhi // default to the golden ratio
+    if towerWidth > 0 && towerHeight > 0 {
+        // prefer to use the provided aspect ratio, but not necessarily size
+        aspectRatio = math.Sqrt(towerWidth / towerHeight)
+    }
+    towerWidth = squareLength / aspectRatio
+    towerHeight = squareLength * aspectRatio
+    towerHalfHeight := float32(towerWidth) / 2
+    towerHalfWidth := float32(towerHeight) / 2
+
+    // 8. determine the density of each layer
     //    - minimum and maximum tower density, minimum first layer density
     //    - ratio of required footprint area for this layer to overall footprint of the tower
     layerDensities := make([]float32, totalLayers)
     for layer := 0; layer < totalLayers; layer++ {
-        footprintArea := layerFootprintAreas[layer]
-        density := float64(footprintArea) / minFootprintArea
+        layerFootprintArea := layerFootprintAreas[layer]
+        var density float64
+        if layerFootprintArea > 0 {
+            // dense layer
+            density = float64(layerFootprintArea) / footprintArea
+        } else {
+            // sparse layer -- ensure enough density to fit a ping
+            layerThickness := layerThicknesses[layer]
+            fullLayerVolume := footprintArea * float64(layerThickness)
+            density = minLayerVolume / fullLayerVolume
+            // if perimeters will be added, account for it
+            if density <= TowerPerimeterThreshold {
+                perimeterLength := float32((4 * towerWidth) + (4 * towerHeight)) - (8 * extrusionWidth)
+                perimeterExtrusion := getExtrusionLength(extrusionWidth, layerThickness, perimeterLength) * extrusionMultiplier
+                perimeterVolume := float64(filamentLengthToVolume(perimeterExtrusion))
+                doubleEW := 2 * float64(extrusionWidth)
+                infillFootprint := footprintArea - (doubleEW * towerWidth) - (doubleEW * (towerHeight - doubleEW))
+                fullInfillVolume := infillFootprint * float64(layerThickness)
+                requiredInfillVolume := (minLayerVolume - perimeterVolume) * 1.1
+                density = requiredInfillVolume / fullInfillVolume
+            }
+        }
+        // adjust for user-defined density limits
         if layer == 0 {
             density = math.Max(density, minFirstLayerDensity)
         } else {
@@ -151,20 +187,6 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
         density = math.Min(density, maxDensity)
         layerDensities[layer] = float32(density)
     }
-
-    // 8. finalize the tower dimensions
-    //    - try and maintain the current aspect ratio
-
-    towerWidth := float64(palette.TowerSize[0])
-    towerHeight := float64(palette.TowerSize[1])
-    squareLength := math.Sqrt(minFootprintArea)
-    aspectRatio := 1 / math.SqrtPhi // default to the golden ratio
-    if towerWidth > 0 && towerHeight > 0 {
-        // prefer to use the provided aspect ratio, but not necessarily size
-        aspectRatio = math.Sqrt(towerWidth / towerHeight)
-    }
-    towerHalfHeight := float32(squareLength / aspectRatio) / 2
-    towerHalfWidth := float32(squareLength * aspectRatio) / 2
 
     // 9. store everything relevant
 
@@ -189,7 +211,6 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     if palette.RaftLayers == 0 {
         firstTransitionTotalE := preflight.transitions[0].TotalExtrusion
         firstTransitionTotalE += minLayerExtrusion * float32(preflight.transitions[0].Layer)
-        extrusionWidth := palette.TowerExtrusionWidth
         firstLayerThickness := tower.Layers[0].Thickness
         minFirstSpliceLength := palette.GetFirstSpliceMinLength()
         perimeterLength := (towerHalfWidth * 4) + (towerHalfHeight * 4) + (palette.TowerExtrusionWidth * 8)
