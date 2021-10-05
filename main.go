@@ -1,6 +1,7 @@
 package main
 
 import (
+    "./comments"
     "./flashforge"
     "./msf"
     "./ptp"
@@ -21,6 +22,8 @@ func main() {
        msf.ConvertForPalette(argv[1:])
     case "ptp":
        ptp.GenerateToolpath(argv[1:])
+    case "comments":
+       comments.Strip(argv[1:])
     case "ultimaker":
         ultimaker.AddHeader(argv[1:])
     case "flashforge":
