@@ -20,7 +20,6 @@ const headerSize = 4
 var (
     colorWhite      = [3]float32{0xff / 255.0, 0xff / 255.0, 0xff / 255.0} // #ffffff
     colorGreen      = [3]float32{0x6b / 255.0, 0xa7 / 255.0, 0x31 / 255.0} // #6ba731
-    colorMediumGrey = [3]float32{0xb5 / 255.0, 0xb5 / 255.0, 0xb5 / 255.0} // #b5b5b5
     colorDarkGrey   = [3]float32{0x32 / 255.0, 0x29 / 255.0, 0x2f / 255.0} // #32292f
     colorYellow     = [3]float32{0xf7 / 255.0, 0xb5 / 255.0, 0x38 / 255.0} // #f7b538
     colorPurple     = [3]float32{0x3d / 255.0, 0x31 / 255.0, 0x5b / 255.0} // #3d315b
