@@ -3,8 +3,8 @@ package ptp
 const ptpVersion = uint8(5)
 
 const (
-	floatBytes = 4
-	uint32Bytes = 4
+    floatBytes = 4
+    uint32Bytes = 4
 )
 
 // segments with all dimension deltas smaller than this will be skipped
@@ -18,94 +18,99 @@ const collinearityEpsilon = 10e-5
 const headerSize = 4
 
 var (
-	colorWhite      = [3]float32{0xff / 255.0, 0xff / 255.0, 0xff / 255.0} // #ffffff
-	colorGreen      = [3]float32{0x6b / 255.0, 0xa7 / 255.0, 0x31 / 255.0} // #6ba731
-	colorMediumGrey = [3]float32{0xb5 / 255.0, 0xb5 / 255.0, 0xb5 / 255.0} // #b5b5b5
-	colorDarkGrey   = [3]float32{0x32 / 255.0, 0x29 / 255.0, 0x2f / 255.0} // #32292f
-	colorYellow     = [3]float32{0xf7 / 255.0, 0xb5 / 255.0, 0x38 / 255.0} // #f7b538
-	colorPurple     = [3]float32{0x3d / 255.0, 0x31 / 255.0, 0x5b / 255.0} // #3d315b
-	colorLilac      = [3]float32{0x97 / 255.0, 0x89 / 255.0, 0xba / 255.0} // #9789ba
-	colorLightGreen = [3]float32{0x71 / 255.0, 0xb5 / 255.0, 0x98 / 255.0} // #71b598
-	colorTeal       = [3]float32{0x3b / 255.0, 0x8e / 255.0, 0xa5 / 255.0} // #3b8ea5
-	colorRed        = [3]float32{0xdb / 255.0, 0x32 / 255.0, 0x4d / 255.0} // #db324d
-	colorOrange     = [3]float32{0xd5 / 255.0, 0x57 / 255.0, 0x3b / 255.0} // #d5573b
-	colorSky        = [3]float32{0xd4 / 255.0, 0xde / 255.0, 0xff / 255.0} // #d4deff
-	colorLightGrey  = [3]float32{0xd1 / 255.0, 0xd1 / 255.0, 0xd1 / 255.0} // #d1d1d1
+    colorWhite      = [3]float32{0xff / 255.0, 0xff / 255.0, 0xff / 255.0} // #ffffff
+    colorGreen      = [3]float32{0x6b / 255.0, 0xa7 / 255.0, 0x31 / 255.0} // #6ba731
+    colorMediumGrey = [3]float32{0xb5 / 255.0, 0xb5 / 255.0, 0xb5 / 255.0} // #b5b5b5
+    colorDarkGrey   = [3]float32{0x32 / 255.0, 0x29 / 255.0, 0x2f / 255.0} // #32292f
+    colorYellow     = [3]float32{0xf7 / 255.0, 0xb5 / 255.0, 0x38 / 255.0} // #f7b538
+    colorPurple     = [3]float32{0x3d / 255.0, 0x31 / 255.0, 0x5b / 255.0} // #3d315b
+    colorLilac      = [3]float32{0x97 / 255.0, 0x89 / 255.0, 0xba / 255.0} // #9789ba
+    colorLightGreen = [3]float32{0x71 / 255.0, 0xb5 / 255.0, 0x98 / 255.0} // #71b598
+    colorTeal       = [3]float32{0x3b / 255.0, 0x8e / 255.0, 0xa5 / 255.0} // #3b8ea5
+    colorRed        = [3]float32{0xdb / 255.0, 0x32 / 255.0, 0x4d / 255.0} // #db324d
+    colorPink       = [3]float32{0xd6 / 255.0, 0x7a / 255.0, 0x89 / 255.0} // #d67a89
+    colorOrange     = [3]float32{0xd5 / 255.0, 0x57 / 255.0, 0x3b / 255.0} // #d5573b
+    colorSky        = [3]float32{0xd4 / 255.0, 0xde / 255.0, 0xff / 255.0} // #d4deff
+    colorLightGrey  = [3]float32{0xd1 / 255.0, 0xd1 / 255.0, 0xd1 / 255.0} // #d1d1d1
 )
 
 type PathType int
 
 const (
-	PathTypeUnknown PathType = 0
-	PathTypeStartSequence    = 1
-	PathTypeEndSequence      = 2
-	PathTypeRaft             = 3
-	PathTypeBrim             = 4
-	PathTypeSupport          = 5
-	PathTypeSupportInterface = 6
-	PathTypeInnerPerimeter   = 7
-	PathTypeOuterPerimeter   = 8
-	PathTypeSolidLayer       = 9
-	PathTypeInfill           = 10
-	PathTypeGapFill          = 11
-	PathTypeBridge           = 12
-	PathTypeTransition       = 13
-	PathTypePing             = 14
+    PathTypeUnknown PathType = iota
+    PathTypeStartSequence
+    PathTypeEndSequence
+    PathTypeRaft
+    PathTypeBrim
+    PathTypeSupport
+    PathTypeSupportInterface
+    PathTypeInnerPerimeter
+    PathTypeOuterPerimeter
+    PathTypeSolidLayer
+    PathTypeInfill
+    PathTypeGapFill
+    PathTypeBridge
+    PathTypeIroning
+    PathTypeTransition
+    PathTypePing
+    pathTypeCount
 )
-const pathTypeCount = 15
 
 var pathTypeNames = map[PathType]string{
-	PathTypeUnknown: 			"Unknown",
-	PathTypeStartSequence: 		"Start Sequence",
-	PathTypeEndSequence: 		"End Sequence",
-	PathTypeRaft: 				"Raft",
-	PathTypeBrim: 				"Skirt/Brim",
-	PathTypeSupport: 			"Support",
-	PathTypeSupportInterface: 	"Support Interface",
-	PathTypeInnerPerimeter: 	"Inner Perimeter",
-	PathTypeOuterPerimeter: 	"Outer Perimeter",
-	PathTypeSolidLayer: 		"Solid Layer",
-	PathTypeInfill: 			"Infill",
-	PathTypeGapFill: 			"Gap Fill",
-	PathTypeBridge: 			"Bridge",
-	PathTypeTransition: 		"Transition",
-	PathTypePing: 				"Ping",
+    PathTypeUnknown:          "Unknown",
+    PathTypeStartSequence:    "Start Sequence",
+    PathTypeEndSequence:      "End Sequence",
+    PathTypeRaft:             "Raft",
+    PathTypeBrim:             "Skirt/Brim",
+    PathTypeSupport:          "Support",
+    PathTypeSupportInterface: "Support Interface",
+    PathTypeInnerPerimeter:   "Inner Perimeter",
+    PathTypeOuterPerimeter:   "Outer Perimeter",
+    PathTypeSolidLayer:       "Solid Layer",
+    PathTypeInfill:           "Infill",
+    PathTypeGapFill:          "Gap Fill",
+    PathTypeBridge:           "Bridge",
+    PathTypeIroning:          "Ironing",
+    PathTypeTransition:       "Transition",
+    PathTypePing:             "Ping",
 }
 
 var pathTypeColors = map[PathType][3]float32{
-	PathTypeUnknown: 			colorWhite,
-	PathTypeStartSequence: 		colorDarkGrey,
-	PathTypeEndSequence: 		colorDarkGrey,
-	PathTypeRaft: 				colorLilac,
-	PathTypeBrim: 				colorSky,
-	PathTypeSupport: 			colorPurple,
-	PathTypeSupportInterface: 	colorLilac,
-	PathTypeInnerPerimeter: 	colorLightGreen,
-	PathTypeOuterPerimeter: 	colorTeal,
-	PathTypeSolidLayer: 		colorRed,
-	PathTypeInfill: 			colorYellow,
-	PathTypeGapFill: 			colorOrange,
-	PathTypeBridge: 			colorSky,
-	PathTypeTransition: 		colorLightGrey,
-	PathTypePing: 				colorLightGrey,
+    PathTypeUnknown:          colorWhite,
+    PathTypeStartSequence:    colorDarkGrey,
+    PathTypeEndSequence:      colorDarkGrey,
+    PathTypeRaft:             colorLilac,
+    PathTypeBrim:             colorSky,
+    PathTypeSupport:          colorPurple,
+    PathTypeSupportInterface: colorLilac,
+    PathTypeInnerPerimeter:   colorLightGreen,
+    PathTypeOuterPerimeter:   colorTeal,
+    PathTypeSolidLayer:       colorRed,
+    PathTypeInfill:           colorYellow,
+    PathTypeGapFill:          colorOrange,
+    PathTypeBridge:           colorSky,
+    PathTypeIroning:          colorPink,
+    PathTypeTransition:       colorLightGrey,
+    PathTypePing:             colorLightGrey,
 }
 
 var pathTypeColorStrings = map[PathType]string{
-	PathTypeUnknown: 			"#ffffff",
-	PathTypeStartSequence: 		"#32292f",
-	PathTypeEndSequence: 		"#32292f",
-	PathTypeRaft: 				"#9789ba",
-	PathTypeBrim: 				"#d4deff",
-	PathTypeSupport: 			"#3d315b",
-	PathTypeSupportInterface: 	"#9789ba",
-	PathTypeInnerPerimeter: 	"#71b598",
-	PathTypeOuterPerimeter: 	"#3b8ea5",
-	PathTypeSolidLayer: 		"#db324d",
-	PathTypeInfill: 			"#f7b538",
-	PathTypeGapFill: 			"#d5573b",
-	PathTypeBridge: 			"#bcd4de",
-	PathTypeTransition: 		"#d1d1d1",
-	PathTypePing: 				"#d1d1d1",
+    PathTypeUnknown:          "#ffffff",
+    PathTypeStartSequence:    "#32292f",
+    PathTypeEndSequence:      "#32292f",
+    PathTypeRaft:             "#9789ba",
+    PathTypeBrim:             "#d4deff",
+    PathTypeSupport:          "#3d315b",
+    PathTypeSupportInterface: "#9789ba",
+    PathTypeInnerPerimeter:   "#71b598",
+    PathTypeOuterPerimeter:   "#3b8ea5",
+    PathTypeSolidLayer:       "#db324d",
+    PathTypeInfill:           "#f7b538",
+    PathTypeGapFill:          "#d5573b",
+    PathTypeBridge:           "#bcd4de",
+    PathTypeIroning:          "#d67a89",
+    PathTypeTransition:       "#d1d1d1",
+    PathTypePing:             "#d1d1d1",
 }
 
 var feedrateColorMin = colorRed

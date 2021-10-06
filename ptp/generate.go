@@ -48,11 +48,11 @@ func convertPathType(hint string) PathType {
     case "Solid infill":
         fallthrough
     case "Top solid infill":
-        fallthrough
-    case "Ironing":
         return PathTypeSolidLayer
     case "Bridge infill":
         return PathTypeBridge
+    case "Ironing":
+        return PathTypeIroning
     case "Gap fill":
         return PathTypeGapFill
     case "Skirt":
