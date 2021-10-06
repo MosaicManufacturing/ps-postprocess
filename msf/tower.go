@@ -211,6 +211,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
     if palette.RaftLayers == 0 {
         firstTransitionTotalE := preflight.transitions[0].TotalExtrusion
         firstTransitionTotalE += minLayerExtrusion * float32(preflight.transitions[0].Layer)
+        firstTransitionTotalE += preflight.transitions[0].TransitionLength * (palette.TransitionTarget / 100)
         firstLayerThickness := tower.Layers[0].Thickness
         minFirstSpliceLength := palette.GetFirstSpliceMinLength()
         perimeterLength := (towerHalfWidth * 4) + (towerHalfHeight * 4) + (palette.TowerExtrusionWidth * 8)
