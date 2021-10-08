@@ -127,7 +127,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
             if err != nil {
                 return err
             }
-            height32 := float32(height)
+            height32 := roundZ(float32(height))
             if height32 < minLayerHeight {
                 minLayerHeight = height32
             }
@@ -270,7 +270,7 @@ func GenerateToolpath(argv []string) {
                 if err != nil {
                     return err
                 }
-                writer.SetLayerHeight(float32(height))
+                writer.SetLayerHeight(roundZ(float32(height)))
             } else if strings.HasPrefix(line.Comment, "Printing with input ") {
                 tool, err := strconv.ParseInt(line.Comment[20:], 10, 32)
                 if err != nil {

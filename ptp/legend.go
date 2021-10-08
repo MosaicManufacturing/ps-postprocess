@@ -316,7 +316,14 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
     sortFloat32Slice(layerHeightsSeen)
 
     legend := make([]legendEntry, 0, len(layerHeightsSeen))
-    if len(layerHeightsSeen) <= 6 {
+    if len(layerHeightsSeen) == 1 {
+        legend = []legendEntry{
+            {
+                Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeightsSeen[0], maxDecimalsLayerHeight)),
+                Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
+            },
+        }
+    } else if len(layerHeightsSeen) <= 6 {
         for _, layerHeight := range layerHeightsSeen {
             t := (layerHeight - w.minLayerHeight) / (w.maxLayerHeight - w.minLayerHeight)
             r := lerp(layerHeightColorMin[0], layerHeightColorMax[0], t)
