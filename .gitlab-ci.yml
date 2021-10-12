@@ -1,0 +1,57 @@
+stages:
+  - test
+  - build
+  - deploy
+
+test PrinterScript:
+  image: golang
+  stage: test
+  script:
+    - env GOOS=linux GOARCH=amd64
+    - cd printerscript
+    - go get github.com/antlr/antlr4/runtime/Go/antlr
+    - go test
+
+test MSF:
+  image: golang
+  stage: test
+  script:
+    - env GOOS=linux GOARCH=amd64
+    - cd msf
+    - go test
+
+build:
+  image: golang
+  stage: build
+  artifacts:
+    paths:
+      - ps-postprocess
+    expire_in: 1 day
+  script:
+    - env GOOS=linux GOARCH=amd64
+    - go get github.com/antlr/antlr4/runtime/Go/antlr
+    - go build
+
+deploy dev:
+  image: napp/docker-aws-cli
+  stage: deploy
+  dependencies:
+    - build
+  only:
+    - master
+  environment:
+    name: development
+  script:
+    - aws s3 cp ./ps-postprocess s3://$AWS_BUCKET/go-utils/ps-postprocess-development
+
+deploy prod:
+  image: napp/docker-aws-cli
+  stage: deploy
+  dependencies:
+    - build
+  only:
+    - production
+  environment:
+    name: production
+  script:
+    - aws s3 cp ./ps-postprocess s3://$AWS_BUCKET/go-utils/ps-postprocess-production
