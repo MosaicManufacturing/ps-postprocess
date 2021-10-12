@@ -4,7 +4,7 @@ stages:
   - deploy
 
 .golang_common: &golang_common
-  image: golang
+  image: golang:1.16
   variables:
     GOOS: linux
     GOARCH: amd64
