@@ -3,11 +3,15 @@ stages:
   - build
   - deploy
 
+variables:
+  GOOS: linux
+  GOARCH: amd64
+  GO111MODULE: off
+
 test PrinterScript:
   image: golang
   stage: test
   script:
-    - env GOOS=linux GOARCH=amd64
     - cd printerscript
     - go get github.com/antlr/antlr4/runtime/Go/antlr
     - go test
@@ -15,8 +19,9 @@ test PrinterScript:
 test MSF:
   image: golang
   stage: test
+  variables:
+    GO111MODULE: off
   script:
-    - env GOOS=linux GOARCH=amd64
     - cd msf
     - go test
 
@@ -28,7 +33,6 @@ build:
       - ps-postprocess
     expire_in: 1 day
   script:
-    - env GOOS=linux GOARCH=amd64
     - go get github.com/antlr/antlr4/runtime/Go/antlr
     - go build
 
