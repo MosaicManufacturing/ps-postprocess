@@ -3,13 +3,15 @@ stages:
   - build
   - deploy
 
-variables:
-  GOOS: linux
-  GOARCH: amd64
-  GO111MODULE: off
+.golang_common: &golang_common
+  image: golang
+  variables:
+    GOOS: linux
+    GOARCH: amd64
+    GO111MODULE: off
 
 test PrinterScript:
-  image: golang
+  <<: *golang_common
   stage: test
   script:
     - cd printerscript
@@ -17,16 +19,14 @@ test PrinterScript:
     - go test
 
 test MSF:
-  image: golang
+  <<: *golang_common
   stage: test
-  variables:
-    GO111MODULE: off
   script:
     - cd msf
     - go test
 
 build:
-  image: golang
+  <<: *golang_common
   stage: build
   artifacts:
     paths:
