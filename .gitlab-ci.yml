@@ -24,6 +24,7 @@ test MSF:
   stage: test
   script:
     - cd msf
+    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
     - GO111MODULE=off go test
 
 build:
