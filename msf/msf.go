@@ -431,7 +431,7 @@ func (msf *MSF) createMSF3() (string, error) {
     for drive := 0; drive < numInputs; drive++ {
         if msf.DrivesUsed[drive] {
             material := msf.Palette.MaterialMeta[drive]
-            json.Drives[drive] = material.Index
+            json.Drives[drive] = material.FilamentID
         }
     }
 
@@ -439,7 +439,7 @@ func (msf *MSF) createMSF3() (string, error) {
     for _, splice := range msf.SpliceList {
         material := msf.Palette.MaterialMeta[splice.Drive]
         jsonSplice := palette3Splice{
-            ID:     material.Index,
+            ID:     material.FilamentID,
             Length: splice.Length,
         }
         json.Splices = append(json.Splices, jsonSplice)
