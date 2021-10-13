@@ -11,21 +11,12 @@ stages:
   before_script:
     - env GOOS=linux GOARCH=amd64
 
-test PrinterScript:
+test:
   <<: *golang_common
   stage: test
   script:
-    - cd printerscript
     - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go test
-
-test MSF:
-  <<: *golang_common
-  stage: test
-  script:
-    - cd msf
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go test
+    - GO111MODULE=off go test ./...
 
 build:
   <<: *golang_common
