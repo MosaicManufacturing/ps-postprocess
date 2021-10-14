@@ -40,7 +40,7 @@ type Tower struct {
 }
 
 func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
-    totalLayers := preflight.totalLayers + 1
+    totalLayers := preflight.totalLayers
     tower := Tower{
         Palette:     palette,
         BoundingBox: gcode.NewBoundingBox(),

@@ -262,11 +262,16 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
 
         return nil
     })
+    if err != nil {
+        return results, err
+    }
+    results.totalLayers++ // switch from 0-indexing to a true count
+
     if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
         results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
     }
     if results.boundingBox.Min[2] > 0 {
         results.boundingBox.Min[2] = 0
     }
-    return results, err
+    return results, nil
 }
