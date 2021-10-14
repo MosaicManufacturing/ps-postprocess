@@ -7,6 +7,9 @@ import (
     "strings"
 )
 
+// round layer thicknesses and top Zs to this many decimal places
+const maxZPrecision = 5
+
 type Transition struct {
     Layer int
     From int
@@ -224,13 +227,13 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             results.layerThicknesses = append(results.layerThicknesses, 0)
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";Z:") {
-            if topZ, err := strconv.ParseFloat(line.Raw[3:], 32); err == nil {
-                results.layerTopZs[results.totalLayers] = float32(topZ)
+            if topZ, err := strconv.ParseFloat(line.Raw[3:], 64); err == nil {
+                results.layerTopZs[results.totalLayers] = roundTo(float32(topZ), maxZPrecision)
             }
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";HEIGHT:") {
-            if thickness, err := strconv.ParseFloat(line.Raw[8:], 32); err == nil {
-                thickness32 := float32(thickness)
+            if thickness, err := strconv.ParseFloat(line.Raw[8:], 64); err == nil {
+                thickness32 := roundTo(float32(thickness), maxZPrecision)
                 if thickness32 > results.layerThicknesses[results.totalLayers] {
                     results.layerThicknesses[results.totalLayers] = thickness32
                 }
