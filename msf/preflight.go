@@ -220,15 +220,20 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             state.PastStartSequence = true
         } else if line.Raw == ";LAYER_CHANGE" {
             results.totalLayers++
+            results.layerTopZs = append(results.layerTopZs, 0)
+            results.layerThicknesses = append(results.layerThicknesses, 0)
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";Z:") {
             if topZ, err := strconv.ParseFloat(line.Raw[3:], 32); err == nil {
-                results.layerTopZs = append(results.layerTopZs, float32(topZ))
+                results.layerTopZs[results.totalLayers] = float32(topZ)
             }
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";HEIGHT:") {
             if thickness, err := strconv.ParseFloat(line.Raw[8:], 32); err == nil {
-                results.layerThicknesses = append(results.layerThicknesses, float32(thickness))
+                thickness32 := float32(thickness)
+                if thickness32 > results.layerThicknesses[results.totalLayers] {
+                    results.layerThicknesses[results.totalLayers] = thickness32
+                }
             }
         } else if (palette.TransitionMethod == TransitionTower || palette.InfillTransitioning) &&
             strings.HasPrefix(line.Comment, "TYPE:") {
@@ -275,6 +280,14 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         }
         if layerTopZs := len(results.layerTopZs); layerTopZs != results.totalLayers {
             return results, fmt.Errorf("invariant violation: expected %d layerTopZs, got %d", results.totalLayers, layerTopZs)
+        }
+        for i := 0; i < results.totalLayers; i++ {
+            if results.layerThicknesses[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero thickness at layer %d", i)
+            }
+            if results.layerTopZs[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero height at layer %d", i)
+            }
         }
     }
 
