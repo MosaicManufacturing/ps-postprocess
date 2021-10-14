@@ -2,6 +2,7 @@ package msf
 
 import (
     "../gcode"
+    "fmt"
     "strconv"
     "strings"
 )
@@ -266,6 +267,16 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         return results, err
     }
     results.totalLayers++ // switch from 0-indexing to a true count
+
+    // invariant assertions
+    if palette.TransitionMethod == CustomTower {
+        if layerThicknesses := len(results.layerThicknesses); layerThicknesses != results.totalLayers {
+            return results, fmt.Errorf("invariant violation: expected %d layerThicknesses, got %d", results.totalLayers, layerThicknesses)
+        }
+        if layerTopZs := len(results.layerTopZs); layerTopZs != results.totalLayers {
+            return results, fmt.Errorf("invariant violation: expected %d layerTopZs, got %d", results.totalLayers, layerTopZs)
+        }
+    }
 
     if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
         results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
