@@ -121,6 +121,11 @@ func LoadFromFile(path string) (Palette, error) {
         return palette, err
     }
 
+    // apply defaults
+    if palette.BowdenTubeLength < BowdenDefault {
+        palette.BowdenTubeLength = BowdenDefault
+    }
+
     // lex and parse scripts just once now, and re-use the parse trees when evaluating
     if len(palette.PreSideTransitionSequence) > 0 {
         tree, err := printerscript.LexAndParse(palette.PreSideTransitionSequence)
