@@ -642,7 +642,6 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
     if state.Palette.ConnectedMode {
         if totalExtrusion >= state.NextPingStart {
             // connected pings
-            state.MSF.AddPing(totalExtrusion)
             state.NextPingStart = totalExtrusion + PingMinSpacing
             sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
             state.MSF.AddPing(totalExtrusion)
