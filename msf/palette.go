@@ -99,6 +99,7 @@ type Palette struct {
     PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // mm/min
 
     // P2/P3
+    ClearBufferCommand string `json:"clearBufferCommand"`
     ConnectedMode bool `json:"connectedMode"`
     PrinterID string `json:"printerId"`
     Filename string `json:"filename"`

@@ -106,7 +106,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                             return err
                         }
                         msfOut.AddPing(state.E.TotalExtrusion)
-                        if err := writeLine(writer, "G4 P0"); err != nil {
+                        if err := writeLine(writer, palette.ClearBufferCommand); err != nil {
                             return err
                         }
                         pingLine := msfOut.GetConnectedPingLine()

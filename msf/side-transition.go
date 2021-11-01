@@ -99,7 +99,7 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
         state.MSF.AddPing(state.E.TotalExtrusion)
         state.LastPingStart = state.E.TotalExtrusion
         sequence := fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList), EOL)
-        sequence += "G4 P0" + EOL
+        sequence += state.Palette.ClearBufferCommand + EOL
         sequence += state.MSF.GetConnectedPingLine()
         return true, sequence, 0
     }

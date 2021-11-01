@@ -645,7 +645,7 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
             state.NextPingStart = totalExtrusion + PingMinSpacing
             sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
             state.MSF.AddPing(totalExtrusion)
-            sequence += "G4 P0" + EOL
+            sequence += state.Palette.ClearBufferCommand + EOL
             sequence += state.MSF.GetConnectedPingLine()
         }
     } else {
