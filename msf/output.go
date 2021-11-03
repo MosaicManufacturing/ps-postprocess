@@ -135,6 +135,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
             }
         } else if needsSparseLayers && len(line.Command) == 0 && strings.HasPrefix(line.Comment, "printing object") {
+
+            // TODO: remove
             if err := writeLine(writer, "; Sparse tower layer"); err != nil {
                 return err
             }
@@ -165,6 +167,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
             }
             needsSparseLayers = false
+            // TODO: endremove
+
             return writeLine(writer, line.Raw)
         } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
@@ -240,12 +244,16 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             return writeLine(writer, line.Raw)
         } else if line.Raw == ";LAYER_CHANGE" {
             state.CurrentLayer++
+
+            // todo: remove
             if palette.TransitionMethod == CustomTower && !state.Tower.IsComplete() {
                 // check for sparse layer insertion
                 if state.Tower.NeedsSparseLayers(state.CurrentLayer) {
                     needsSparseLayers = true
                 }
             }
+            // todo: endremove
+
             return writeLine(writer, line.Raw)
         } else if palette.TransitionMethod == TransitionTower &&
             strings.HasPrefix(line.Comment, "TYPE:") {
