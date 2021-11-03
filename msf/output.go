@@ -165,6 +165,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 }
             }
             needsSparseLayers = false
+            return writeLine(writer, line.Raw)
         } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
                 if state.FirstToolChange {
