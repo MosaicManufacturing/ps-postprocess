@@ -147,7 +147,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             }
             // should we double up and print the next sparse layer now too?
             if !state.Tower.CurrentLayerIsDense() {
-                if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
                     return err
                 }
                 // need to manually move up to next layer
