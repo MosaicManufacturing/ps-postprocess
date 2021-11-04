@@ -53,6 +53,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
 
     didFinalSplice := false // used to prevent calling msfOut.AddLastSplice multiple times
     checkDoubledSparseLayer := false // only try a start-of-layer sparse layer if true
+    filterRetracts := false
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
@@ -70,6 +71,9 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         state.XYZF.TrackInstruction(line)
         state.Temperature.TrackInstruction(line)
         if line.IsLinearMove() {
+            if filterRetracts && (line.Comment == "retract" || line.Comment == "lift Z") {
+                return nil
+            }
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
             }
@@ -134,6 +138,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                 }
             }
+        } else if filterRetracts && line.IsSetPosition() {
+            return nil
         } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
                 if state.FirstToolChange {
@@ -166,7 +172,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentTool = tool
                         state.CurrentlyTransitioning = true
                         transition, err := state.Tower.GetNextSegment(&state, true)
-                        checkDoubledSparseLayer = false // todo: maybe redundant?
+                        checkDoubledSparseLayer = false
+                        filterRetracts = false // todo: we sure?
                         if err != nil {
                             return err
                         }
@@ -220,21 +227,36 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             }
             state.CurrentLayerObject++
             if state.CurrentLayerObject == state.CurrentLayerTotalObjects {
-                fmt.Println("state.CurrentLayer =", state.CurrentLayer, "state.Tower.CurrentLayerIndex =", state.Tower.CurrentLayerIndex)
                 if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
                     state.CurrentLayer == state.Tower.CurrentLayerIndex {
                     if err := writeLine(writer, "; Sparse tower layer"); err != nil {
                         return err
                     }
-                    // todo: retraction, z-lift, etc.
+                    retractDistance := palette.RetractDistance[state.CurrentTool]
+                    retractFeedrate := palette.RetractFeedrate[state.CurrentTool]
+                    if retract := getRetract(&state, retractDistance, retractFeedrate); len(retract) > 0 {
+                        if err := writeLines(writer, retract); err != nil {
+                            return err
+                        }
+                    }
+                    if reset := resetEAxis(&state); len(reset) > 0 {
+                        if err := writeLines(writer, reset); err != nil {
+                            return err
+                        }
+                    }
+                    zLiftTarget := state.XYZF.CurrentZ + palette.ZLift[state.CurrentTool]
+                    if zLift := getZTravel(&state, zLiftTarget, "lift Z"); len(zLift) > 0 {
+                        if err := writeLines(writer, zLift); err != nil {
+                            return err
+                        }
+                    }
                     layerPaths, err := state.Tower.GetNextSegment(&state, false)
                     if err != nil {
                         return err
                     }
                     checkDoubledSparseLayer = true
+                    filterRetracts = true
                     return writeLines(writer, layerPaths)
-                } else {
-                    fmt.Println("(skipping)")
                 }
             }
         } else if palette.TransitionMethod == CustomTower &&
@@ -253,11 +275,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     return err
                 }
                 checkDoubledSparseLayer = false
+                filterRetracts = false // todo: we sure?
                 if err := writeLines(writer, layerPaths); err != nil {
                     return err
                 }
-            } else {
-                fmt.Println("(skipping)")
             }
             return writeLine(writer, line.Raw)
         } else if palette.TransitionMethod == TransitionTower &&
