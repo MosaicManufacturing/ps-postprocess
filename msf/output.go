@@ -68,17 +68,18 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         }
         if upcomingDoubledSparseLayer &&
             (line.Comment == "retract" || line.Comment == "lift Z" || line.Comment == "reset extrusion distance") {
-            // don't track these instructions in state, since we're removing them
+            // filter out these commands as we've already included them as needed
+            return nil
+        } else if line.Comment == "retract" && state.E.LastExtrudeWasRetract {
+            // avoid double-retraction after toolchange
+            return nil
         } else {
+            // update state
             state.E.TrackInstruction(line)
             state.XYZF.TrackInstruction(line)
             state.Temperature.TrackInstruction(line)
         }
         if line.IsLinearMove() {
-            if upcomingDoubledSparseLayer &&
-                (line.Comment == "retract" || line.Comment == "lift Z") {
-                return nil
-            }
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
             }
