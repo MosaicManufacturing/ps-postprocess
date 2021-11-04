@@ -52,8 +52,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     }
 
     didFinalSplice := false // used to prevent calling msfOut.AddLastSplice multiple times
-    checkDoubledSparseLayer := false // only try a start-of-layer sparse layer if true
-    filterRetracts := false
+    upcomingDoubledSparseLayer := false // used for special-case layer change handling
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
@@ -67,7 +66,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 return err
             }
         }
-        if filterRetracts && (line.Comment == "retract" || line.Comment == "lift Z" || line.Comment == "reset extrusion distance") {
+        if upcomingDoubledSparseLayer &&
+            (line.Comment == "retract" || line.Comment == "lift Z" || line.Comment == "reset extrusion distance") {
             // don't track these instructions in state, since we're removing them
         } else {
             state.E.TrackInstruction(line)
@@ -75,7 +75,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             state.Temperature.TrackInstruction(line)
         }
         if line.IsLinearMove() {
-            if filterRetracts && (line.Comment == "retract" || line.Comment == "lift Z") {
+            if upcomingDoubledSparseLayer &&
+                (line.Comment == "retract" || line.Comment == "lift Z") {
                 return nil
             }
             if err := writeLine(writer, line.Raw); err != nil {
@@ -142,7 +143,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                 }
             }
-        } else if filterRetracts && line.IsSetPosition() {
+        } else if upcomingDoubledSparseLayer && line.IsSetPosition() {
             return nil
         } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
@@ -176,8 +177,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentTool = tool
                         state.CurrentlyTransitioning = true
                         transition, err := state.Tower.GetNextSegment(&state, true)
-                        checkDoubledSparseLayer = false
-                        filterRetracts = false
+                        upcomingDoubledSparseLayer = false
                         if err != nil {
                             return err
                         }
@@ -259,8 +259,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         return err
                     }
                     if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() {
-                        checkDoubledSparseLayer = true
-                        filterRetracts = true
+                        upcomingDoubledSparseLayer = true
                     }
                     return writeLines(writer, layerPaths)
                 }
@@ -269,7 +268,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             strings.HasPrefix(line.Comment, "printing object") {
             // doubled sparse tower layer
             if !state.Tower.IsComplete() &&
-                checkDoubledSparseLayer &&
+                upcomingDoubledSparseLayer &&
                 state.CurrentLayer == state.Tower.CurrentLayerIndex &&
                 !state.Tower.CurrentLayerIsDense() {
                 if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
@@ -279,8 +278,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 if err != nil {
                     return err
                 }
-                checkDoubledSparseLayer = false
-                filterRetracts = false
+                upcomingDoubledSparseLayer = false
                 if err := writeLines(writer, layerPaths); err != nil {
                     return err
                 }
