@@ -66,11 +66,15 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 return err
             }
         }
-        if upcomingDoubledSparseLayer &&
-            (line.Comment == "retract" || line.Comment == "lift Z" || line.Comment == "reset extrusion distance") {
+        if upcomingDoubledSparseLayer && line.IsLinearMove() &&
+            (line.Comment == "retract" || line.Comment == "lift Z") {
             // filter out these commands as we've already included them as needed
             return nil
-        } else if line.Comment == "retract" && state.E.LastExtrudeWasRetract {
+        } else if upcomingDoubledSparseLayer && line.IsSetPosition() &&
+            line.Comment == "reset extrusion distance" {
+            // filter out these commands as we've already included them as needed
+            return nil
+        } else if line.IsLinearMove() && line.Comment == "retract" && state.E.LastExtrudeWasRetract {
             // avoid double-retraction after toolchange
             return nil
         } else {
