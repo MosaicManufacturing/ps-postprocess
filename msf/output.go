@@ -67,9 +67,13 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 return err
             }
         }
-        state.E.TrackInstruction(line)
-        state.XYZF.TrackInstruction(line)
-        state.Temperature.TrackInstruction(line)
+        if filterRetracts && (line.Comment == "retract" || line.Comment == "lift Z" || line.Comment == "reset extrusion distance") {
+            // don't track these instructions in state, since we're removing them
+        } else {
+            state.E.TrackInstruction(line)
+            state.XYZF.TrackInstruction(line)
+            state.Temperature.TrackInstruction(line)
+        }
         if line.IsLinearMove() {
             if filterRetracts && (line.Comment == "retract" || line.Comment == "lift Z") {
                 return nil
@@ -173,7 +177,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentlyTransitioning = true
                         transition, err := state.Tower.GetNextSegment(&state, true)
                         checkDoubledSparseLayer = false
-                        filterRetracts = false // todo: we sure?
+                        filterRetracts = false
                         if err != nil {
                             return err
                         }
@@ -254,8 +258,10 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     if err != nil {
                         return err
                     }
-                    checkDoubledSparseLayer = true
-                    filterRetracts = true
+                    if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() {
+                        checkDoubledSparseLayer = true
+                        filterRetracts = true
+                    }
                     return writeLines(writer, layerPaths)
                 }
             }
@@ -269,13 +275,12 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
                     return err
                 }
-                // todo: retraction, z-lift, etc.
                 layerPaths, err := state.Tower.GetNextSegment(&state, false)
                 if err != nil {
                     return err
                 }
                 checkDoubledSparseLayer = false
-                filterRetracts = false // todo: we sure?
+                filterRetracts = false
                 if err := writeLines(writer, layerPaths); err != nil {
                     return err
                 }
