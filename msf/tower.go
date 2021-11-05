@@ -671,7 +671,7 @@ func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
         if t.CurrentLayerCommandIndex + 1 < len(t.CurrentLayerPaths) {
             nextPathExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex + 1].extrusion
             if math.Abs(float64(nextPingEnd + 0.5 - totalExtrusion)) <
-                math.Abs(float64(totalExtrusion + nextPathExtrusion - 0.5)) {
+                math.Abs(float64(totalExtrusion + nextPathExtrusion - nextPingEnd - 0.5)) {
                 // the next path would put us further from PingExtrusion (in absolute value)
                 // than we currently are -- finish the ping now to increase chance of detection
                 finish = true
