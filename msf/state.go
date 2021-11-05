@@ -12,6 +12,8 @@ type State struct {
     PingExtrusion float32 // stored to avoid re-calculating every time
 
     CurrentLayer int
+    CurrentLayerObject int
+    CurrentLayerTotalObjects int
     E gcode.ExtrusionTracker
     XYZF gcode.PositionTracker
     Temperature gcode.TemperatureTracker

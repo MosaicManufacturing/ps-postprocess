@@ -31,10 +31,12 @@ type msfPreflight struct {
     towerBoundingBox gcode.BoundingBox
 
     // used for postprocess-generated towers
-    layerThicknesses []float32
-    layerTopZs []float32
-    transitionsByLayer map[int][]Transition
-    transitions []Transition
+    layerTopZs []float32 // printing height of each layer (i.e. the Z value of the top of these paths)
+    layerThicknesses []float32 // thickness of each layer in mm (i.e. layerTopZs[n] - layerTopZs[n-1])
+    layerObjectStarts []int // number of "printing object" comments per layer
+    layerObjectEnds []int // number of "stop printing object" comments per layer
+    transitionsByLayer map[int][]Transition // array of Transition per layer
+    transitions []Transition // same data as transitionsByLayer but flattened into 1D
 
     // used for side transition custom scripts
     transitionNextPositions []sideTransitionLookahead
@@ -225,6 +227,8 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             results.totalLayers++
             results.layerTopZs = append(results.layerTopZs, 0)
             results.layerThicknesses = append(results.layerThicknesses, 0)
+            results.layerObjectStarts = append(results.layerObjectStarts, 0)
+            results.layerObjectEnds = append(results.layerObjectEnds, 0)
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";Z:") {
             if topZ, err := strconv.ParseFloat(line.Raw[3:], 64); err == nil {
@@ -267,6 +271,10 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             }
             results.timeEstimate = timeEstimate
             results.printSummaryStart = lineNumber + 2
+        } else if strings.HasPrefix(line.Comment, "stop printing object ") {
+            results.layerObjectEnds[results.totalLayers]++
+        } else if strings.HasPrefix(line.Comment, "printing object ") {
+            results.layerObjectStarts[results.totalLayers]++
         }
 
         return nil
@@ -290,6 +298,15 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             }
             if results.layerTopZs[i] == 0 {
                 return results, fmt.Errorf("invariant violation: zero height at layer %d", i)
+            }
+            if results.layerObjectStarts[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero layer object starts at layer %d", i)
+            }
+            if results.layerObjectEnds[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero layer object ends at layer %d", i)
+            }
+            if results.layerObjectStarts[i] != results.layerObjectEnds[i] {
+                return results, fmt.Errorf("invariant violation: layer object count mismatch at layer %d", i)
             }
         }
     }

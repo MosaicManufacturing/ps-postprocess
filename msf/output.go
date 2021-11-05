@@ -52,7 +52,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
     }
 
     didFinalSplice := false // used to prevent calling msfOut.AddLastSplice multiple times
-    needsSparseLayers := false // used at end-of-layer to postpone sparse layer insertion slightly
+    upcomingDoubledSparseLayer := false // used for special-case layer change handling
 
     err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
@@ -66,9 +66,23 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                 return err
             }
         }
-        state.E.TrackInstruction(line)
-        state.XYZF.TrackInstruction(line)
-        state.Temperature.TrackInstruction(line)
+        if upcomingDoubledSparseLayer && line.IsLinearMove() &&
+            (line.Comment == "retract" || line.Comment == "lift Z") {
+            // filter out these commands as we've already included them as needed
+            return nil
+        } else if upcomingDoubledSparseLayer && line.IsSetPosition() &&
+            line.Comment == "reset extrusion distance" {
+            // filter out these commands as we've already included them as needed
+            return nil
+        } else if line.IsLinearMove() && line.Comment == "retract" && state.E.LastExtrudeWasRetract {
+            // avoid double-retraction after toolchange
+            return nil
+        } else {
+            // update state
+            state.E.TrackInstruction(line)
+            state.XYZF.TrackInstruction(line)
+            state.Temperature.TrackInstruction(line)
+        }
         if line.IsLinearMove() {
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
@@ -134,38 +148,8 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                 }
             }
-        } else if needsSparseLayers && len(line.Command) == 0 && strings.HasPrefix(line.Comment, "printing object") {
-            if err := writeLine(writer, "; Sparse tower layer"); err != nil {
-                return err
-            }
-            layerPaths, err := state.Tower.GetNextSegment(&state, false)
-            if err != nil {
-                return err
-            }
-            if err := writeLines(writer, layerPaths); err != nil {
-                return err
-            }
-            // should we double up and print the next sparse layer now too?
-            if !state.Tower.CurrentLayerIsDense() {
-                if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
-                    return err
-                }
-                // need to manually move up to next layer
-                topZ := state.Tower.CurrentLayerTopZ()
-                zLift := getZTravel(&state, topZ, "")
-                if err := writeLines(writer, zLift); err != nil {
-                    return err
-                }
-                layerPaths, err = state.Tower.GetNextSegment(&state, false)
-                if err != nil {
-                    return err
-                }
-                if err := writeLines(writer, layerPaths); err != nil {
-                    return err
-                }
-            }
-            needsSparseLayers = false
-            return writeLine(writer, line.Raw)
+        } else if upcomingDoubledSparseLayer && line.IsSetPosition() {
+            return nil
         } else if isToolChange, tool := line.IsToolChange(); isToolChange {
             if state.PastStartSequence {
                 if state.FirstToolChange {
@@ -198,6 +182,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         state.CurrentTool = tool
                         state.CurrentlyTransitioning = true
                         transition, err := state.Tower.GetNextSegment(&state, true)
+                        upcomingDoubledSparseLayer = false
                         if err != nil {
                             return err
                         }
@@ -240,10 +225,67 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             return writeLine(writer, line.Raw)
         } else if line.Raw == ";LAYER_CHANGE" {
             state.CurrentLayer++
-            if palette.TransitionMethod == CustomTower && !state.Tower.IsComplete() {
-                // check for sparse layer insertion
-                if state.Tower.NeedsSparseLayers(state.CurrentLayer) {
-                    needsSparseLayers = true
+            state.CurrentLayerObject = 0
+            state.CurrentLayerTotalObjects = preflight.layerObjectStarts[state.CurrentLayer]
+            return writeLine(writer, line.Raw)
+        } else if palette.TransitionMethod == CustomTower &&
+            strings.HasPrefix(line.Comment, "stop printing object") {
+            // sparse tower layer
+            if err := writeLine(writer, line.Raw); err != nil {
+                return err
+            }
+            state.CurrentLayerObject++
+            if state.CurrentLayerObject == state.CurrentLayerTotalObjects {
+                if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
+                    state.CurrentLayer == state.Tower.CurrentLayerIndex {
+                    if err := writeLine(writer, "; Sparse tower layer"); err != nil {
+                        return err
+                    }
+                    retractDistance := palette.RetractDistance[state.CurrentTool]
+                    retractFeedrate := palette.RetractFeedrate[state.CurrentTool]
+                    if retract := getRetract(&state, retractDistance, retractFeedrate); len(retract) > 0 {
+                        if err := writeLines(writer, retract); err != nil {
+                            return err
+                        }
+                    }
+                    if reset := resetEAxis(&state); len(reset) > 0 {
+                        if err := writeLines(writer, reset); err != nil {
+                            return err
+                        }
+                    }
+                    zLiftTarget := state.XYZF.CurrentZ + palette.ZLift[state.CurrentTool]
+                    if zLift := getZTravel(&state, zLiftTarget, "lift Z"); len(zLift) > 0 {
+                        if err := writeLines(writer, zLift); err != nil {
+                            return err
+                        }
+                    }
+                    layerPaths, err := state.Tower.GetNextSegment(&state, false)
+                    if err != nil {
+                        return err
+                    }
+                    if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() {
+                        upcomingDoubledSparseLayer = true
+                    }
+                    return writeLines(writer, layerPaths)
+                }
+            }
+        } else if palette.TransitionMethod == CustomTower &&
+            strings.HasPrefix(line.Comment, "printing object") {
+            // doubled sparse tower layer
+            if !state.Tower.IsComplete() &&
+                upcomingDoubledSparseLayer &&
+                state.CurrentLayer == state.Tower.CurrentLayerIndex &&
+                !state.Tower.CurrentLayerIsDense() {
+                if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
+                    return err
+                }
+                layerPaths, err := state.Tower.GetNextSegment(&state, false)
+                if err != nil {
+                    return err
+                }
+                upcomingDoubledSparseLayer = false
+                if err := writeLines(writer, layerPaths); err != nil {
+                    return err
                 }
             }
             return writeLine(writer, line.Raw)
