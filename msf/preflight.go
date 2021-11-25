@@ -310,6 +310,11 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             }
         }
     }
+    if palette.ZOffset != 0 {
+        for i := range results.layerTopZs {
+            results.layerTopZs[i] += palette.ZOffset
+        }
+    }
 
     if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
         results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)

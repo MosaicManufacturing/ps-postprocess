@@ -72,6 +72,7 @@ type Palette struct {
     RetractFeedrate []float32 `json:"retractFeedrate"` // mm/min
     RestartFeedrate []float32 `json:"restartFeedrate"` // mm/min
     ZLift []float32 `json:"zLift"` // mm
+    ZOffset float32 `json:"zOffset"` // mm
 
     // side transition scripting
     PreSideTransitionSequence string `json:"preSideTransitionSequence"`
