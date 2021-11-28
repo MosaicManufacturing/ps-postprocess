@@ -1,10 +1,10 @@
 package ptp
 
 import (
-    "../gcode"
     "errors"
     "log"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strconv"
     "strings"
 )

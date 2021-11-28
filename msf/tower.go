@@ -1,10 +1,10 @@
 package msf
 
 import (
-    "../gcode"
     "errors"
     "fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type TowerLayer struct {

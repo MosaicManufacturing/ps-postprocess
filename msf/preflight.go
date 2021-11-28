@@ -1,8 +1,8 @@
 package msf
 
 import (
-    "../gcode"
     "fmt"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strconv"
     "strings"
 )

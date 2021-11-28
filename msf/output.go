@@ -1,13 +1,13 @@
 package msf
 
 import (
-    "../gcode"
-    "../sequences"
     "bufio"
     "errors"
     "fmt"
     "io/ioutil"
     "log"
+    "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/sequences"
     "os"
     "strings"
 )

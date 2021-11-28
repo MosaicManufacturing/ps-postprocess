@@ -1,6 +1,6 @@
 package msf
 
-import "../gcode"
+import "mosaicmfg.com/ps-postprocess/gcode"
 
 func resetEAxis(state *State) string {
     if state.E.RelativeExtrusion {

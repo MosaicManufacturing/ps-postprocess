@@ -1,9 +1,9 @@
 package msf
 
 import (
-    "../gcode"
     "fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
 )
 
 func getDwellPause(durationMS int) string {

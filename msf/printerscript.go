@@ -1,8 +1,8 @@
 package msf
 
 import (
-    "../gcode"
-	"../printerscript"
+    "mosaicmfg.com/ps-postprocess/gcode"
+	"mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 func getTimeEstimate(command gcode.Command, state *State) float32 {

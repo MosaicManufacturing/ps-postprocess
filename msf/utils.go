@@ -1,13 +1,13 @@
 package msf
 
 import (
-    "../gcode"
     "bufio"
     "encoding/binary"
     "fmt"
     "io"
     "io/ioutil"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "os"
     "path"
     "strings"

@@ -1,7 +1,7 @@
 package sequences
 
 import (
-    "../gcode"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strings"
 )
 

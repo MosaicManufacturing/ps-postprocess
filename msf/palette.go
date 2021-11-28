@@ -1,11 +1,11 @@
 package msf
 
 import (
-    "../gcode"
-    "../printerscript"
     "encoding/json"
     "io/ioutil"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 type Material struct {

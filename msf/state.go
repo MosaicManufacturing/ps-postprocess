@@ -1,8 +1,8 @@
 package msf
 
 import (
-    "../gcode"
-    "../sequences"
+    "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/sequences"
 )
 
 type State struct {

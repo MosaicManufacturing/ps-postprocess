@@ -1,10 +1,10 @@
 package sequences
 
 import (
-    "../gcode"
-    "../printerscript"
     "bufio"
     "log"
+    "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/printerscript"
     "os"
     "regexp"
     "strconv"

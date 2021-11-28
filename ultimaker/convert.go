@@ -1,9 +1,9 @@
 package ultimaker
 
 import (
-    "../gcode"
     "io"
     "log"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "os"
     "strconv"
 )

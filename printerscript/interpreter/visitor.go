@@ -1,9 +1,9 @@
 package interpreter
 
 import (
-    "../../gcode"
     "fmt"
     "github.com/antlr/antlr4/runtime/Go/antlr"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strconv"
 )
 

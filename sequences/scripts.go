@@ -1,9 +1,9 @@
 package sequences
 
 import (
-    "../printerscript"
     "encoding/json"
     "io/ioutil"
+    "mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 type Scripts struct {
