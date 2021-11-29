@@ -15,7 +15,7 @@ test:
   <<: *golang_common
   stage: test
   script:
-    - run-tests.sh
+    - ./run-tests.sh
 
 build:
   <<: *golang_common
