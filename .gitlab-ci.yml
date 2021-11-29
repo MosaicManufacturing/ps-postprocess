@@ -15,8 +15,7 @@ test:
   <<: *golang_common
   stage: test
   script:
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go test ./...
+    - run-tests.sh
 
 build:
   <<: *golang_common
@@ -26,8 +25,7 @@ build:
       - ps-postprocess
     expire_in: 1 day
   script:
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go build
+    - go build
 
 deploy dev:
   image: napp/docker-aws-cli
