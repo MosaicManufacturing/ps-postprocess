@@ -9,4 +9,5 @@ require (
 )
 
 replace mosaicmfg.com/ps-postprocess/gcode => ../gcode
+
 replace mosaicmfg.com/ps-postprocess/printerscript/interpreter => ./interpreter
