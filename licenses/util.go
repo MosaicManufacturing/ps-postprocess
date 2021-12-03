@@ -14,6 +14,10 @@ func runCommand(name string, arg ...string) (string, error) {
     return out.String(), err
 }
 
+func splitOnNewlines(str string) []string {
+    return strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
+}
+
 func getGitHubRawUrl(normalUrl string) string {
     rawUrl := strings.Replace(normalUrl, "https://github.com", "https://raw.githubusercontent.com", 1)
     rawUrl = strings.Replace(rawUrl, "/blob", "", 1)

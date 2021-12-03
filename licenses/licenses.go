@@ -2,6 +2,7 @@ package main
 
 import (
     "encoding/csv"
+    "errors"
     "fmt"
     "io"
     "log"
@@ -77,6 +78,18 @@ func getAllRepoModules() ([]License, error) {
         if _, exists := licensesMap[license.Name]; !exists {
             licensesMap[license.Name] = license
         }
+    }
+
+    // check all entries against the blacklist before resolving license text
+    blacklistErrors := 0
+    for _, license := range licensesMap {
+        if err := checkBlacklist(license.LicenseId); err != nil {
+            fmt.Println(err)
+            blacklistErrors++
+        }
+    }
+    if blacklistErrors > 0 {
+        return nil, errors.New("failed blacklist check")
     }
 
     // convert licenses map to a slice including text content
