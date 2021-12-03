@@ -14,7 +14,7 @@ func getLicenseJSON() (string, error) {
     if err != nil {
         return "", err
     }
-    jsonBytes, err := json.Marshal(licenses)
+    jsonBytes, err := json.MarshalIndent(licenses, "", "  ")
     if err != nil {
         return "", err
     }
