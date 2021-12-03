@@ -115,8 +115,16 @@ func getAllRepoModules() ([]License, error) {
            return nil, err
        }
 
+       // normalize license name from GitHub URL to repository name
+       licenseName := license.Name
+       if strings.HasPrefix(licenseName, "github.com") {
+           // github.com/<user-or-organization>/<repository>/<...path>
+           nameParts := strings.Split(licenseName, "/")
+           licenseName = nameParts[2]
+       }
+
        licenses = append(licenses, License{
-           Name:        license.Name,
+           Name:        licenseName,
            LicenseId:   license.LicenseId,
            LicenseText: licenseText,
        })
