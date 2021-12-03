@@ -1,3 +1,5 @@
 .idea
 .DS_Store
 ps-postprocess
+licenses/licenses
+licenses/go-licenses
