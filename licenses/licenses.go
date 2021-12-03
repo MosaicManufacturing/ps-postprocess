@@ -11,9 +11,9 @@ import (
 )
 
 type License struct {
-    Name string
-    LicenseId string
-    LicenseText string
+    Name string `json:"name"`
+    LicenseId string `json:"licenseId"`
+    LicenseText string `json:"licenseText"`
 }
 
 type LicenseWithoutText struct {
@@ -65,58 +65,51 @@ func getModuleLicenses(relativePath string) ([]LicenseWithoutText, error) {
 }
 
 func getAllRepoModules() ([]License, error) {
-    // TODO: walk repository and determine all modules, submodules, etc.
-    directories := []string{
-        "..",
-    }
-
     licensesMap := make(map[string]LicenseWithoutText)
 
-    for _, directory := range directories {
-        fmt.Printf("Getting dependencies of %s\n", directory)
-        licenses, err := getModuleLicenses(directory)
-        if err != nil {
-            return nil, err
-        }
-        // add licenses to map where dependency is not already present
-        for _, license := range licenses {
-            if _, exists := licensesMap[license.Name]; !exists {
-                licensesMap[license.Name] = license
-            }
+    moduleLicenses, err := getModuleLicenses("..")
+    if err != nil {
+        fmt.Println(err)
+        return nil, err
+    }
+    // add licenses to map where dependency is not already present
+    for _, license := range moduleLicenses {
+        if _, exists := licensesMap[license.Name]; !exists {
+            licensesMap[license.Name] = license
         }
     }
 
-    // convert licenses map to licenses slice including text content
+    // convert licenses map to a slice including text content
     licenses := make([]License, 0, len(licensesMap))
     for _, license := range licensesMap {
-        licenseUrl := license.LicenseUrl
-        if strings.HasPrefix(licenseUrl, "https://github.com") {
-            licenseUrl = getGitHubRawUrl(licenseUrl)
-        }
+       licenseUrl := license.LicenseUrl
+       if strings.HasPrefix(licenseUrl, "https://github.com") {
+           licenseUrl = getGitHubRawUrl(licenseUrl)
+       }
 
-        // retrieve license text from URL
-        resp, err := http.Get(licenseUrl)
-        if err != nil {
-            return nil, err
-        }
-        bodyBytes, err := io.ReadAll(resp.Body)
-        if err != nil {
-            return nil, err
-        }
-        licenseText := string(bodyBytes)
-        if err := resp.Body.Close(); err != nil {
-            return nil, err
-        }
+       // retrieve license text from URL
+       resp, err := http.Get(licenseUrl)
+       if err != nil {
+           return nil, err
+       }
+       bodyBytes, err := io.ReadAll(resp.Body)
+       if err != nil {
+           return nil, err
+       }
+       licenseText := string(bodyBytes)
+       if err := resp.Body.Close(); err != nil {
+           return nil, err
+       }
 
-        licenses = append(licenses, License{
-            Name:        license.Name,
-            LicenseId:   license.LicenseId,
-            LicenseText: licenseText,
-        })
+       licenses = append(licenses, License{
+           Name:        license.Name,
+           LicenseId:   license.LicenseId,
+           LicenseText: licenseText,
+       })
     }
     // sort the slice alphabetically
     sort.Slice(licenses, func(i, j int) bool {
-        return licenses[i].Name < licenses[j].Name
+       return licenses[i].Name < licenses[j].Name
     })
 
     return licenses, nil
