@@ -110,7 +110,7 @@ func getAllRepoModules() ([]License, error) {
        if err != nil {
            return nil, err
        }
-       licenseText := string(bodyBytes)
+       licenseText := normalizeNewlines(string(bodyBytes))
        if err := resp.Body.Close(); err != nil {
            return nil, err
        }

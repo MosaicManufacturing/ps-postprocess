@@ -14,8 +14,12 @@ func runCommand(name string, arg ...string) (string, error) {
     return out.String(), err
 }
 
+func normalizeNewlines(str string) string {
+    return strings.ReplaceAll(strings.ReplaceAll(str, "\r\n", "\n"), "\r", "\n")
+}
+
 func splitOnNewlines(str string) []string {
-    return strings.Split(strings.ReplaceAll(str, "\r\n", "\n"), "\n")
+    return strings.Split(normalizeNewlines(str), "\n")
 }
 
 func getGitHubRawUrl(normalUrl string) string {
