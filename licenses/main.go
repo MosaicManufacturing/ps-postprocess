@@ -39,7 +39,7 @@ func check() {
     fromDiskBytes, err := ioutil.ReadFile(licenseFile)
     fromDisk := string(fromDiskBytes)
     if licenses != fromDisk {
-        log.Fatalln("License bundle is out of date.\nRun `./licensebot-update` and commit the changes.")
+        log.Fatalln("License bundle is out of date.\nRun `./licensebot-update.sh` and commit the changes.")
     }
 }
 

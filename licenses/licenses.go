@@ -14,7 +14,7 @@ import (
 type License struct {
     Name string `json:"name"`
     LicenseId string `json:"licenseId"`
-    LicenseText string `json:"licenseText"`
+    LicenseText string `json:"license"`
 }
 
 type LicenseWithoutText struct {
