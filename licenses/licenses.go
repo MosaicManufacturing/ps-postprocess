@@ -15,6 +15,7 @@ type License struct {
     Name string `json:"name"`
     LicenseId string `json:"licenseId"`
     LicenseText string `json:"license"`
+    SPDX bool `json:"spdx"` // for consistency with JS licensebot
 }
 
 type LicenseWithoutText struct {
