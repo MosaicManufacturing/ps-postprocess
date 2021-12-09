@@ -31,6 +31,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
     locals.Global["totalTime"] = float64(preflightResults.totalTime)
 
     // keep track of current state
+    inStartSequence := false
     replacedSlicedByLine := false
     positionTracker := gcode.PositionTracker{}
     temperatureTracker := gcode.TemperatureTracker{}
@@ -60,6 +61,10 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
             output = generatedByRegexp.ReplaceAllString(line.Raw, "; Sliced by Canvas$1")
             replacedSlicedByLine = true
         } else if line.Raw == startPlaceholder {
+            inStartSequence = true
+            return nil
+        } else if line.Raw == endOfStartPlaceholder {
+            inStartSequence = false
             opts := printerscript.InterpreterOptions{
                 EOL:             EOL,
                 TrailingNewline: false,
@@ -145,6 +150,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
             }
             output = result.Output
             nextMaterialChangeIdx++
+        }
+        if inStartSequence {
+            return nil
         }
         if _, err := writer.WriteString(output + EOL); err != nil {
             return err
