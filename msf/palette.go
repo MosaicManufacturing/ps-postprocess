@@ -67,6 +67,7 @@ type Palette struct {
     RaftInflation float32 `json:"raftInflation"` // mm
     RaftExtrusionWidth float32 `json:"raftExtrusionWidth"` // mm
     RaftStride float32 `json:"raftStride"` // mm
+    UseFirmwareRetraction bool `json:"useFirmwareRetraction"`
     RetractDistance []float32 `json:"retractDistance"` // mm
     RestartDistance []float32 `json:"restartDistance"` // mm
     RetractFeedrate []float32 `json:"retractFeedrate"` // mm/min
@@ -94,10 +95,6 @@ type Palette struct {
     // pings
     PingOffTowerDistance float32 `json:"pingOffTowerDistance"` // mm
     JogPauses bool `json:"jogPauses"`
-    PingRetractDistance float32 `json:"pingRetractDistance"` // mm
-    PingRestartDistance float32 `json:"pingRestartDistance"` // mm
-    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // mm/min
-    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // mm/min
 
     // P2/P3
     ClearBufferCommand string `json:"clearBufferCommand"`

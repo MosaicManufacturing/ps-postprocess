@@ -561,6 +561,8 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     if state.E.CurrentRetraction < 0 {
         // un-retract
         sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRestart()
     }
     return sequence, nil
 }
@@ -573,6 +575,8 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
     if retractDistance != 0 {
         // restore any retraction from before tower was started
         sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRetract()
     }
     sequence += resetEAxis(state)
     if state.Palette.ZLift[state.CurrentTool] > 0 {

@@ -243,7 +243,14 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                     }
                     retractDistance := palette.RetractDistance[state.CurrentTool]
                     retractFeedrate := palette.RetractFeedrate[state.CurrentTool]
-                    if retract := getRetract(&state, retractDistance, retractFeedrate); len(retract) > 0 {
+                    if retractDistance != 0 {
+                        if retract := getRetract(&state, retractDistance, retractFeedrate); len(retract) > 0 {
+                            if err := writeLines(writer, retract); err != nil {
+                                return err
+                            }
+                        }
+                    } else if palette.UseFirmwareRetraction {
+                        retract := getFirmwareRetract()
                         if err := writeLines(writer, retract); err != nil {
                             return err
                         }

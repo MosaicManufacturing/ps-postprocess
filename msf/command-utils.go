@@ -50,6 +50,10 @@ func getRetract(state *State, distance, feedrate float32) string {
     return retract.String() + EOL
 }
 
+func getFirmwareRetract() string {
+    return "G10" + EOL
+}
+
 func getRestart(state *State, distance, feedrate float32) string {
     if distance == 0 {
         return ""
@@ -74,6 +78,10 @@ func getRestart(state *State, distance, feedrate float32) string {
     state.XYZF.TrackInstruction(restart)
     state.E.TrackInstruction(restart)
     return restart.String() + EOL
+}
+
+func getFirmwareRestart() string {
+    return "G11" + EOL
 }
 
 func getZTravel(state *State, toZ float32, comment string) string {

@@ -70,8 +70,11 @@ func getTowerJogPause(durationMS int, state *State) string {
 
 func getTowerPause(durationMS int, state *State) string {
     sequence := ""
-    if state.Palette.PingRetractDistance != 0 {
-        sequence += getRetract(state, state.Palette.PingRetractDistance, state.Palette.PingRetractFeedrate) + EOL
+    if retractDistance := state.Palette.RetractDistance[state.CurrentTool]; retractDistance != 0 {
+        retractFeedrate := state.Palette.RetractFeedrate[state.CurrentTool]
+        sequence += getRetract(state, retractDistance, retractFeedrate)
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRetract()
     }
     currentF := state.XYZF.CurrentFeedrate
     currentX := state.XYZF.CurrentX
@@ -98,8 +101,11 @@ func getTowerPause(durationMS int, state *State) string {
         // move back onto the tower after pausing
         sequence += getXYTravel(state, currentX, currentY, currentF, "")
     }
-    if state.Palette.PingRestartDistance != 0 {
-        sequence += getRestart(state, state.Palette.PingRestartDistance, state.Palette.PingRestartFeedrate) + EOL
+    if restartDistance := state.Palette.RestartDistance[state.CurrentTool]; restartDistance != 0 {
+        restartFeedrate := state.Palette.RestartFeedrate[state.CurrentTool]
+        sequence += getRestart(state, restartDistance, restartFeedrate)
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRestart()
     }
     return sequence
 }

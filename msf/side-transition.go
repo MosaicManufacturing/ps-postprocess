@@ -51,6 +51,8 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
     if state.E.CurrentRetraction < 0 {
         // un-retract
         sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRestart()
     }
 
     return sequence, nil
@@ -80,6 +82,8 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
     if retractDistance != 0 {
         // restore any retraction from before the side transition
         sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRetract()
     }
     sequence += resetEAxis(state)
 
