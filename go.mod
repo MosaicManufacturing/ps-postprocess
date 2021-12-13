@@ -3,13 +3,9 @@ module mosaicmfg.com/ps-postprocess
 go 1.16
 
 require (
-	github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20211128173911-14938591d7dc
 	mosaicmfg.com/ps-postprocess/comments v0.0.0
 	mosaicmfg.com/ps-postprocess/flashforge v0.0.0
-	mosaicmfg.com/ps-postprocess/gcode v0.0.0
 	mosaicmfg.com/ps-postprocess/msf v0.0.0
-	mosaicmfg.com/ps-postprocess/printerscript v0.0.0
-	mosaicmfg.com/ps-postprocess/printerscript/interpreter v0.0.0
 	mosaicmfg.com/ps-postprocess/ptp v0.0.0
 	mosaicmfg.com/ps-postprocess/sequences v0.0.0
 	mosaicmfg.com/ps-postprocess/ultimaker v0.0.0
