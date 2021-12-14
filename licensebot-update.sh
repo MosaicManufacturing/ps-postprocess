@@ -1,3 +1,2 @@
-cd "./licenses" || exit
-go build || exit
-./licenses update
+go install github.com/MosaicManufacturing/licensebot-client-go@latest || exit
+licensebot-client-go update
