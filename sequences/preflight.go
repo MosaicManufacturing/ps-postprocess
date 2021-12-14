@@ -1,7 +1,7 @@
 package sequences
 
 import (
-    "../gcode"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strings"
 )
 
@@ -122,7 +122,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
                 return err
             }
             results.totalTime = int(timeEstimate)
-        } else if line.Raw == startPlaceholder {
+        } else if line.Raw == endOfStartPlaceholder {
             addLookahead(lookaheadStart)
         } else if strings.HasPrefix(line.Raw, layerChangePrefix) {
             addLookahead(lookaheadLayerChange)

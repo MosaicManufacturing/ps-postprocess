@@ -1,10 +1,14 @@
 package msf
 
 import (
-    "../gcode"
+    "fmt"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "strconv"
     "strings"
 )
+
+// round layer thicknesses and top Zs to this many decimal places
+const maxZPrecision = 5
 
 type Transition struct {
     Layer int
@@ -27,10 +31,12 @@ type msfPreflight struct {
     towerBoundingBox gcode.BoundingBox
 
     // used for postprocess-generated towers
-    layerThicknesses []float32
-    layerTopZs []float32
-    transitionsByLayer map[int][]Transition
-    transitions []Transition
+    layerTopZs []float32 // printing height of each layer (i.e. the Z value of the top of these paths)
+    layerThicknesses []float32 // thickness of each layer in mm (i.e. layerTopZs[n] - layerTopZs[n-1])
+    layerObjectStarts []int // number of "printing object" comments per layer
+    layerObjectEnds []int // number of "stop printing object" comments per layer
+    transitionsByLayer map[int][]Transition // array of Transition per layer
+    transitions []Transition // same data as transitionsByLayer but flattened into 1D
 
     // used for side transition custom scripts
     transitionNextPositions []sideTransitionLookahead
@@ -219,15 +225,22 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             state.PastStartSequence = true
         } else if line.Raw == ";LAYER_CHANGE" {
             results.totalLayers++
+            results.layerTopZs = append(results.layerTopZs, 0)
+            results.layerThicknesses = append(results.layerThicknesses, 0)
+            results.layerObjectStarts = append(results.layerObjectStarts, 0)
+            results.layerObjectEnds = append(results.layerObjectEnds, 0)
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";Z:") {
-            if topZ, err := strconv.ParseFloat(line.Raw[3:], 32); err == nil {
-                results.layerTopZs = append(results.layerTopZs, float32(topZ))
+            if topZ, err := strconv.ParseFloat(line.Raw[3:], 64); err == nil {
+                results.layerTopZs[results.totalLayers] = roundTo(float32(topZ), maxZPrecision)
             }
         } else if palette.TransitionMethod == CustomTower &&
             strings.HasPrefix(line.Raw, ";HEIGHT:") {
-            if thickness, err := strconv.ParseFloat(line.Raw[8:], 32); err == nil {
-                results.layerThicknesses = append(results.layerThicknesses, float32(thickness))
+            if thickness, err := strconv.ParseFloat(line.Raw[8:], 64); err == nil {
+                thickness32 := roundTo(float32(thickness), maxZPrecision)
+                if thickness32 > results.layerThicknesses[results.totalLayers] {
+                    results.layerThicknesses[results.totalLayers] = thickness32
+                }
             }
         } else if (palette.TransitionMethod == TransitionTower || palette.InfillTransitioning) &&
             strings.HasPrefix(line.Comment, "TYPE:") {
@@ -258,15 +271,56 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
             }
             results.timeEstimate = timeEstimate
             results.printSummaryStart = lineNumber + 2
+        } else if strings.HasPrefix(line.Comment, "stop printing object ") {
+            results.layerObjectEnds[results.totalLayers]++
+        } else if strings.HasPrefix(line.Comment, "printing object ") {
+            results.layerObjectStarts[results.totalLayers]++
         }
 
         return nil
     })
+    if err != nil {
+        return results, err
+    }
+    results.totalLayers++ // switch from 0-indexing to a true count
+
+    // invariant assertions
+    if palette.TransitionMethod == CustomTower {
+        if layerThicknesses := len(results.layerThicknesses); layerThicknesses != results.totalLayers {
+            return results, fmt.Errorf("invariant violation: expected %d layerThicknesses, got %d", results.totalLayers, layerThicknesses)
+        }
+        if layerTopZs := len(results.layerTopZs); layerTopZs != results.totalLayers {
+            return results, fmt.Errorf("invariant violation: expected %d layerTopZs, got %d", results.totalLayers, layerTopZs)
+        }
+        for i := 0; i < results.totalLayers; i++ {
+            if results.layerThicknesses[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero thickness at layer %d", i)
+            }
+            if results.layerTopZs[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero height at layer %d", i)
+            }
+            if results.layerObjectStarts[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero layer object starts at layer %d", i)
+            }
+            if results.layerObjectEnds[i] == 0 {
+                return results, fmt.Errorf("invariant violation: zero layer object ends at layer %d", i)
+            }
+            if results.layerObjectStarts[i] != results.layerObjectEnds[i] {
+                return results, fmt.Errorf("invariant violation: layer object count mismatch at layer %d", i)
+            }
+        }
+    }
+    if palette.ZOffset != 0 {
+        for i := range results.layerTopZs {
+            results.layerTopZs[i] += palette.ZOffset
+        }
+    }
+
     if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
         results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
     }
     if results.boundingBox.Min[2] > 0 {
         results.boundingBox.Min[2] = 0
     }
-    return results, err
+    return results, nil
 }

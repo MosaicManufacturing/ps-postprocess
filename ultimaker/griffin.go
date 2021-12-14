@@ -1,9 +1,9 @@
 package ultimaker
 
 import (
-    "../gcode"
     "fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "time"
 )
 

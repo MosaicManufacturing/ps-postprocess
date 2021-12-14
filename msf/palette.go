@@ -1,16 +1,17 @@
 package msf
 
 import (
-    "../gcode"
-    "../printerscript"
     "encoding/json"
     "io/ioutil"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 type Material struct {
     ID string `json:"id"`
     Index int `json:"index"`
+    FilamentID int `json:"filamentId"`
     Name string `json:"name"`
     Color string `json:"color"`
 }
@@ -66,11 +67,13 @@ type Palette struct {
     RaftInflation float32 `json:"raftInflation"` // mm
     RaftExtrusionWidth float32 `json:"raftExtrusionWidth"` // mm
     RaftStride float32 `json:"raftStride"` // mm
+    UseFirmwareRetraction bool `json:"useFirmwareRetraction"`
     RetractDistance []float32 `json:"retractDistance"` // mm
     RestartDistance []float32 `json:"restartDistance"` // mm
     RetractFeedrate []float32 `json:"retractFeedrate"` // mm/min
     RestartFeedrate []float32 `json:"restartFeedrate"` // mm/min
     ZLift []float32 `json:"zLift"` // mm
+    ZOffset float32 `json:"zOffset"` // mm
 
     // side transition scripting
     PreSideTransitionSequence string `json:"preSideTransitionSequence"`
@@ -92,12 +95,9 @@ type Palette struct {
     // pings
     PingOffTowerDistance float32 `json:"pingOffTowerDistance"` // mm
     JogPauses bool `json:"jogPauses"`
-    PingRetractDistance float32 `json:"pingRetractDistance"` // mm
-    PingRestartDistance float32 `json:"pingRestartDistance"` // mm
-    PingRetractFeedrate float32 `json:"pingRetractFeedrate"` // mm/min
-    PingRestartFeedrate float32 `json:"pingRestartFeedrate"` // mm/min
 
     // P2/P3
+    ClearBufferCommand string `json:"clearBufferCommand"`
     ConnectedMode bool `json:"connectedMode"`
     PrinterID string `json:"printerId"`
     Filename string `json:"filename"`
@@ -118,6 +118,11 @@ func LoadFromFile(path string) (Palette, error) {
     }
     if err := json.Unmarshal(bytes, &palette); err != nil {
         return palette, err
+    }
+
+    // apply defaults
+    if palette.BowdenTubeLength < BowdenDefault {
+        palette.BowdenTubeLength = BowdenDefault
     }
 
     // lex and parse scripts just once now, and re-use the parse trees when evaluating

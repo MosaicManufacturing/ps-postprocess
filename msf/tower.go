@@ -1,10 +1,10 @@
 package msf
 
 import (
-    "../gcode"
     "errors"
     "fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type TowerLayer struct {
@@ -40,7 +40,7 @@ type Tower struct {
 }
 
 func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
-    totalLayers := preflight.totalLayers + 1
+    totalLayers := preflight.totalLayers
     tower := Tower{
         Palette:     palette,
         BoundingBox: gcode.NewBoundingBox(),
@@ -561,6 +561,8 @@ func (t *Tower) moveToTower(state *State) (string, error) {
     if state.E.CurrentRetraction < 0 {
         // un-retract
         sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRestart()
     }
     return sequence, nil
 }
@@ -573,6 +575,8 @@ func (t *Tower) leaveTower(state *State, retractDistance float32) string {
     if retractDistance != 0 {
         // restore any retraction from before tower was started
         sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRetract()
     }
     sequence += resetEAxis(state)
     if state.Palette.ZLift[state.CurrentTool] > 0 {
@@ -642,11 +646,10 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
     if state.Palette.ConnectedMode {
         if totalExtrusion >= state.NextPingStart {
             // connected pings
-            state.MSF.AddPing(totalExtrusion)
             state.NextPingStart = totalExtrusion + PingMinSpacing
             sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList) + 1, EOL)
             state.MSF.AddPing(totalExtrusion)
-            sequence += "G4 P0" + EOL
+            sequence += state.Palette.ClearBufferCommand + EOL
             sequence += state.MSF.GetConnectedPingLine()
         }
     } else {
@@ -672,7 +675,7 @@ func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
         if t.CurrentLayerCommandIndex + 1 < len(t.CurrentLayerPaths) {
             nextPathExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex + 1].extrusion
             if math.Abs(float64(nextPingEnd + 0.5 - totalExtrusion)) <
-                math.Abs(float64(totalExtrusion + nextPathExtrusion - 0.5)) {
+                math.Abs(float64(totalExtrusion + nextPathExtrusion - nextPingEnd - 0.5)) {
                 // the next path would put us further from PingExtrusion (in absolute value)
                 // than we currently are -- finish the ping now to increase chance of detection
                 finish = true

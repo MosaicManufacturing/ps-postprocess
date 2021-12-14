@@ -1,9 +1,9 @@
 package printerscript
 
 import (
-    "./interpreter"
     "fmt"
     "github.com/antlr/antlr4/runtime/Go/antlr"
+    "mosaicmfg.com/ps-postprocess/printerscript/interpreter"
 )
 
 type TokenStream antlr.CommonTokenStream

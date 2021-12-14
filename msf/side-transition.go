@@ -1,9 +1,9 @@
 package msf
 
 import (
-    "../gcode"
 	"fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
 )
 
 func getSideTransitionStartPosition(state *State) (x, y float32) {
@@ -51,6 +51,8 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
     if state.E.CurrentRetraction < 0 {
         // un-retract
         sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRestart()
     }
 
     return sequence, nil
@@ -80,6 +82,8 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
     if retractDistance != 0 {
         // restore any retraction from before the side transition
         sequence += getRetract(state, retractDistance, state.Palette.RetractFeedrate[state.CurrentTool])
+    } else if state.Palette.UseFirmwareRetraction {
+        sequence += getFirmwareRetract()
     }
     sequence += resetEAxis(state)
 
@@ -99,7 +103,7 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
         state.MSF.AddPing(state.E.TotalExtrusion)
         state.LastPingStart = state.E.TotalExtrusion
         sequence := fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList), EOL)
-        sequence += "G4 P0" + EOL
+        sequence += state.Palette.ClearBufferCommand + EOL
         sequence += state.MSF.GetConnectedPingLine()
         return true, sequence, 0
     }

@@ -11,21 +11,17 @@ stages:
   before_script:
     - env GOOS=linux GOARCH=amd64
 
-test PrinterScript:
+test:
   <<: *golang_common
   stage: test
   script:
-    - cd printerscript
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go test
+    - ./run-tests.sh
 
-test MSF:
+license check:
   <<: *golang_common
   stage: test
   script:
-    - cd msf
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go test
+    - ./licensebot-check.sh
 
 build:
   <<: *golang_common
@@ -35,8 +31,7 @@ build:
       - ps-postprocess
     expire_in: 1 day
   script:
-    - GO111MODULE=off go get github.com/antlr/antlr4/runtime/Go/antlr
-    - GO111MODULE=off go build
+    - go build
 
 deploy dev:
   image: napp/docker-aws-cli

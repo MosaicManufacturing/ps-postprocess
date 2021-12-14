@@ -1,9 +1,9 @@
 package printerscript
 
 import (
-    "./interpreter"
     "fmt"
     "math"
+    "mosaicmfg.com/ps-postprocess/printerscript/interpreter"
     "testing"
 )
 

@@ -1,9 +1,9 @@
 package msf
 
 import (
-    "../sequences"
     "fmt"
     "log"
+    "mosaicmfg.com/ps-postprocess/sequences"
     "os"
 )
 

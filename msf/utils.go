@@ -1,17 +1,23 @@
 package msf
 
 import (
-    "../gcode"
     "bufio"
     "encoding/binary"
     "fmt"
     "io"
     "io/ioutil"
     "math"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "os"
     "path"
     "strings"
 )
+
+func roundTo(value float32, maxDecimalPlaces int) float32 {
+    multiplier := math.Pow(10, float64(maxDecimalPlaces))
+    rounded := math.Round(float64(value) * multiplier) / multiplier
+    return float32(rounded)
+}
 
 func intToHexString(value uint, minHexDigits int) string {
     return fmt.Sprintf("%0*x", minHexDigits, value)

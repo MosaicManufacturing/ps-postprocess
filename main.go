@@ -1,14 +1,14 @@
 package main
 
 import (
-    "./comments"
-    "./flashforge"
-    "./msf"
-    "./ptp"
-    "./sequences"
-    "./ultimaker"
     "fmt"
     "log"
+    "mosaicmfg.com/ps-postprocess/comments"
+    "mosaicmfg.com/ps-postprocess/flashforge"
+    "mosaicmfg.com/ps-postprocess/msf"
+    "mosaicmfg.com/ps-postprocess/ptp"
+    "mosaicmfg.com/ps-postprocess/sequences"
+    "mosaicmfg.com/ps-postprocess/ultimaker"
     "os"
 )
 

@@ -6,6 +6,7 @@ import (
 )
 
 const startPlaceholder = ";*/*/*/*/* START SEQUENCE */*/*/*/*"
+const endOfStartPlaceholder = ";*/*/*/*/* ENDSTART SEQUENCE */*/*/*/*"
 const endPlaceholder = ";*/*/*/*/* END SEQUENCE */*/*/*/*"
 const layerChangePrefix = ";*/*/*/*/* LAYER CHANGE SEQUENCE ("
 const materialChangePrefix = ";*/*/*/*/* MATERIAL CHANGE SEQUENCE ("

@@ -1,10 +1,10 @@
 package flashforge
 
 import (
-    "../gcode"
     "bufio"
     "fmt"
     "log"
+    "mosaicmfg.com/ps-postprocess/gcode"
     "os"
     "strconv"
 )
