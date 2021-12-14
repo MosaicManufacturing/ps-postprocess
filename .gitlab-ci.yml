@@ -17,6 +17,12 @@ test:
   script:
     - ./run-tests.sh
 
+license check:
+  <<: *golang_common
+  stage: test
+  script:
+    - ./licensebot-check.sh
+
 build:
   <<: *golang_common
   stage: build
