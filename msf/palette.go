@@ -72,6 +72,7 @@ type Palette struct {
     RestartDistance []float32 `json:"restartDistance"` // mm
     RetractFeedrate []float32 `json:"retractFeedrate"` // mm/min
     RestartFeedrate []float32 `json:"restartFeedrate"` // mm/min
+    Wipe []bool `json:"wipe"`
     ZLift []float32 `json:"zLift"` // mm
     ZOffset float32 `json:"zOffset"` // mm
 
