@@ -222,7 +222,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         results.transitionsByLayer[results.totalLayers] = []Transition{tInfo}
                     }
                     transitionCount++
-                    lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
+                    // we haven't actually inserted the purge paths yet, so state.E.TotalExtrusion is
+                    // missing purgeLength mm -- account for this by subtracting from last splice length
+                    lastTransitionSpliceLength = spliceLength - purgeLength
                     lastTransitionLayer = results.totalLayers
                     state.CurrentTool = tool
                     if palette.TransitionMethod != CustomTower {
