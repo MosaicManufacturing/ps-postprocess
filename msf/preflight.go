@@ -172,8 +172,11 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
                     // start by subtracting usable infill from splice and purge length
                     usableInfill := float32(0)
-                    if currentInfillStartE >= 0 {
+                    if currentInfillStartE >= 0 && palette.InfillTransitioning {
                         usableInfill = state.E.TotalExtrusion - currentInfillStartE
+                        if usableInfill < 0 {
+                            usableInfill = 0
+                        }
                         purgeLength -= usableInfill
                         spliceLength -= usableInfill
                     }
@@ -194,7 +197,14 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         extra := minSpliceLength - deltaE
                         purgeLength += extra
                         spliceLength += extra
-                        usableInfill -= extra
+                        if palette.InfillTransitioning {
+                            usableInfill -= extra
+                            if usableInfill < 0 {
+                                purgeLength += usableInfill
+                                spliceLength += usableInfill
+                                usableInfill = 0
+                            }
+                        }
                     }
                     tInfo := Transition{
                         Layer:            results.totalLayers,
