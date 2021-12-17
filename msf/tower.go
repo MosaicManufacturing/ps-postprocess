@@ -709,9 +709,9 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     if t.CurrentLayerIndex == 0 && t.CurrentLayerTransitionIndex == 0 {
         requiredPurge += t.BrimExtrusion
     }
-    // if this layer is denser than expected, distribute the extra extrusion
-    // equally between transitions on this layer
-    if t.CurrentLayerIsDense() {
+    // if this layer has more extrusion than expected, distribute the extra
+    // amount equally between transitions on this layer
+    {
         transitionCount := 0
         totalRequiredPurge := float32(0)
         for _, transition := range t.Layers[t.CurrentLayerIndex].Transitions {
