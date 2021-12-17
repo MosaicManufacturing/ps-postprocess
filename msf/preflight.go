@@ -169,7 +169,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     transitionLength := palette.GetTransitionLength(tool, state.CurrentTool)
                     spliceOffset := transitionLength * (palette.TransitionTarget / 100)
                     purgeLength := transitionLength
-                    spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
+                    spliceLength := state.E.TotalExtrusion + spliceOffset
                     // start by subtracting usable infill from splice and purge length
                     usableInfill := float32(0)
                     if currentInfillStartE >= 0 && palette.InfillTransitioning {
