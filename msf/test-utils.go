@@ -172,8 +172,8 @@ func testTowerPreflight(t *testing.T, palette *Palette, printContent string, exp
     if err != nil {
         t.Fatal(err)
     }
-    if len(results.transitions) != 3 {
-        t.Fatalf("expected %d transitions, got %d", 3, len(results.transitions))
+    if len(results.transitions) != len(expectedTransitions) {
+        t.Fatalf("expected %d transitions, got %d", len(expectedTransitions), len(results.transitions))
     }
 
     for idx, transition := range results.transitions {

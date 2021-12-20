@@ -146,6 +146,21 @@ T2
 G1 E10 F2400 ; will need extra transition
 G92 E0
 T1
+G1 E10 F2400 ; will need extra transition
+G92 E0
+T2
+G1 E10 F2400 ; will need extra transition
+G92 E0
+T1
+G1 E10 F2400 ; will need extra transition
+G92 E0
+T2
+G1 E10 F2400 ; will need extra transition
+G92 E0
+T1
+G1 E10 F2400 ; will need extra transition
+G92 E0
+T2
 G1 E50 F2400
 ; stop printing object model id:0 copy 0
 `
@@ -173,6 +188,51 @@ G1 E50 F2400
             From:             2,
             To:               1,
             TotalExtrusion:   290,
+            TransitionLength: 30,
+            PurgeLength:      70,
+            UsableInfill:     0,
+        },
+        {
+            Layer:            0,
+            From:             1,
+            To:               2,
+            TotalExtrusion:   300,
+            TransitionLength: 30,
+            PurgeLength:      70,
+            UsableInfill:     0,
+        },
+        {
+            Layer:            0,
+            From:             2,
+            To:               1,
+            TotalExtrusion:   310,
+            TransitionLength: 30,
+            PurgeLength:      70,
+            UsableInfill:     0,
+        },
+        {
+            Layer:            0,
+            From:             1,
+            To:               2,
+            TotalExtrusion:   320,
+            TransitionLength: 30,
+            PurgeLength:      70,
+            UsableInfill:     0,
+        },
+        {
+            Layer:            0,
+            From:             2,
+            To:               1,
+            TotalExtrusion:   330,
+            TransitionLength: 30,
+            PurgeLength:      70,
+            UsableInfill:     0,
+        },
+        {
+            Layer:            0,
+            From:             1,
+            To:               2,
+            TotalExtrusion:   340,
             TransitionLength: 30,
             PurgeLength:      70,
             UsableInfill:     0,
