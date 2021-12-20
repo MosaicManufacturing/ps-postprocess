@@ -20,6 +20,19 @@ type Transition struct {
     UsableInfill float32 // subtract this amount from the splice length
 }
 
+func (t Transition) String() string {
+    return fmt.Sprintf(
+        "Layer = %d, From = %d, To = %d, TotalExtrusion = %f, TransitionLength = %f, PurgeLength = %f, UsableInfill = %f",
+        t.Layer,
+        t.From,
+        t.To,
+        t.TotalExtrusion,
+        t.TransitionLength,
+        t.PurgeLength,
+        t.UsableInfill,
+    )
+}
+
 type msfPreflight struct {
     // always used
     drivesUsed []bool

@@ -15,7 +15,13 @@ type TowerLayer struct {
 }
 
 func (l TowerLayer) String() string {
-    return fmt.Sprintf("TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d", l.TopZ, l.Thickness, l.Density * 100, len(l.Transitions))
+    return fmt.Sprintf(
+        "TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d",
+        l.TopZ,
+        l.Thickness,
+        l.Density * 100,
+        len(l.Transitions),
+    )
 }
 
 type AnnotatedCommand struct {
