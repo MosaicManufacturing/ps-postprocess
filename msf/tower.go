@@ -39,7 +39,7 @@ type Tower struct {
 
     // for use during output
     CurrentLayerPaths []AnnotatedCommand // feedrates, raw strings, real E values not included yet
-    CurrentLayerIndex int // total transitions on this layer
+    CurrentLayerIndex int // index into Layers
     CurrentLayerTransitionIndex int // current transition on this layer
     CurrentLayerCommandIndex int // index into CurrentLayerPaths
     CurrentLayerExtrusion float32 // sum of extrusions in CurrentLayerPaths
