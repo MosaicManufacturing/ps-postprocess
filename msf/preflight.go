@@ -61,7 +61,7 @@ type sideTransitionLookahead struct {
     Moved bool
 }
 
-func preflight(inpath string, palette *Palette) (msfPreflight, error) {
+func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
     results := msfPreflight{
         drivesUsed:        make([]bool, palette.GetInputCount()),
         pingStarts:        make([]float32, 0),
@@ -87,7 +87,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     // calculate available infill per transition
     currentInfillStartE := float32(-1) // < 0 indicates not to use this value
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
+    err := readerFn(func(line gcode.Command, lineNumber int) error {
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
@@ -335,4 +335,11 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         results.boundingBox.Min[2] = 0
     }
     return results, nil
+}
+
+func preflight(inpath string, palette *Palette) (msfPreflight, error) {
+    readerFn := func(callback gcode.LineCallback) error {
+        return gcode.ReadByLine(inpath, callback)
+    }
+    return _preflight(readerFn, palette)
 }
