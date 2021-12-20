@@ -711,7 +711,7 @@ func (t *Tower) checkTowerPingActions(state *State, segmentExtrusionSoFar, total
 
 func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
-    requiredPurge := transitionInfo.PurgeLength
+    requiredPurge := transitionInfo.PurgeLength - transitionInfo.UsableInfill
     if t.CurrentLayerIndex == 0 && t.CurrentLayerTransitionIndex == 0 {
         requiredPurge += t.BrimExtrusion
     }
@@ -729,6 +729,10 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
             requiredPurge += extra / float32(transitionCount)
         }
     }
+    // very important! for large towers, each E command can contain a few mm of extrusion,
+    // and if we're too strict here then the last transition on the layer may have far too
+    // little extrusion available to ensure minimum piece length requirements are upheld
+    requiredPurge -= 5
     totalPurge := float32(0)
 
     printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
