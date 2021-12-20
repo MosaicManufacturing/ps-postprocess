@@ -1,7 +1,10 @@
 package msf
 
 import (
+    "bufio"
+    "io/ioutil"
     "mosaicmfg.com/ps-postprocess/gcode"
+    "mosaicmfg.com/ps-postprocess/sequences"
     "testing"
 )
 
@@ -155,7 +158,7 @@ func assertTransitionValuesMatch(t *testing.T, idx int, expected, actual Transit
     }
 }
 
-func testTowerPreflight(t *testing.T, palette *Palette, printContent string, expectedTransitions []Transition) {
+func testTowerPreflight(t *testing.T, palette *Palette, printContent string, expectedTransitions []Transition) msfPreflight {
     gcodeLines := gcode.ParseLines(printContent)
     readerFn := func(callback gcode.LineCallback) error {
         for lineNumber, line := range gcodeLines {
@@ -175,5 +178,26 @@ func testTowerPreflight(t *testing.T, palette *Palette, printContent string, exp
 
     for idx, transition := range results.transitions {
         assertTransitionValuesMatch(t, idx, transition, expectedTransitions[idx])
+    }
+
+    return results
+}
+
+func testTowerOutput(t *testing.T, palette *Palette, printContent string, preflight *msfPreflight, locals sequences.Locals) {
+    writer := bufio.NewWriter(ioutil.Discard)
+
+    gcodeLines := gcode.ParseLines(printContent)
+    readerFn := func(callback gcode.LineCallback) error {
+        for lineNumber, line := range gcodeLines {
+            if err := callback(line, lineNumber); err != nil {
+                return err
+            }
+        }
+        return nil
+    }
+    msfOut := NewMSF(palette)
+    err := _paletteOutput(readerFn, writer, msfOut, palette, preflight, locals)
+    if err != nil {
+        t.Fatal(err)
     }
 }
