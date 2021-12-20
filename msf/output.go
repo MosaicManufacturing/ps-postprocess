@@ -212,11 +212,11 @@ func _paletteOutput(
                         }
                         currentTransition := state.Tower.GetCurrentTransitionInfo()
                         spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
-                        //preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
-                        //if preTransitionAdd < 0 {
-                        //    preTransitionAdd = 0
-                        //}
-                        //spliceOffset += preTransitionAdd
+                        preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
+                        if preTransitionAdd < 0 {
+                           preTransitionAdd = 0
+                        }
+                        spliceOffset += preTransitionAdd
                         spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
                         if len(msfOut.SpliceList) == 0 {
                             spliceLength += state.Tower.BrimExtrusion
