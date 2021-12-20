@@ -212,6 +212,9 @@ func _paletteOutput(
                         }
                         currentTransition := state.Tower.GetCurrentTransitionInfo()
                         spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+                        // if purge length is more than transition length, the extra purge is there
+                        // to ensure minimum piece lengths are maintained, so the difference between
+                        // the two should be included on the end of the previous tool's splice
                         preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
                         if preTransitionAdd < 0 {
                            preTransitionAdd = 0
