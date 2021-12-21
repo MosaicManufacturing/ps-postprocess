@@ -197,7 +197,7 @@ func testTowerOutput(t *testing.T, palette *Palette, printContent string, prefli
         return nil
     }
     msfOut := NewMSF(palette)
-    err := _paletteOutput(readerFn, writer, msfOut, palette, preflight, locals)
+    err := _paletteOutput(readerFn, writer, &msfOut, palette, preflight, locals)
     if err != nil {
         t.Fatal(err)
     }

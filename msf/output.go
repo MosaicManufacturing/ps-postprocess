@@ -15,14 +15,14 @@ import (
 func _paletteOutput(
     readerFn func(callback gcode.LineCallback) error,
     writer *bufio.Writer,
-    msfOut MSF,
+    msfOut *MSF,
     palette *Palette,
     preflight *msfPreflight,
     locals sequences.Locals,
 ) error {
     // initialize state
     state := NewState(palette)
-    state.MSF = &msfOut
+    state.MSF = msfOut
     state.TowerBoundingBox = preflight.towerBoundingBox
     for _, position := range preflight.transitionNextPositions {
         state.TransitionNextPositions = append(state.TransitionNextPositions, [3]float32{
@@ -101,7 +101,7 @@ func _paletteOutput(
             }
             didFinalSplice = true // make sure not to do this again at EOF
             // insert our (more accurate) print summary
-            summary := getPrintSummary(&msfOut, state.TimeEstimate)
+            summary := getPrintSummary(msfOut, state.TimeEstimate)
             if err := writeLines(writer, summary); err != nil {
                 return err
             }
@@ -371,7 +371,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         return gcode.ReadByLine(inpath, callback)
     }
 
-    err := _paletteOutput(readerFn, writer, msfOut, palette, preflight, locals)
+    err := _paletteOutput(readerFn, writer, &msfOut, palette, preflight, locals)
     if err != nil {
         return err
     }
