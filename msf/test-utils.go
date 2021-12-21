@@ -5,6 +5,7 @@ import (
     "io/ioutil"
     "mosaicmfg.com/ps-postprocess/gcode"
     "mosaicmfg.com/ps-postprocess/sequences"
+    "path"
     "testing"
 )
 
@@ -200,4 +201,29 @@ func testTowerOutput(t *testing.T, palette *Palette, printContent string, prefli
     if err != nil {
         t.Fatal(err)
     }
+}
+
+func testWithInputFiles(t *testing.T, folderName string) {
+    printPath := path.Join("test-files", folderName, "print.gcode")
+    palettePath := path.Join("test-files", folderName, "palette.json")
+    localsPath := path.Join("test-files", folderName, "locals.json")
+    perExtruderLocalsPath := path.Join("test-files", folderName, "perExtruderLocals.json")
+
+    palette, err := LoadPaletteFromFile(palettePath)
+    if err != nil {
+        t.Fatal(err)
+    }
+    preflightResults, err := preflight(printPath, &palette)
+    if err != nil {
+        t.Fatal(err)
+    }
+    printContent, err := ioutil.ReadFile(printPath)
+    locals := sequences.NewLocals()
+    if err = locals.LoadGlobal(localsPath); err != nil {
+        t.Fatal(err)
+    }
+    if err = locals.LoadPerExtruder(perExtruderLocalsPath); err != nil {
+        t.Fatal(err)
+    }
+    testTowerOutput(t, &palette, string(printContent), &preflightResults, locals)
 }

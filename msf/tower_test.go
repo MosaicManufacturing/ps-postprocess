@@ -299,6 +299,23 @@ G1 E50 F2400
     testTowerOutput(t, &palette, printContent, &preflightResults, sequences.NewLocals())
 }
 
+func Test_4ColorTowerShortTransitions(t *testing.T) {
+    testWithInputFiles(t, "1")
+}
+
+func Test_4ColorTowerShortTransitionsWithInfill(t *testing.T) {
+    testWithInputFiles(t, "2")
+}
+
+func Test_8ColorTowerShortTransitions(t *testing.T) {
+    testWithInputFiles(t, "3")
+}
+
+func Test_8ColorTowerShortTransitionsWithInfill(t *testing.T) {
+    testWithInputFiles(t, "4")
+}
+
+
 // TODO: add tests for the following cases (including combinations):
 //   - first piece length handling (auto-brims)
 //   - inclusion of sparse layers
