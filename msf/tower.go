@@ -716,6 +716,23 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
         requiredPurge += t.BrimExtrusion
     }
 
+    // if this layer has more extrusion than expected, distribute the extra
+    // amount equally between transitions on this layer
+    {
+        totalRequiredPurge := float32(0)
+        for _, transition := range t.Layers[t.CurrentLayerIndex].Transitions {
+            totalRequiredPurge += transition.PurgeLength
+        }
+        if t.CurrentLayerIndex == 0 && t.BrimExtrusion > 0 {
+            totalRequiredPurge += t.BrimExtrusion
+        }
+        extra := t.CurrentLayerExtrusion - totalRequiredPurge
+        if extra > 0 {
+            transitionCount := len(t.Layers[t.CurrentLayerIndex].Transitions)
+            requiredPurge += extra / float32(transitionCount)
+        }
+    }
+
     // very important! for large towers, each E command can contain a few mm of extrusion,
     // and if we're too strict here then the last transition on the layer may have far too
     // little extrusion available to ensure minimum piece length requirements are upheld
