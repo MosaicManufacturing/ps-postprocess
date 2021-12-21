@@ -202,12 +202,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
                         sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
                         deltaE += sparseLayerExtrusionEstimate
                     }
-                    minSpliceLength := MinSpliceLength
-                    if transitionCount == 0 {
-                        minSpliceLength = palette.GetFirstSpliceMinLength()
-                    }
-                    if deltaE < minSpliceLength {
-                        extra := minSpliceLength - deltaE
+                    if deltaE < MinSpliceLength {
+                        extra := MinSpliceLength - deltaE
                         purgeLength += extra
                         spliceLength += extra
                         if palette.InfillTransitioning {
