@@ -209,8 +209,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
                         if palette.InfillTransitioning {
                             usableInfill -= extra
                             if usableInfill < 0 {
-                                purgeLength += usableInfill
-                                spliceLength += usableInfill
+                                purgeLength -= usableInfill
+                                spliceLength -= usableInfill
                                 usableInfill = 0
                             }
                         }
