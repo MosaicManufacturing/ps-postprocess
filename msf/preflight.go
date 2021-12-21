@@ -20,6 +20,19 @@ type Transition struct {
     UsableInfill float32 // subtract this amount from the splice length
 }
 
+func (t Transition) String() string {
+    return fmt.Sprintf(
+        "Layer = %d, From = %d, To = %d, TotalExtrusion = %f, TransitionLength = %f, PurgeLength = %f, UsableInfill = %f",
+        t.Layer,
+        t.From,
+        t.To,
+        t.TotalExtrusion,
+        t.TransitionLength,
+        t.PurgeLength,
+        t.UsableInfill,
+    )
+}
+
 type msfPreflight struct {
     // always used
     drivesUsed []bool
@@ -61,7 +74,7 @@ type sideTransitionLookahead struct {
     Moved bool
 }
 
-func preflight(inpath string, palette *Palette) (msfPreflight, error) {
+func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
     results := msfPreflight{
         drivesUsed:        make([]bool, palette.GetInputCount()),
         pingStarts:        make([]float32, 0),
@@ -87,7 +100,7 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
     // calculate available infill per transition
     currentInfillStartE := float32(-1) // < 0 indicates not to use this value
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
+    err := readerFn(func(line gcode.Command, lineNumber int) error {
         state.E.TrackInstruction(line)
         state.XYZF.TrackInstruction(line)
         if line.IsLinearMove() {
@@ -169,11 +182,14 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                     transitionLength := palette.GetTransitionLength(tool, state.CurrentTool)
                     spliceOffset := transitionLength * (palette.TransitionTarget / 100)
                     purgeLength := transitionLength
-                    spliceLength := state.E.TotalExtrusion + (transitionLength * spliceOffset)
+                    spliceLength := state.E.TotalExtrusion + spliceOffset
                     // start by subtracting usable infill from splice and purge length
                     usableInfill := float32(0)
-                    if currentInfillStartE >= 0 {
+                    if currentInfillStartE >= 0 && palette.InfillTransitioning {
                         usableInfill = state.E.TotalExtrusion - currentInfillStartE
+                        if usableInfill < 0 {
+                            usableInfill = 0
+                        }
                         purgeLength -= usableInfill
                         spliceLength -= usableInfill
                     }
@@ -186,15 +202,18 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
                         deltaE += sparseLayerExtrusionEstimate
                     }
-                    minSpliceLength := MinSpliceLength
-                    if transitionCount == 0 {
-                        minSpliceLength = palette.GetFirstSpliceMinLength()
-                    }
-                    if deltaE < minSpliceLength {
-                        extra := minSpliceLength - deltaE
+                    if deltaE < MinSpliceLength {
+                        extra := MinSpliceLength - deltaE
                         purgeLength += extra
                         spliceLength += extra
-                        usableInfill -= extra
+                        if palette.InfillTransitioning {
+                            usableInfill -= extra
+                            if usableInfill < 0 {
+                                purgeLength -= usableInfill
+                                spliceLength -= usableInfill
+                                usableInfill = 0
+                            }
+                        }
                     }
                     tInfo := Transition{
                         Layer:            results.totalLayers,
@@ -212,7 +231,9 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
                         results.transitionsByLayer[results.totalLayers] = []Transition{tInfo}
                     }
                     transitionCount++
-                    lastTransitionSpliceLength = spliceLength - purgeLength // we haven't generated the purges yet
+                    // we haven't actually inserted the purge paths yet, so state.E.TotalExtrusion is
+                    // missing purgeLength mm -- account for this by subtracting from last splice length
+                    lastTransitionSpliceLength = spliceLength - purgeLength
                     lastTransitionLayer = results.totalLayers
                     state.CurrentTool = tool
                     if palette.TransitionMethod != CustomTower {
@@ -323,4 +344,11 @@ func preflight(inpath string, palette *Palette) (msfPreflight, error) {
         results.boundingBox.Min[2] = 0
     }
     return results, nil
+}
+
+func preflight(inpath string, palette *Palette) (msfPreflight, error) {
+    readerFn := func(callback gcode.LineCallback) error {
+        return gcode.ReadByLine(inpath, callback)
+    }
+    return _preflight(readerFn, palette)
 }

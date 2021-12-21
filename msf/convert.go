@@ -27,7 +27,7 @@ func ConvertForPalette(argv []string) {
     localsPath := argv[4] // JSON-stringified locals
     perExtruderLocalsPath := argv[5] // JSON-stringified locals
 
-    palette, err := LoadFromFile(palettepath)
+    palette, err := LoadPaletteFromFile(palettepath)
     if err != nil {
         log.Fatalln(err)
     }

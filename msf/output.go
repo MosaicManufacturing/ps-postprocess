@@ -12,14 +12,14 @@ import (
     "strings"
 )
 
-func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight, locals sequences.Locals) error {
-    outfile, createErr := os.Create(outpath)
-    if createErr != nil {
-        return createErr
-    }
-    writer := bufio.NewWriter(outfile)
-    msfOut := NewMSF(palette)
-
+func _paletteOutput(
+    readerFn func(callback gcode.LineCallback) error,
+    writer *bufio.Writer,
+    msfOut MSF,
+    palette *Palette,
+    preflight *msfPreflight,
+    locals sequences.Locals,
+) error {
     // initialize state
     state := NewState(palette)
     state.MSF = &msfOut
@@ -94,7 +94,7 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
         return writeLines(writer, layerPaths)
     }
 
-    err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNumber int) error {
+    err := readerFn(func(line gcode.Command, lineNumber int) error {
         if lineNumber == preflight.printSummaryStart {
             if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
                 return err
@@ -212,6 +212,14 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
                         }
                         currentTransition := state.Tower.GetCurrentTransitionInfo()
                         spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+                        // if purge length is more than transition length, the extra purge is there
+                        // to ensure minimum piece lengths are maintained, so the difference between
+                        // the two should be included on the end of the previous tool's splice
+                        preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
+                        if preTransitionAdd < 0 {
+                           preTransitionAdd = 0
+                        }
+                        spliceOffset += preTransitionAdd
                         spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
                         if len(msfOut.SpliceList) == 0 {
                             spliceLength += state.Tower.BrimExtrusion
@@ -347,6 +355,27 @@ func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight 
             return err
         }
     }
+
+    return nil
+}
+
+func paletteOutput(inpath, outpath, msfpath string, palette *Palette, preflight *msfPreflight, locals sequences.Locals) error {
+    outfile, createErr := os.Create(outpath)
+    if createErr != nil {
+        return createErr
+    }
+    writer := bufio.NewWriter(outfile)
+    msfOut := NewMSF(palette)
+
+    readerFn := func(callback gcode.LineCallback) error {
+        return gcode.ReadByLine(inpath, callback)
+    }
+
+    err := _paletteOutput(readerFn, writer, msfOut, palette, preflight, locals)
+    if err != nil {
+        return err
+    }
+
     // finalize outfile now
     if err := writer.Flush(); err != nil {
         return err

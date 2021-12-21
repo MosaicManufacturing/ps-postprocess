@@ -109,7 +109,7 @@ type Palette struct {
     CalibrationLength float32 `json:"calibrationLength"` // mm
 }
 
-func LoadFromFile(path string) (Palette, error) {
+func LoadPaletteFromFile(path string) (Palette, error) {
     palette := Palette{
         BowdenTubeLength: BowdenDefault,
     }
