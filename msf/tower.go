@@ -15,7 +15,13 @@ type TowerLayer struct {
 }
 
 func (l TowerLayer) String() string {
-    return fmt.Sprintf("TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d", l.TopZ, l.Thickness, l.Density * 100, len(l.Transitions))
+    return fmt.Sprintf(
+        "TopZ = %.2f mm, Thickness = %.2f mm, Density = %.1f%%, Transitions = %d",
+        l.TopZ,
+        l.Thickness,
+        l.Density * 100,
+        len(l.Transitions),
+    )
 }
 
 type AnnotatedCommand struct {
@@ -33,7 +39,7 @@ type Tower struct {
 
     // for use during output
     CurrentLayerPaths []AnnotatedCommand // feedrates, raw strings, real E values not included yet
-    CurrentLayerIndex int // total transitions on this layer
+    CurrentLayerIndex int // index into Layers
     CurrentLayerTransitionIndex int // current transition on this layer
     CurrentLayerCommandIndex int // index into CurrentLayerPaths
     CurrentLayerExtrusion float32 // sum of extrusions in CurrentLayerPaths
@@ -705,24 +711,32 @@ func (t *Tower) checkTowerPingActions(state *State, segmentExtrusionSoFar, total
 
 func (t *Tower) getNextDenseSegmentPaths(state *State) string {
     transitionInfo := t.GetCurrentTransitionInfo()
-    requiredPurge := transitionInfo.PurgeLength
+    requiredPurge := transitionInfo.PurgeLength - transitionInfo.UsableInfill
     if t.CurrentLayerIndex == 0 && t.CurrentLayerTransitionIndex == 0 {
         requiredPurge += t.BrimExtrusion
     }
-    // if this layer is denser than expected, distribute the extra extrusion
-    // equally between transitions on this layer
-    if t.CurrentLayerIsDense() {
-        transitionCount := 0
+
+    // if this layer has more extrusion than expected, distribute the extra
+    // amount equally between transitions on this layer
+    {
         totalRequiredPurge := float32(0)
         for _, transition := range t.Layers[t.CurrentLayerIndex].Transitions {
-            transitionCount++
             totalRequiredPurge += transition.PurgeLength
         }
-        if t.CurrentLayerExtrusion > totalRequiredPurge {
-            extra := t.CurrentLayerExtrusion - totalRequiredPurge
+        if t.CurrentLayerIndex == 0 && t.BrimExtrusion > 0 {
+            totalRequiredPurge += t.BrimExtrusion
+        }
+        extra := t.CurrentLayerExtrusion - totalRequiredPurge
+        if extra > 0 {
+            transitionCount := len(t.Layers[t.CurrentLayerIndex].Transitions)
             requiredPurge += extra / float32(transitionCount)
         }
     }
+
+    // very important! for large towers, each E command can contain a few mm of extrusion,
+    // and if we're too strict here then the last transition on the layer may have far too
+    // little extrusion available to ensure minimum piece length requirements are upheld
+    requiredPurge -= 5
     totalPurge := float32(0)
 
     printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
