@@ -66,7 +66,7 @@ func ConvertCommands(argv []string) {
     }
     inpath := argv[0]
     outpath := argv[1]
-    printExtruder, err := strconv.ParseInt(argv[1], 10, 32)
+    printExtruder, err := strconv.ParseInt(argv[2], 10, 32)
     if err != nil {
         log.Fatalln(err)
     }
