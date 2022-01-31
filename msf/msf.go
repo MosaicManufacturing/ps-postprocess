@@ -361,12 +361,16 @@ func (msf *MSF) createMSF2() string {
     // materials used
     str += "O25"
     for drive := 0; drive < numInputs; drive++ {
-        material := msf.Palette.MaterialMeta[drive]
         str += " D"
-        str += intToHexString(uint(material.Index), 1)
-        if material.Index > 0 {
-            str += material.Color
-            str += replaceSpaces(truncate(material.Name, charLimitMSF2))
+        if msf.DrivesUsed[drive] {
+            material := msf.Palette.MaterialMeta[drive]
+            str += intToHexString(uint(material.Index), 1)
+            if material.Index > 0 {
+                str += material.Color
+                str += replaceSpaces(truncate(material.Name, charLimitMSF2))
+            }
+        } else {
+            str += "0"
         }
     }
     str += EOL
