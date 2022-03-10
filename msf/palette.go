@@ -152,6 +152,10 @@ func LoadPaletteFromFile(path string) (Palette, error) {
     return palette, nil
 }
 
+func (p Palette) SupportsPings() bool {
+    return p.Type != TypeElement
+}
+
 func (p Palette) GetInputCount() int {
     if p.Type == TypeP3 && p.Model == ModelP3Pro {
         return 8
@@ -217,6 +221,9 @@ func (p Palette) GetPulsesPerMM() float32 {
 }
 
 func (p Palette) GetPingExtrusion() float32 {
+    if !p.SupportsPings() {
+        return 0
+    }
     if p.Type == TypeP1 {
         return PingExtrusionCounts / p.GetPulsesPerMM()
     }

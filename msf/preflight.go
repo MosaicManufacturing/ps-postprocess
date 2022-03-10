@@ -150,25 +150,27 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
                         }
                     }
                 }
-                // check for ping actions
-                if state.CurrentlyPinging {
-                    // currentlyPinging == true implies accessory mode
-                    if state.E.TotalExtrusion >= state.CurrentPingStart + state.PingExtrusion {
-                        // commit to the accessory ping sequence
-                        results.pingStarts = append(results.pingStarts, state.CurrentPingStart)
-                        state.LastPingStart = state.CurrentPingStart
-                        state.CurrentlyPinging = false
-                    }
-                } else if state.E.TotalExtrusion >= state.LastPingStart + PingMinSpacing {
-                    // attempt to start a ping sequence
-                    //  - connected pings: guaranteed to finish
-                    //  - accessory pings: may be "cancelled" if near the end of the transition
-                    if palette.ConnectedMode {
-                        results.pingStarts = append(results.pingStarts, state.E.TotalExtrusion)
-                        state.LastPingStart = state.E.TotalExtrusion
-                    } else {
-                        state.CurrentPingStart = state.E.TotalExtrusion
-                        state.CurrentlyPinging = true
+                if palette.SupportsPings() {
+                    // check for ping actions
+                    if state.CurrentlyPinging {
+                        // currentlyPinging == true implies accessory mode
+                        if state.E.TotalExtrusion >= state.CurrentPingStart + state.PingExtrusion {
+                            // commit to the accessory ping sequence
+                            results.pingStarts = append(results.pingStarts, state.CurrentPingStart)
+                            state.LastPingStart = state.CurrentPingStart
+                            state.CurrentlyPinging = false
+                        }
+                    } else if state.E.TotalExtrusion >= state.LastPingStart + PingMinSpacing {
+                        // attempt to start a ping sequence
+                        //  - connected pings: guaranteed to finish
+                        //  - accessory pings: may be "cancelled" if near the end of the transition
+                        if palette.ConnectedMode {
+                            results.pingStarts = append(results.pingStarts, state.E.TotalExtrusion)
+                            state.LastPingStart = state.E.TotalExtrusion
+                        } else {
+                            state.CurrentPingStart = state.E.TotalExtrusion
+                            state.CurrentlyPinging = true
+                        }
                     }
                 }
             }
