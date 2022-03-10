@@ -18,6 +18,7 @@ const (
     TypeP1 Type = "palette"
     TypeP2 Type = "palette-2"
     TypeP3 Type = "palette-3"
+    TypeElement Type = "element"
 )
 
 type Model string
@@ -31,6 +32,7 @@ const (
     ModelP2SPro Model = "p2s-pro"
     ModelP3 Model = "p3"
     ModelP3Pro Model = "p3-pro"
+    ModelElement Model = "el"
 )
 
 type TransitionMethod int
@@ -41,10 +43,11 @@ const (
 )
 
 const (
-	MinSpliceLength = float32(80)
+	MinSpliceLength = float32(80) // TODO: confirm for Element
     MinFirstSpliceLengthP1 = float32(140)
     MinFirstSpliceLengthP2 = float32(100)
     MinFirstSpliceLengthP3 = float32(130)
+    MinFirstSpliceLengthElement = float32(130) // TODO: confirm for Element
 )
 
 const BowdenDefault = float32(150)

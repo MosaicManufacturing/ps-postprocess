@@ -172,6 +172,8 @@ func (p Palette) GetAccessoryModeExtension() string {
 func (p Palette) GetConnectedModeExtension() string {
     switch p.Type {
     case TypeP3:
+        fallthrough
+    case TypeElement:
         return "mcfx"
     }
     return "mcf"
@@ -197,13 +199,13 @@ func (p Palette) GetSpliceCore() string {
 }
 
 func (p Palette) GetFirstSpliceMinLength() float32 {
-    if p.Type == TypeP1 {
-        return MinFirstSpliceLengthP1
+    switch p.Type {
+    case TypeElement: return MinFirstSpliceLengthElement
+    case TypeP1: return MinFirstSpliceLengthP1
+    case TypeP2: return MinFirstSpliceLengthP2
+    case TypeP3: return MinFirstSpliceLengthP3
     }
-    if p.Type == TypeP2 {
-        return MinFirstSpliceLengthP2
-    }
-    return MinFirstSpliceLengthP3
+    return 0
 }
 
 func (p Palette) GetPulsesPerMM() float32 {

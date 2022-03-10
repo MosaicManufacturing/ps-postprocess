@@ -478,7 +478,7 @@ func (msf *MSF) createMSF3() (string, error) {
         json.Algorithms = append(json.Algorithms, jsonAlgorithm)
     }
 
-    return json.marshal(msf.Palette.ConnectedMode)
+    return json.marshal(msf.Palette.ConnectedMode, msf.Palette.Type == TypeElement)
 }
 
 func (msf *MSF) CreateMSF() (string, error) {
