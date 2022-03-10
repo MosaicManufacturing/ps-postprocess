@@ -157,6 +157,9 @@ func (p Palette) SupportsPings() bool {
 }
 
 func (p Palette) GetInputCount() int {
+    if p.Type == TypeElement {
+        return 8
+    }
     if p.Type == TypeP3 && p.Model == ModelP3Pro {
         return 8
     }
