@@ -93,6 +93,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
     // prepare to collect lookahead positions
     transitionNextPosition := sideTransitionLookahead{}
 
+    minSpliceLength := palette.GetSpliceMinLength()
+
     transitionCount := 0
     lastTransitionLayer := 0
     lastTransitionSpliceLength := float32(0)
@@ -204,8 +206,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
                         sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
                         deltaE += sparseLayerExtrusionEstimate
                     }
-                    if deltaE < MinSpliceLength {
-                        extra := MinSpliceLength - deltaE
+                    if deltaE < minSpliceLength {
+                        extra := minSpliceLength - deltaE
                         purgeLength += extra
                         spliceLength += extra
                         if palette.InfillTransitioning {

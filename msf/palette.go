@@ -152,6 +152,13 @@ func LoadPaletteFromFile(path string) (Palette, error) {
     return palette, nil
 }
 
+func (p Palette) ProductName() string {
+    if p.Type == TypeElement {
+        return "Element"
+    }
+    return "Palette"
+}
+
 func (p Palette) SupportsPings() bool {
     return p.Type != TypeElement
 }
@@ -213,6 +220,13 @@ func (p Palette) GetFirstSpliceMinLength() float32 {
     case TypeP3: return MinFirstSpliceLengthP3
     }
     return 0
+}
+
+func (p Palette) GetSpliceMinLength() float32 {
+    if p.Type == TypeElement {
+        return MinSpliceLengthElement
+    }
+    return MinSpliceLength
 }
 
 func (p Palette) GetPulsesPerMM() float32 {

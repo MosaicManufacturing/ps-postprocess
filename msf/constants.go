@@ -43,11 +43,15 @@ const (
 )
 
 const (
-	MinSpliceLength = float32(80) // TODO: confirm for Element
+	MinSpliceLength = float32(80)
+	MinSpliceLengthElement = float32(50)
+)
+
+const (
     MinFirstSpliceLengthP1 = float32(140)
     MinFirstSpliceLengthP2 = float32(100)
     MinFirstSpliceLengthP3 = float32(130)
-    MinFirstSpliceLengthElement = float32(130) // TODO: confirm for Element
+    MinFirstSpliceLengthElement = MinSpliceLengthElement
 )
 
 const BowdenDefault = float32(150)
