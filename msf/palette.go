@@ -152,7 +152,21 @@ func LoadPaletteFromFile(path string) (Palette, error) {
     return palette, nil
 }
 
+func (p Palette) ProductName() string {
+    if p.Type == TypeElement {
+        return "Element"
+    }
+    return "Palette"
+}
+
+func (p Palette) SupportsPings() bool {
+    return p.Type != TypeElement
+}
+
 func (p Palette) GetInputCount() int {
+    if p.Type == TypeElement {
+        return 8
+    }
     if p.Type == TypeP3 && p.Model == ModelP3Pro {
         return 8
     }
@@ -172,6 +186,8 @@ func (p Palette) GetAccessoryModeExtension() string {
 func (p Palette) GetConnectedModeExtension() string {
     switch p.Type {
     case TypeP3:
+        fallthrough
+    case TypeElement:
         return "mcfx"
     }
     return "mcf"
@@ -197,13 +213,20 @@ func (p Palette) GetSpliceCore() string {
 }
 
 func (p Palette) GetFirstSpliceMinLength() float32 {
-    if p.Type == TypeP1 {
-        return MinFirstSpliceLengthP1
+    switch p.Type {
+    case TypeElement: return MinFirstSpliceLengthElement
+    case TypeP1: return MinFirstSpliceLengthP1
+    case TypeP2: return MinFirstSpliceLengthP2
+    case TypeP3: return MinFirstSpliceLengthP3
     }
-    if p.Type == TypeP2 {
-        return MinFirstSpliceLengthP2
+    return 0
+}
+
+func (p Palette) GetSpliceMinLength() float32 {
+    if p.Type == TypeElement {
+        return MinSpliceLengthElement
     }
-    return MinFirstSpliceLengthP3
+    return MinSpliceLength
 }
 
 func (p Palette) GetPulsesPerMM() float32 {
@@ -215,6 +238,9 @@ func (p Palette) GetPulsesPerMM() float32 {
 }
 
 func (p Palette) GetPingExtrusion() float32 {
+    if !p.SupportsPings() {
+        return 0
+    }
     if p.Type == TypeP1 {
         return PingExtrusionCounts / p.GetPulsesPerMM()
     }

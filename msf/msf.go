@@ -54,8 +54,9 @@ func (msf *MSF) GetRequiredExtraSpliceLength(spliceLength float32) float32 {
     }
     // all other splices
     spliceDelta := spliceLength - msf.SpliceList[len(msf.SpliceList)-1].Length
-    if spliceDelta < MinSpliceLength {
-        return MinSpliceLength - spliceDelta
+    minSpliceLength := msf.Palette.GetSpliceMinLength()
+    if spliceDelta < minSpliceLength {
+        return minSpliceLength - spliceDelta
     }
     return 0
 }
@@ -67,15 +68,16 @@ func (msf *MSF) addSplice(splice Splice) error {
         minLength := msf.Palette.GetFirstSpliceMinLength()
         if splice.Length < minLength - 5 {
             message := "First Piece Too Short\n"
-            message += fmt.Sprintf("The first piece created by Palette would be %.2f mm long, but must be at least %.2f mm.", splice.Length, minLength)
+            message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
             return errors.New(message)
         }
     } else {
         // all others
         spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
-        if spliceDelta < MinSpliceLength - 5 {
+        minSpliceLength := msf.Palette.GetSpliceMinLength()
+        if spliceDelta < minSpliceLength - 5 {
             message := "Piece Too Short\n"
-            message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but Palette's minimum splice length is %.2f mm.", spliceDelta, MinSpliceLength)
+            message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
             return errors.New(message)
         }
     }
@@ -97,7 +99,7 @@ func (msf *MSF) AddLastSplice(drive int, finalLength float32) error {
     if len(msf.SpliceList) > 0 {
         prevSplice := msf.SpliceList[len(msf.SpliceList)-1]
         prevSpliceLength = prevSplice.Length
-        requiredLength = MinSpliceLength
+        requiredLength = msf.Palette.GetSpliceMinLength()
     }
     extraLength := (finalLength - prevSpliceLength) * 0.04
     if (finalLength - prevSpliceLength) < requiredLength {
@@ -478,7 +480,7 @@ func (msf *MSF) createMSF3() (string, error) {
         json.Algorithms = append(json.Algorithms, jsonAlgorithm)
     }
 
-    return json.marshal(msf.Palette.ConnectedMode)
+    return json.marshal(msf.Palette.ConnectedMode, msf.Palette.Type == TypeElement)
 }
 
 func (msf *MSF) CreateMSF() (string, error) {
