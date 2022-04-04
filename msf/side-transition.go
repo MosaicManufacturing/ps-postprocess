@@ -92,6 +92,9 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 }
 
 func checkSideTransitionPings(state *State) (bool, string, float32) {
+    if !state.Palette.SupportsPings() {
+        return false, "", 0
+    }
     if state.E.TotalExtrusion < state.LastPingStart + PingMinSpacing {
         // not time for a ping yet
         return false, "", 0

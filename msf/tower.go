@@ -702,6 +702,9 @@ func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
 }
 
 func (t *Tower) checkTowerPingActions(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) string {
+    if !state.Palette.SupportsPings() {
+        return ""
+    }
     if state.CurrentlyPinging {
         return t.checkTowerPingEnd(state, false)
     } else {

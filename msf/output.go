@@ -127,7 +127,7 @@ func _paletteOutput(
             if err := writeLine(writer, line.Raw); err != nil {
                 return err
             }
-            if state.OnWipeTower {
+            if state.OnWipeTower && state.Palette.SupportsPings() {
                 // check for ping actions
                 if state.CurrentlyPinging {
                     // currentlyPinging == true implies accessory mode

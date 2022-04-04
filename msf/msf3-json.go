@@ -36,7 +36,26 @@ type palette3JsonConnected struct {
     Algorithms []palette3Algorithm `json:"algorithms"`
 }
 
-func (p *palette3Json) marshal(connected bool) (string, error) {
+type elementJsonConnected struct {
+    Version string `json:"version"`
+    Drives []int `json:"drives"`
+    Splices []palette3Splice `json:"splices"`
+}
+
+func (p *palette3Json) marshal(connected, element bool) (string, error) {
+    if element {
+        // Element MCFX files do not contain pings or splice algorithms
+        pc := elementJsonConnected{
+            Version: p.Version,
+            Drives:  p.Drives,
+            Splices: p.Splices,
+        }
+        bytes, err := json.MarshalIndent(pc, "", "  ")
+        if err != nil {
+            return "", err
+        }
+        return string(bytes), nil
+    }
     if connected {
         // in connected mode, simply include the ping count
         // rather than the actual list of pings
