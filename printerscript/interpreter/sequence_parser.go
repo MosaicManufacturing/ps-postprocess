@@ -1,132 +1,151 @@
-// Code generated from SequenceParser.g4 by ANTLR 4.9. DO NOT EDIT.
+// Code generated from SequenceParser.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package interpreter // SequenceParser
 import (
 	"fmt"
-	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
 // Suppress unused import errors
 var _ = fmt.Printf
-var _ = reflect.Copy
 var _ = strconv.Itoa
-
-var parserATN = []uint16{
-	3, 24715, 42794, 33075, 47597, 16764, 15335, 30598, 22884, 3, 51, 145,
-	4, 2, 9, 2, 4, 3, 9, 3, 4, 4, 9, 4, 4, 5, 9, 5, 4, 6, 9, 6, 4, 7, 9, 7,
-	4, 8, 9, 8, 4, 9, 9, 9, 4, 10, 9, 10, 4, 11, 9, 11, 3, 2, 3, 2, 3, 2, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 5, 3, 36, 10,
-	3, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 5, 3, 5, 3,
-	5, 3, 5, 3, 5, 3, 5, 3, 5, 3, 5, 5, 5, 55, 10, 5, 3, 6, 3, 6, 3, 6, 3,
-	6, 3, 6, 3, 6, 3, 6, 3, 6, 3, 7, 3, 7, 5, 7, 67, 10, 7, 3, 8, 3, 8, 3,
-	8, 3, 8, 3, 9, 3, 9, 7, 9, 75, 10, 9, 12, 9, 14, 9, 78, 11, 9, 3, 9, 3,
-	9, 3, 9, 7, 9, 83, 10, 9, 12, 9, 14, 9, 86, 11, 9, 3, 9, 5, 9, 89, 10,
-	9, 3, 10, 3, 10, 3, 10, 3, 10, 3, 10, 3, 10, 5, 10, 97, 10, 10, 3, 11,
-	3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 7, 11, 105, 10, 11, 12, 11, 14, 11,
-	108, 11, 11, 5, 11, 110, 10, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3,
-	11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 5, 11, 126,
-	10, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11, 3, 11,
-	3, 11, 3, 11, 3, 11, 7, 11, 140, 10, 11, 12, 11, 14, 11, 143, 11, 11, 3,
-	11, 2, 3, 20, 12, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 2, 9, 4, 2, 47, 47,
-	51, 51, 4, 2, 46, 46, 50, 50, 4, 2, 45, 45, 49, 49, 3, 2, 23, 25, 3, 2,
-	21, 22, 4, 2, 15, 18, 26, 27, 3, 2, 13, 14, 2, 159, 2, 22, 3, 2, 2, 2,
-	4, 35, 3, 2, 2, 2, 6, 37, 3, 2, 2, 2, 8, 54, 3, 2, 2, 2, 10, 56, 3, 2,
-	2, 2, 12, 66, 3, 2, 2, 2, 14, 68, 3, 2, 2, 2, 16, 88, 3, 2, 2, 2, 18, 96,
-	3, 2, 2, 2, 20, 125, 3, 2, 2, 2, 22, 23, 5, 4, 3, 2, 23, 24, 7, 2, 2, 3,
-	24, 3, 3, 2, 2, 2, 25, 36, 3, 2, 2, 2, 26, 27, 5, 6, 4, 2, 27, 28, 5, 4,
-	3, 2, 28, 36, 3, 2, 2, 2, 29, 30, 5, 10, 6, 2, 30, 31, 5, 4, 3, 2, 31,
-	36, 3, 2, 2, 2, 32, 33, 5, 12, 7, 2, 33, 34, 5, 4, 3, 2, 34, 36, 3, 2,
-	2, 2, 35, 25, 3, 2, 2, 2, 35, 26, 3, 2, 2, 2, 35, 29, 3, 2, 2, 2, 35, 32,
-	3, 2, 2, 2, 36, 5, 3, 2, 2, 2, 37, 38, 7, 3, 2, 2, 38, 39, 7, 8, 2, 2,
-	39, 40, 5, 20, 11, 2, 40, 41, 7, 9, 2, 2, 41, 42, 7, 11, 2, 2, 42, 43,
-	5, 4, 3, 2, 43, 44, 7, 12, 2, 2, 44, 45, 5, 8, 5, 2, 45, 7, 3, 2, 2, 2,
-	46, 55, 3, 2, 2, 2, 47, 48, 7, 4, 2, 2, 48, 55, 5, 6, 4, 2, 49, 50, 7,
-	4, 2, 2, 50, 51, 7, 11, 2, 2, 51, 52, 5, 4, 3, 2, 52, 53, 7, 12, 2, 2,
-	53, 55, 3, 2, 2, 2, 54, 46, 3, 2, 2, 2, 54, 47, 3, 2, 2, 2, 54, 49, 3,
-	2, 2, 2, 55, 9, 3, 2, 2, 2, 56, 57, 7, 5, 2, 2, 57, 58, 7, 8, 2, 2, 58,
-	59, 5, 20, 11, 2, 59, 60, 7, 9, 2, 2, 60, 61, 7, 11, 2, 2, 61, 62, 5, 4,
-	3, 2, 62, 63, 7, 12, 2, 2, 63, 11, 3, 2, 2, 2, 64, 67, 5, 14, 8, 2, 65,
-	67, 5, 16, 9, 2, 66, 64, 3, 2, 2, 2, 66, 65, 3, 2, 2, 2, 67, 13, 3, 2,
-	2, 2, 68, 69, 7, 33, 2, 2, 69, 70, 7, 19, 2, 2, 70, 71, 5, 20, 11, 2, 71,
-	15, 3, 2, 2, 2, 72, 76, 7, 30, 2, 2, 73, 75, 5, 18, 10, 2, 74, 73, 3, 2,
-	2, 2, 75, 78, 3, 2, 2, 2, 76, 74, 3, 2, 2, 2, 76, 77, 3, 2, 2, 2, 77, 79,
-	3, 2, 2, 2, 78, 76, 3, 2, 2, 2, 79, 89, 7, 44, 2, 2, 80, 84, 7, 31, 2,
-	2, 81, 83, 5, 18, 10, 2, 82, 81, 3, 2, 2, 2, 83, 86, 3, 2, 2, 2, 84, 82,
-	3, 2, 2, 2, 84, 85, 3, 2, 2, 2, 85, 87, 3, 2, 2, 2, 86, 84, 3, 2, 2, 2,
-	87, 89, 7, 48, 2, 2, 88, 72, 3, 2, 2, 2, 88, 80, 3, 2, 2, 2, 89, 17, 3,
-	2, 2, 2, 90, 97, 9, 2, 2, 2, 91, 97, 9, 3, 2, 2, 92, 93, 9, 4, 2, 2, 93,
-	94, 5, 20, 11, 2, 94, 95, 7, 32, 2, 2, 95, 97, 3, 2, 2, 2, 96, 90, 3, 2,
-	2, 2, 96, 91, 3, 2, 2, 2, 96, 92, 3, 2, 2, 2, 97, 19, 3, 2, 2, 2, 98, 99,
-	8, 11, 1, 2, 99, 100, 7, 33, 2, 2, 100, 109, 7, 8, 2, 2, 101, 106, 5, 20,
-	11, 2, 102, 103, 7, 28, 2, 2, 103, 105, 5, 20, 11, 2, 104, 102, 3, 2, 2,
-	2, 105, 108, 3, 2, 2, 2, 106, 104, 3, 2, 2, 2, 106, 107, 3, 2, 2, 2, 107,
-	110, 3, 2, 2, 2, 108, 106, 3, 2, 2, 2, 109, 101, 3, 2, 2, 2, 109, 110,
-	3, 2, 2, 2, 110, 111, 3, 2, 2, 2, 111, 126, 7, 9, 2, 2, 112, 126, 7, 33,
-	2, 2, 113, 126, 7, 34, 2, 2, 114, 126, 7, 35, 2, 2, 115, 126, 7, 6, 2,
-	2, 116, 126, 7, 7, 2, 2, 117, 118, 7, 8, 2, 2, 118, 119, 5, 20, 11, 2,
-	119, 120, 7, 9, 2, 2, 120, 126, 3, 2, 2, 2, 121, 122, 7, 20, 2, 2, 122,
-	126, 5, 20, 11, 8, 123, 124, 7, 21, 2, 2, 124, 126, 5, 20, 11, 7, 125,
-	98, 3, 2, 2, 2, 125, 112, 3, 2, 2, 2, 125, 113, 3, 2, 2, 2, 125, 114, 3,
-	2, 2, 2, 125, 115, 3, 2, 2, 2, 125, 116, 3, 2, 2, 2, 125, 117, 3, 2, 2,
-	2, 125, 121, 3, 2, 2, 2, 125, 123, 3, 2, 2, 2, 126, 141, 3, 2, 2, 2, 127,
-	128, 12, 6, 2, 2, 128, 129, 9, 5, 2, 2, 129, 140, 5, 20, 11, 7, 130, 131,
-	12, 5, 2, 2, 131, 132, 9, 6, 2, 2, 132, 140, 5, 20, 11, 6, 133, 134, 12,
-	4, 2, 2, 134, 135, 9, 7, 2, 2, 135, 140, 5, 20, 11, 5, 136, 137, 12, 3,
-	2, 2, 137, 138, 9, 8, 2, 2, 138, 140, 5, 20, 11, 4, 139, 127, 3, 2, 2,
-	2, 139, 130, 3, 2, 2, 2, 139, 133, 3, 2, 2, 2, 139, 136, 3, 2, 2, 2, 140,
-	143, 3, 2, 2, 2, 141, 139, 3, 2, 2, 2, 141, 142, 3, 2, 2, 2, 142, 21, 3,
-	2, 2, 2, 143, 141, 3, 2, 2, 2, 14, 35, 54, 66, 76, 84, 88, 96, 106, 109,
-	125, 139, 141,
-}
-var literalNames = []string{
-	"", "'if'", "'else'", "'while'", "'true'", "'false'", "'('", "')'", "'{{'",
-	"'{'", "'}'", "'&&'", "'||'", "'=='", "'!='", "'<='", "'>='", "'='", "'!'",
-	"'-'", "'+'", "'*'", "'/'", "'%'", "'<'", "'>'", "','", "", "", "", "'}}'",
-	"", "", "", "", "'//'", "'/*'", "'\n'", "", "'*/'",
-}
-var symbolicNames = []string{
-	"", "IF", "ELSE", "WHILE", "TRUE", "FALSE", "L_PAREN", "R_PAREN", "LL_BRACE",
-	"L_BRACE", "R_BRACE", "AND", "OR", "EQ", "N_EQ", "LT_EQ", "GT_EQ", "ASSIGN",
-	"NOT", "MINUS", "PLUS", "TIMES", "DIV", "MOD", "LT", "GT", "COMMA", "GCODE_ESCAPE",
-	"OPEN_GCODE_SQ", "OPEN_GCODE_DQ", "EXIT_EXPR", "IDENTIFIER", "INT", "FLOAT",
-	"WS", "OPEN_LINE_COMMENT", "OPEN_BLOCK_COMMENT", "CLOSE_LINE_COMMENT",
-	"LINE_COMMENT_TEXT", "CLOSE_BLOCK_COMMENT", "ESCAPED_CLOSE_BLOCK_COMMENT",
-	"BLOCK_COMMENT_TEXT", "CLOSE_GCODE_SQ", "ENTER_EXPR_SQ", "ESCAPE_SEQUENCE_SQ",
-	"TEXT_SQ", "CLOSE_GCODE_DQ", "ENTER_EXPR_DQ", "ESCAPE_SEQUENCE_DQ", "TEXT_DQ",
-}
-
-var ruleNames = []string{
-	"sequence", "statements", "ifBlock", "optionalElseBlock", "whileBlock",
-	"statement", "assignment", "gCode", "gCodePart", "expression",
-}
+var _ = sync.Once{}
 
 type SequenceParser struct {
 	*antlr.BaseParser
 }
 
-// NewSequenceParser produces a new parser instance for the optional input antlr.TokenStream.
-//
-// The *SequenceParser instance produced may be reused by calling the SetInputStream method.
-// The initial parser configuration is expensive to construct, and the object is not thread-safe;
-// however, if used within a Golang sync.Pool, the construction cost amortizes well and the
-// objects can be used in a thread-safe manner.
-func NewSequenceParser(input antlr.TokenStream) *SequenceParser {
-	this := new(SequenceParser)
-	deserializer := antlr.NewATNDeserializer(nil)
-	deserializedATN := deserializer.DeserializeFromUInt16(parserATN)
-	decisionToDFA := make([]*antlr.DFA, len(deserializedATN.DecisionToState))
-	for index, ds := range deserializedATN.DecisionToState {
-		decisionToDFA[index] = antlr.NewDFA(ds, index)
-	}
-	this.BaseParser = antlr.NewBaseParser(input)
+var sequenceparserParserStaticData struct {
+	once                   sync.Once
+	serializedATN          []int32
+	literalNames           []string
+	symbolicNames          []string
+	ruleNames              []string
+	predictionContextCache *antlr.PredictionContextCache
+	atn                    *antlr.ATN
+	decisionToDFA          []*antlr.DFA
+}
 
-	this.Interpreter = antlr.NewParserATNSimulator(this, deserializedATN, decisionToDFA, antlr.NewPredictionContextCache())
-	this.RuleNames = ruleNames
-	this.LiteralNames = literalNames
-	this.SymbolicNames = symbolicNames
+func sequenceparserParserInit() {
+	staticData := &sequenceparserParserStaticData
+	staticData.literalNames = []string{
+		"", "'if'", "'else'", "'while'", "'true'", "'false'", "'('", "')'",
+		"'{{'", "'{'", "'}'", "'&&'", "'||'", "'=='", "'!='", "'<='", "'>='",
+		"'='", "'!'", "'-'", "'+'", "'*'", "'/'", "'%'", "'<'", "'>'", "','",
+		"", "", "", "'}}'", "", "", "", "", "'//'", "'/*'", "'\\n'", "", "'*/'",
+	}
+	staticData.symbolicNames = []string{
+		"", "IF", "ELSE", "WHILE", "TRUE", "FALSE", "L_PAREN", "R_PAREN", "LL_BRACE",
+		"L_BRACE", "R_BRACE", "AND", "OR", "EQ", "N_EQ", "LT_EQ", "GT_EQ", "ASSIGN",
+		"NOT", "MINUS", "PLUS", "TIMES", "DIV", "MOD", "LT", "GT", "COMMA",
+		"GCODE_ESCAPE", "OPEN_GCODE_SQ", "OPEN_GCODE_DQ", "EXIT_EXPR", "IDENTIFIER",
+		"INT", "FLOAT", "WS", "OPEN_LINE_COMMENT", "OPEN_BLOCK_COMMENT", "CLOSE_LINE_COMMENT",
+		"LINE_COMMENT_TEXT", "CLOSE_BLOCK_COMMENT", "ESCAPED_CLOSE_BLOCK_COMMENT",
+		"BLOCK_COMMENT_TEXT", "CLOSE_GCODE_SQ", "ENTER_EXPR_SQ", "ESCAPE_SEQUENCE_SQ",
+		"TEXT_SQ", "CLOSE_GCODE_DQ", "ENTER_EXPR_DQ", "ESCAPE_SEQUENCE_DQ",
+		"TEXT_DQ",
+	}
+	staticData.ruleNames = []string{
+		"sequence", "statements", "ifBlock", "optionalElseBlock", "whileBlock",
+		"statement", "assignment", "gCode", "gCodePart", "expression",
+	}
+	staticData.predictionContextCache = antlr.NewPredictionContextCache()
+	staticData.serializedATN = []int32{
+		4, 1, 49, 143, 2, 0, 7, 0, 2, 1, 7, 1, 2, 2, 7, 2, 2, 3, 7, 3, 2, 4, 7,
+		4, 2, 5, 7, 5, 2, 6, 7, 6, 2, 7, 7, 7, 2, 8, 7, 8, 2, 9, 7, 9, 1, 0, 1,
+		0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+		1, 34, 8, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 3,
+		1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 3, 3, 53, 8, 3, 1, 4, 1, 4, 1,
+		4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 5, 1, 5, 3, 5, 65, 8, 5, 1, 6, 1, 6,
+		1, 6, 1, 6, 1, 7, 1, 7, 5, 7, 73, 8, 7, 10, 7, 12, 7, 76, 9, 7, 1, 7, 1,
+		7, 1, 7, 5, 7, 81, 8, 7, 10, 7, 12, 7, 84, 9, 7, 1, 7, 3, 7, 87, 8, 7,
+		1, 8, 1, 8, 1, 8, 1, 8, 1, 8, 1, 8, 3, 8, 95, 8, 8, 1, 9, 1, 9, 1, 9, 1,
+		9, 1, 9, 1, 9, 5, 9, 103, 8, 9, 10, 9, 12, 9, 106, 9, 9, 3, 9, 108, 8,
+		9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1,
+		9, 1, 9, 1, 9, 3, 9, 124, 8, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1,
+		9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 5, 9, 138, 8, 9, 10, 9, 12, 9, 141, 9,
+		9, 1, 9, 0, 1, 18, 10, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 0, 7, 2, 0, 45,
+		45, 49, 49, 2, 0, 44, 44, 48, 48, 2, 0, 43, 43, 47, 47, 1, 0, 21, 23, 1,
+		0, 19, 20, 2, 0, 13, 16, 24, 25, 1, 0, 11, 12, 157, 0, 20, 1, 0, 0, 0,
+		2, 33, 1, 0, 0, 0, 4, 35, 1, 0, 0, 0, 6, 52, 1, 0, 0, 0, 8, 54, 1, 0, 0,
+		0, 10, 64, 1, 0, 0, 0, 12, 66, 1, 0, 0, 0, 14, 86, 1, 0, 0, 0, 16, 94,
+		1, 0, 0, 0, 18, 123, 1, 0, 0, 0, 20, 21, 3, 2, 1, 0, 21, 22, 5, 0, 0, 1,
+		22, 1, 1, 0, 0, 0, 23, 34, 1, 0, 0, 0, 24, 25, 3, 4, 2, 0, 25, 26, 3, 2,
+		1, 0, 26, 34, 1, 0, 0, 0, 27, 28, 3, 8, 4, 0, 28, 29, 3, 2, 1, 0, 29, 34,
+		1, 0, 0, 0, 30, 31, 3, 10, 5, 0, 31, 32, 3, 2, 1, 0, 32, 34, 1, 0, 0, 0,
+		33, 23, 1, 0, 0, 0, 33, 24, 1, 0, 0, 0, 33, 27, 1, 0, 0, 0, 33, 30, 1,
+		0, 0, 0, 34, 3, 1, 0, 0, 0, 35, 36, 5, 1, 0, 0, 36, 37, 5, 6, 0, 0, 37,
+		38, 3, 18, 9, 0, 38, 39, 5, 7, 0, 0, 39, 40, 5, 9, 0, 0, 40, 41, 3, 2,
+		1, 0, 41, 42, 5, 10, 0, 0, 42, 43, 3, 6, 3, 0, 43, 5, 1, 0, 0, 0, 44, 53,
+		1, 0, 0, 0, 45, 46, 5, 2, 0, 0, 46, 53, 3, 4, 2, 0, 47, 48, 5, 2, 0, 0,
+		48, 49, 5, 9, 0, 0, 49, 50, 3, 2, 1, 0, 50, 51, 5, 10, 0, 0, 51, 53, 1,
+		0, 0, 0, 52, 44, 1, 0, 0, 0, 52, 45, 1, 0, 0, 0, 52, 47, 1, 0, 0, 0, 53,
+		7, 1, 0, 0, 0, 54, 55, 5, 3, 0, 0, 55, 56, 5, 6, 0, 0, 56, 57, 3, 18, 9,
+		0, 57, 58, 5, 7, 0, 0, 58, 59, 5, 9, 0, 0, 59, 60, 3, 2, 1, 0, 60, 61,
+		5, 10, 0, 0, 61, 9, 1, 0, 0, 0, 62, 65, 3, 12, 6, 0, 63, 65, 3, 14, 7,
+		0, 64, 62, 1, 0, 0, 0, 64, 63, 1, 0, 0, 0, 65, 11, 1, 0, 0, 0, 66, 67,
+		5, 31, 0, 0, 67, 68, 5, 17, 0, 0, 68, 69, 3, 18, 9, 0, 69, 13, 1, 0, 0,
+		0, 70, 74, 5, 28, 0, 0, 71, 73, 3, 16, 8, 0, 72, 71, 1, 0, 0, 0, 73, 76,
+		1, 0, 0, 0, 74, 72, 1, 0, 0, 0, 74, 75, 1, 0, 0, 0, 75, 77, 1, 0, 0, 0,
+		76, 74, 1, 0, 0, 0, 77, 87, 5, 42, 0, 0, 78, 82, 5, 29, 0, 0, 79, 81, 3,
+		16, 8, 0, 80, 79, 1, 0, 0, 0, 81, 84, 1, 0, 0, 0, 82, 80, 1, 0, 0, 0, 82,
+		83, 1, 0, 0, 0, 83, 85, 1, 0, 0, 0, 84, 82, 1, 0, 0, 0, 85, 87, 5, 46,
+		0, 0, 86, 70, 1, 0, 0, 0, 86, 78, 1, 0, 0, 0, 87, 15, 1, 0, 0, 0, 88, 95,
+		7, 0, 0, 0, 89, 95, 7, 1, 0, 0, 90, 91, 7, 2, 0, 0, 91, 92, 3, 18, 9, 0,
+		92, 93, 5, 30, 0, 0, 93, 95, 1, 0, 0, 0, 94, 88, 1, 0, 0, 0, 94, 89, 1,
+		0, 0, 0, 94, 90, 1, 0, 0, 0, 95, 17, 1, 0, 0, 0, 96, 97, 6, 9, -1, 0, 97,
+		98, 5, 31, 0, 0, 98, 107, 5, 6, 0, 0, 99, 104, 3, 18, 9, 0, 100, 101, 5,
+		26, 0, 0, 101, 103, 3, 18, 9, 0, 102, 100, 1, 0, 0, 0, 103, 106, 1, 0,
+		0, 0, 104, 102, 1, 0, 0, 0, 104, 105, 1, 0, 0, 0, 105, 108, 1, 0, 0, 0,
+		106, 104, 1, 0, 0, 0, 107, 99, 1, 0, 0, 0, 107, 108, 1, 0, 0, 0, 108, 109,
+		1, 0, 0, 0, 109, 124, 5, 7, 0, 0, 110, 124, 5, 31, 0, 0, 111, 124, 5, 32,
+		0, 0, 112, 124, 5, 33, 0, 0, 113, 124, 5, 4, 0, 0, 114, 124, 5, 5, 0, 0,
+		115, 116, 5, 6, 0, 0, 116, 117, 3, 18, 9, 0, 117, 118, 5, 7, 0, 0, 118,
+		124, 1, 0, 0, 0, 119, 120, 5, 18, 0, 0, 120, 124, 3, 18, 9, 6, 121, 122,
+		5, 19, 0, 0, 122, 124, 3, 18, 9, 5, 123, 96, 1, 0, 0, 0, 123, 110, 1, 0,
+		0, 0, 123, 111, 1, 0, 0, 0, 123, 112, 1, 0, 0, 0, 123, 113, 1, 0, 0, 0,
+		123, 114, 1, 0, 0, 0, 123, 115, 1, 0, 0, 0, 123, 119, 1, 0, 0, 0, 123,
+		121, 1, 0, 0, 0, 124, 139, 1, 0, 0, 0, 125, 126, 10, 4, 0, 0, 126, 127,
+		7, 3, 0, 0, 127, 138, 3, 18, 9, 5, 128, 129, 10, 3, 0, 0, 129, 130, 7,
+		4, 0, 0, 130, 138, 3, 18, 9, 4, 131, 132, 10, 2, 0, 0, 132, 133, 7, 5,
+		0, 0, 133, 138, 3, 18, 9, 3, 134, 135, 10, 1, 0, 0, 135, 136, 7, 6, 0,
+		0, 136, 138, 3, 18, 9, 2, 137, 125, 1, 0, 0, 0, 137, 128, 1, 0, 0, 0, 137,
+		131, 1, 0, 0, 0, 137, 134, 1, 0, 0, 0, 138, 141, 1, 0, 0, 0, 139, 137,
+		1, 0, 0, 0, 139, 140, 1, 0, 0, 0, 140, 19, 1, 0, 0, 0, 141, 139, 1, 0,
+		0, 0, 12, 33, 52, 64, 74, 82, 86, 94, 104, 107, 123, 137, 139,
+	}
+	deserializer := antlr.NewATNDeserializer(nil)
+	staticData.atn = deserializer.Deserialize(staticData.serializedATN)
+	atn := staticData.atn
+	staticData.decisionToDFA = make([]*antlr.DFA, len(atn.DecisionToState))
+	decisionToDFA := staticData.decisionToDFA
+	for index, state := range atn.DecisionToState {
+		decisionToDFA[index] = antlr.NewDFA(state, index)
+	}
+}
+
+// SequenceParserInit initializes any static state used to implement SequenceParser. By default the
+// static state used to implement the parser is lazily initialized during the first call to
+// NewSequenceParser(). You can call this function if you wish to initialize the static state ahead
+// of time.
+func SequenceParserInit() {
+	staticData := &sequenceparserParserStaticData
+	staticData.once.Do(sequenceparserParserInit)
+}
+
+// NewSequenceParser produces a new parser instance for the optional input antlr.TokenStream.
+func NewSequenceParser(input antlr.TokenStream) *SequenceParser {
+	SequenceParserInit()
+	this := new(SequenceParser)
+	this.BaseParser = antlr.NewBaseParser(input)
+	staticData := &sequenceparserParserStaticData
+	this.Interpreter = antlr.NewParserATNSimulator(this, staticData.atn, staticData.decisionToDFA, staticData.predictionContextCache)
+	this.RuleNames = staticData.ruleNames
+	this.LiteralNames = staticData.literalNames
+	this.SymbolicNames = staticData.symbolicNames
 	this.GrammarFileName = "SequenceParser.g4"
 
 	return this
@@ -239,7 +258,13 @@ func NewSequenceContext(parser antlr.Parser, parent antlr.ParserRuleContext, inv
 func (s *SequenceContext) GetParser() antlr.Parser { return s.parser }
 
 func (s *SequenceContext) Statements() IStatementsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementsContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementsContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -283,6 +308,9 @@ func (s *SequenceContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) Sequence() (localctx ISequenceContext) {
+	this := p
+	_ = this
+
 	localctx = NewSequenceContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 0, SequenceParserRULE_sequence)
 
@@ -354,7 +382,13 @@ func NewStatementsContext(parser antlr.Parser, parent antlr.ParserRuleContext, i
 func (s *StatementsContext) GetParser() antlr.Parser { return s.parser }
 
 func (s *StatementsContext) IfBlock() IIfBlockContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IIfBlockContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IIfBlockContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -364,7 +398,13 @@ func (s *StatementsContext) IfBlock() IIfBlockContext {
 }
 
 func (s *StatementsContext) Statements() IStatementsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementsContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementsContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -374,7 +414,13 @@ func (s *StatementsContext) Statements() IStatementsContext {
 }
 
 func (s *StatementsContext) WhileBlock() IWhileBlockContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IWhileBlockContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IWhileBlockContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -384,7 +430,13 @@ func (s *StatementsContext) WhileBlock() IWhileBlockContext {
 }
 
 func (s *StatementsContext) Statement() IStatementContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -424,6 +476,9 @@ func (s *StatementsContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) Statements() (localctx IStatementsContext) {
+	this := p
+	_ = this
+
 	localctx = NewStatementsContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 2, SequenceParserRULE_statements)
 
@@ -537,7 +592,13 @@ func (s *IfBlockContext) L_PAREN() antlr.TerminalNode {
 }
 
 func (s *IfBlockContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -555,7 +616,13 @@ func (s *IfBlockContext) L_BRACE() antlr.TerminalNode {
 }
 
 func (s *IfBlockContext) Statements() IStatementsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementsContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementsContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -569,7 +636,13 @@ func (s *IfBlockContext) R_BRACE() antlr.TerminalNode {
 }
 
 func (s *IfBlockContext) OptionalElseBlock() IOptionalElseBlockContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IOptionalElseBlockContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IOptionalElseBlockContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -609,6 +682,9 @@ func (s *IfBlockContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) IfBlock() (localctx IIfBlockContext) {
+	this := p
+	_ = this
+
 	localctx = NewIfBlockContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 4, SequenceParserRULE_ifBlock)
 
@@ -708,7 +784,13 @@ func (s *OptionalElseBlockContext) ELSE() antlr.TerminalNode {
 }
 
 func (s *OptionalElseBlockContext) IfBlock() IIfBlockContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IIfBlockContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IIfBlockContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -722,7 +804,13 @@ func (s *OptionalElseBlockContext) L_BRACE() antlr.TerminalNode {
 }
 
 func (s *OptionalElseBlockContext) Statements() IStatementsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementsContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementsContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -766,6 +854,9 @@ func (s *OptionalElseBlockContext) Accept(visitor antlr.ParseTreeVisitor) interf
 }
 
 func (p *SequenceParser) OptionalElseBlock() (localctx IOptionalElseBlockContext) {
+	this := p
+	_ = this
+
 	localctx = NewOptionalElseBlockContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 6, SequenceParserRULE_optionalElseBlock)
 
@@ -873,7 +964,13 @@ func (s *WhileBlockContext) L_PAREN() antlr.TerminalNode {
 }
 
 func (s *WhileBlockContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -891,7 +988,13 @@ func (s *WhileBlockContext) L_BRACE() antlr.TerminalNode {
 }
 
 func (s *WhileBlockContext) Statements() IStatementsContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IStatementsContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IStatementsContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -935,6 +1038,9 @@ func (s *WhileBlockContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) WhileBlock() (localctx IWhileBlockContext) {
+	this := p
+	_ = this
+
 	localctx = NewWhileBlockContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 8, SequenceParserRULE_whileBlock)
 
@@ -1026,7 +1132,13 @@ func NewStatementContext(parser antlr.Parser, parent antlr.ParserRuleContext, in
 func (s *StatementContext) GetParser() antlr.Parser { return s.parser }
 
 func (s *StatementContext) Assignment() IAssignmentContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IAssignmentContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IAssignmentContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -1036,7 +1148,13 @@ func (s *StatementContext) Assignment() IAssignmentContext {
 }
 
 func (s *StatementContext) GCode() IGCodeContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGCodeContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IGCodeContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -1076,6 +1194,9 @@ func (s *StatementContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) Statement() (localctx IStatementContext) {
+	this := p
+	_ = this
+
 	localctx = NewStatementContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 10, SequenceParserRULE_statement)
 
@@ -1189,7 +1310,13 @@ func (s *AssignmentContext) IDENTIFIER() antlr.TerminalNode {
 }
 
 func (s *AssignmentContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -1229,6 +1356,9 @@ func (s *AssignmentContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) Assignment() (localctx IAssignmentContext) {
+	this := p
+	_ = this
+
 	localctx = NewAssignmentContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 12, SequenceParserRULE_assignment)
 
@@ -1318,12 +1448,20 @@ func (s *GCodeContext) CLOSE_GCODE_SQ() antlr.TerminalNode {
 }
 
 func (s *GCodeContext) AllGCodePart() []IGCodePartContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IGCodePartContext)(nil)).Elem())
-	var tst = make([]IGCodePartContext, len(ts))
+	children := s.GetChildren()
+	len := 0
+	for _, ctx := range children {
+		if _, ok := ctx.(IGCodePartContext); ok {
+			len++
+		}
+	}
 
-	for i, t := range ts {
-		if t != nil {
+	tst := make([]IGCodePartContext, len)
+	i := 0
+	for _, ctx := range children {
+		if t, ok := ctx.(IGCodePartContext); ok {
 			tst[i] = t.(IGCodePartContext)
+			i++
 		}
 	}
 
@@ -1331,7 +1469,17 @@ func (s *GCodeContext) AllGCodePart() []IGCodePartContext {
 }
 
 func (s *GCodeContext) GCodePart(i int) IGCodePartContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IGCodePartContext)(nil)).Elem(), i)
+	var t antlr.RuleContext
+	j := 0
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IGCodePartContext); ok {
+			if j == i {
+				t = ctx.(antlr.RuleContext)
+				break
+			}
+			j++
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -1379,6 +1527,9 @@ func (s *GCodeContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 }
 
 func (p *SequenceParser) GCode() (localctx IGCodeContext) {
+	this := p
+	_ = this
+
 	localctx = NewGCodeContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 14, SequenceParserRULE_gCode)
 	var _la int
@@ -1529,7 +1680,13 @@ func (s *GCodeSubExpressionContext) GetRuleContext() antlr.RuleContext {
 }
 
 func (s *GCodeSubExpressionContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -1669,6 +1826,9 @@ func (s *GCodeEscapedTextContext) Accept(visitor antlr.ParseTreeVisitor) interfa
 }
 
 func (p *SequenceParser) GCodePart() (localctx IGCodePartContext) {
+	this := p
+	_ = this
+
 	localctx = NewGCodePartContext(p, p.GetParserRuleContext(), p.GetState())
 	p.EnterRule(localctx, 16, SequenceParserRULE_gCodePart)
 	var _la int
@@ -1914,7 +2074,13 @@ func (s *UnaryOpExprContext) NOT() antlr.TerminalNode {
 }
 
 func (s *UnaryOpExprContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -2024,12 +2190,20 @@ func (s *FunctionCallContext) R_PAREN() antlr.TerminalNode {
 }
 
 func (s *FunctionCallContext) AllExpression() []IExpressionContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IExpressionContext)(nil)).Elem())
-	var tst = make([]IExpressionContext, len(ts))
+	children := s.GetChildren()
+	len := 0
+	for _, ctx := range children {
+		if _, ok := ctx.(IExpressionContext); ok {
+			len++
+		}
+	}
 
-	for i, t := range ts {
-		if t != nil {
+	tst := make([]IExpressionContext, len)
+	i := 0
+	for _, ctx := range children {
+		if t, ok := ctx.(IExpressionContext); ok {
 			tst[i] = t.(IExpressionContext)
+			i++
 		}
 	}
 
@@ -2037,7 +2211,17 @@ func (s *FunctionCallContext) AllExpression() []IExpressionContext {
 }
 
 func (s *FunctionCallContext) Expression(i int) IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), i)
+	var t antlr.RuleContext
+	j := 0
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			if j == i {
+				t = ctx.(antlr.RuleContext)
+				break
+			}
+			j++
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -2095,12 +2279,20 @@ func (s *BinaryOpExprContext) GetRuleContext() antlr.RuleContext {
 }
 
 func (s *BinaryOpExprContext) AllExpression() []IExpressionContext {
-	var ts = s.GetTypedRuleContexts(reflect.TypeOf((*IExpressionContext)(nil)).Elem())
-	var tst = make([]IExpressionContext, len(ts))
+	children := s.GetChildren()
+	len := 0
+	for _, ctx := range children {
+		if _, ok := ctx.(IExpressionContext); ok {
+			len++
+		}
+	}
 
-	for i, t := range ts {
-		if t != nil {
+	tst := make([]IExpressionContext, len)
+	i := 0
+	for _, ctx := range children {
+		if t, ok := ctx.(IExpressionContext); ok {
 			tst[i] = t.(IExpressionContext)
+			i++
 		}
 	}
 
@@ -2108,7 +2300,17 @@ func (s *BinaryOpExprContext) AllExpression() []IExpressionContext {
 }
 
 func (s *BinaryOpExprContext) Expression(i int) IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), i)
+	var t antlr.RuleContext
+	j := 0
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			if j == i {
+				t = ctx.(antlr.RuleContext)
+				break
+			}
+			j++
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -2262,7 +2464,13 @@ func (s *ParenExprContext) L_PAREN() antlr.TerminalNode {
 }
 
 func (s *ParenExprContext) Expression() IExpressionContext {
-	var t = s.GetTypedRuleContext(reflect.TypeOf((*IExpressionContext)(nil)).Elem(), 0)
+	var t antlr.RuleContext
+	for _, ctx := range s.GetChildren() {
+		if _, ok := ctx.(IExpressionContext); ok {
+			t = ctx.(antlr.RuleContext)
+			break
+		}
+	}
 
 	if t == nil {
 		return nil
@@ -2302,11 +2510,14 @@ func (p *SequenceParser) Expression() (localctx IExpressionContext) {
 }
 
 func (p *SequenceParser) expression(_p int) (localctx IExpressionContext) {
+	this := p
+	_ = this
+
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
 	_parentState := p.GetState()
 	localctx = NewExpressionContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IExpressionContext = localctx
-	var _ antlr.ParserRuleContext = _prevctx
+	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
 	_startState := 18
 	p.EnterRecursionRule(localctx, 18, SequenceParserRULE_expression, _p)
 	var _la int
@@ -2605,6 +2816,9 @@ func (p *SequenceParser) Sempred(localctx antlr.RuleContext, ruleIndex, predInde
 }
 
 func (p *SequenceParser) Expression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
+	this := p
+	_ = this
+
 	switch predIndex {
 	case 0:
 		return p.Precpred(p.GetParserRuleContext(), 4)
