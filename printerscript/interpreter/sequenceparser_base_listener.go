@@ -1,4 +1,4 @@
-// Code generated from SequenceParser.g4 by ANTLR 4.9. DO NOT EDIT.
+// Code generated from SequenceParser.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package interpreter // SequenceParser
 import "github.com/antlr/antlr4/runtime/Go/antlr"
