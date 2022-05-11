@@ -111,6 +111,7 @@ G92 E0 ; reset extruder
 }
 
 func Test_Escapes(t *testing.T) {
+    // escapes at start of string text
     expectOutput(t, "\"\\\"\"", "\"\n")
     expectOutput(t, "'\\''", "'\n")
     expectOutput(t, "\"\\{{\"", "{{\n")
@@ -118,6 +119,15 @@ func Test_Escapes(t *testing.T) {
     expectOutput(t, "\"\\{{\"", "{{\n")
     expectOutput(t, "\"{foo}\"", "{foo}\n")
     expectOutput(t, "\"}\"", "}\n")
+
+    // escapes mid-text
+    expectOutput(t, "\"bar\\\"\"", "bar\"\n")
+    expectOutput(t, "'bar\\''", "bar'\n")
+    expectOutput(t, "\"bar\\{{\"", "bar{{\n")
+    expectOutput(t, "\"bar\\{{foo}}\"", "bar{{foo}}\n")
+    expectOutput(t, "\"bar\\{{\"", "bar{{\n")
+    expectOutput(t, "\"bar{foo}\"", "bar{foo}\n")
+    expectOutput(t, "\"bar}\"", "bar}\n")
 }
 
 func Test_LineComments(t *testing.T) {

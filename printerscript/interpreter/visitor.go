@@ -196,15 +196,9 @@ func (v *Visitor) VisitGCodeText(ctx *GCodeTextContext) interface{} {
 
 func (v *Visitor) VisitGCodeEscapedText(ctx *GCodeEscapedTextContext) interface{} {
     if DEBUG { fmt.Println("VisitGCodeEscapedText") }
-    // remove leading backslash if necessary
+    // include escaped text (without leading backslash) in output
     text := ctx.GetText()
-    if len(text) > 0 {
-        if text[0] == '\\' {
-            v.result += text[1:]
-        } else {
-            v.result += text
-        }
-    }
+    v.result += text[1:]
     return nil
 }
 
