@@ -6,6 +6,7 @@ import (
 	"math"
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"mosaicmfg.com/ps-postprocess/printerscript"
+	"strings"
 )
 
 type Material struct {
@@ -127,21 +128,21 @@ func LoadPaletteFromFile(path string) (Palette, error) {
 	}
 
 	// lex and parse scripts just once now, and re-use the parse trees when evaluating
-	if len(palette.PreSideTransitionSequence) > 0 {
+	if len(strings.TrimSpace(palette.PreSideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.PreSideTransitionSequence)
 		if err != nil {
 			return palette, err
 		}
 		palette.PreSideTransitionScript = tree
 	}
-	if len(palette.SideTransitionSequence) > 0 {
+	if len(strings.TrimSpace(palette.SideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.SideTransitionSequence)
 		if err != nil {
 			return palette, err
 		}
 		palette.SideTransitionScript = tree
 	}
-	if len(palette.PostSideTransitionSequence) > 0 {
+	if len(strings.TrimSpace(palette.PostSideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.PostSideTransitionSequence)
 		if err != nil {
 			return palette, err

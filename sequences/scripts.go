@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"mosaicmfg.com/ps-postprocess/printerscript"
+	"strings"
 )
 
 type Scripts struct {
@@ -39,21 +40,21 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		LayerChange:    nil,
 		MaterialChange: make([]printerscript.Tree, len(s.MaterialChange)),
 	}
-	if len(s.Start) > 0 {
+	if len(strings.TrimSpace(s.Start)) > 0 {
 		tree, err := printerscript.LexAndParse(s.Start)
 		if err != nil {
 			return parsed, err
 		}
 		parsed.Start = tree
 	}
-	if len(s.End) > 0 {
+	if len(strings.TrimSpace(s.End)) > 0 {
 		tree, err := printerscript.LexAndParse(s.End)
 		if err != nil {
 			return parsed, err
 		}
 		parsed.End = tree
 	}
-	if len(s.LayerChange) > 0 {
+	if len(strings.TrimSpace(s.LayerChange)) > 0 {
 		tree, err := printerscript.LexAndParse(s.LayerChange)
 		if err != nil {
 			return parsed, err
@@ -61,7 +62,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		parsed.LayerChange = tree
 	}
 	for i, script := range s.MaterialChange {
-		if len(script) > 0 {
+		if len(strings.TrimSpace(script)) > 0 {
 			tree, err := printerscript.LexAndParse(script)
 			if err != nil {
 				return parsed, err
