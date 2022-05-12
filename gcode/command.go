@@ -12,11 +12,11 @@ type Params map[string]float32
 type Flags map[string]bool
 
 type Command struct {
-	Raw string
+	Raw     string
 	Command string
 	Comment string
-	Params Params
-	Flags Flags
+	Params  Params
+	Flags   Flags
 }
 
 func NewCommand(raw, command, comment string, params Params, flags Flags) Command {
@@ -75,7 +75,7 @@ func (gcc Command) IsToolChange() (bool, int) {
 
 func FormatFloat(value float64) string {
 	// round to 5 decimal places first
-	value = math.Round(value * 10e5) / 10e5
+	value = math.Round(value*10e5) / 10e5
 	// output with exactly 5 decimal places
 	valStr := fmt.Sprintf("%.5f", value)
 	// remove trailing zeros, and the decimal point if we reach it
@@ -112,7 +112,7 @@ func (gcc Command) String() string {
 	line := ""
 	if gcc.Command != "" {
 		line += gcc.Command
-		paramsAndFlags := make([]string, 0, len(gcc.Params) + len(gcc.Flags))
+		paramsAndFlags := make([]string, 0, len(gcc.Params)+len(gcc.Flags))
 
 		for param, value := range gcc.Params {
 			paramString := fmt.Sprintf("%s%s", strings.ToUpper(param), FormatFloat(float64(value)))
@@ -125,8 +125,10 @@ func (gcc Command) String() string {
 		sort.Slice(paramsAndFlags, func(i, j int) bool {
 			// sorting logic:
 			// X, Y, Z, E, F, then alphabetical
-			iKey := paramsAndFlags[i][0:1]; iScore := scoreParamKey(iKey)
-			jKey := paramsAndFlags[j][0:1]; jScore := scoreParamKey(jKey)
+			iKey := paramsAndFlags[i][0:1]
+			iScore := scoreParamKey(iKey)
+			jKey := paramsAndFlags[j][0:1]
+			jScore := scoreParamKey(jKey)
 			if iScore == 0 && jScore == 0 {
 				// just alphabetical
 				return iKey < jKey
