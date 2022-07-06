@@ -68,8 +68,8 @@ func sequenceparserParserInit() {
 		9, 1, 9, 1, 9, 3, 9, 124, 8, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 1,
 		9, 1, 9, 1, 9, 1, 9, 1, 9, 1, 9, 5, 9, 138, 8, 9, 10, 9, 12, 9, 141, 9,
 		9, 1, 9, 0, 1, 18, 10, 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 0, 7, 2, 0, 45,
-		45, 49, 49, 2, 0, 44, 44, 48, 48, 2, 0, 43, 43, 47, 47, 1, 0, 21, 23, 1,
-		0, 19, 20, 2, 0, 13, 16, 24, 25, 1, 0, 11, 12, 157, 0, 20, 1, 0, 0, 0,
+		45, 49, 49, 2, 0, 44, 44, 48, 48, 2, 0, 43, 43, 47, 47, 1, 0, 19, 20, 1,
+		0, 21, 23, 2, 0, 13, 16, 24, 25, 1, 0, 11, 12, 157, 0, 20, 1, 0, 0, 0,
 		2, 33, 1, 0, 0, 0, 4, 35, 1, 0, 0, 0, 6, 52, 1, 0, 0, 0, 8, 54, 1, 0, 0,
 		0, 10, 64, 1, 0, 0, 0, 12, 66, 1, 0, 0, 0, 14, 86, 1, 0, 0, 0, 16, 94,
 		1, 0, 0, 0, 18, 123, 1, 0, 0, 0, 20, 21, 3, 2, 1, 0, 21, 22, 5, 0, 0, 1,
@@ -105,12 +105,12 @@ func sequenceparserParserInit() {
 		0, 0, 112, 124, 5, 33, 0, 0, 113, 124, 5, 4, 0, 0, 114, 124, 5, 5, 0, 0,
 		115, 116, 5, 6, 0, 0, 116, 117, 3, 18, 9, 0, 117, 118, 5, 7, 0, 0, 118,
 		124, 1, 0, 0, 0, 119, 120, 5, 18, 0, 0, 120, 124, 3, 18, 9, 6, 121, 122,
-		5, 19, 0, 0, 122, 124, 3, 18, 9, 5, 123, 96, 1, 0, 0, 0, 123, 110, 1, 0,
+		7, 3, 0, 0, 122, 124, 3, 18, 9, 5, 123, 96, 1, 0, 0, 0, 123, 110, 1, 0,
 		0, 0, 123, 111, 1, 0, 0, 0, 123, 112, 1, 0, 0, 0, 123, 113, 1, 0, 0, 0,
 		123, 114, 1, 0, 0, 0, 123, 115, 1, 0, 0, 0, 123, 119, 1, 0, 0, 0, 123,
 		121, 1, 0, 0, 0, 124, 139, 1, 0, 0, 0, 125, 126, 10, 4, 0, 0, 126, 127,
-		7, 3, 0, 0, 127, 138, 3, 18, 9, 5, 128, 129, 10, 3, 0, 0, 129, 130, 7,
-		4, 0, 0, 130, 138, 3, 18, 9, 4, 131, 132, 10, 2, 0, 0, 132, 133, 7, 5,
+		7, 4, 0, 0, 127, 138, 3, 18, 9, 5, 128, 129, 10, 3, 0, 0, 129, 130, 7,
+		3, 0, 0, 130, 138, 3, 18, 9, 4, 131, 132, 10, 2, 0, 0, 132, 133, 7, 5,
 		0, 0, 133, 138, 3, 18, 9, 3, 134, 135, 10, 1, 0, 0, 135, 136, 7, 6, 0,
 		0, 136, 138, 3, 18, 9, 2, 137, 125, 1, 0, 0, 0, 137, 128, 1, 0, 0, 0, 137,
 		131, 1, 0, 0, 0, 137, 134, 1, 0, 0, 0, 138, 141, 1, 0, 0, 0, 139, 137,
@@ -2089,6 +2089,10 @@ func (s *UnaryOpExprContext) Expression() IExpressionContext {
 	return t.(IExpressionContext)
 }
 
+func (s *UnaryOpExprContext) PLUS() antlr.TerminalNode {
+	return s.GetToken(SequenceParserPLUS, 0)
+}
+
 func (s *UnaryOpExprContext) MINUS() antlr.TerminalNode {
 	return s.GetToken(SequenceParserMINUS, 0)
 }
@@ -2561,7 +2565,7 @@ func (p *SequenceParser) expression(_p int) (localctx IExpressionContext) {
 		p.GetErrorHandler().Sync(p)
 		_la = p.GetTokenStream().LA(1)
 
-		if ((_la-4)&-(0x1f+1)) == 0 && ((1<<uint((_la-4)))&((1<<(SequenceParserTRUE-4))|(1<<(SequenceParserFALSE-4))|(1<<(SequenceParserL_PAREN-4))|(1<<(SequenceParserNOT-4))|(1<<(SequenceParserMINUS-4))|(1<<(SequenceParserIDENTIFIER-4))|(1<<(SequenceParserINT-4))|(1<<(SequenceParserFLOAT-4)))) != 0 {
+		if ((_la-4)&-(0x1f+1)) == 0 && ((1<<uint((_la-4)))&((1<<(SequenceParserTRUE-4))|(1<<(SequenceParserFALSE-4))|(1<<(SequenceParserL_PAREN-4))|(1<<(SequenceParserNOT-4))|(1<<(SequenceParserMINUS-4))|(1<<(SequenceParserPLUS-4))|(1<<(SequenceParserIDENTIFIER-4))|(1<<(SequenceParserINT-4))|(1<<(SequenceParserFLOAT-4)))) != 0 {
 			{
 				p.SetState(99)
 				p.expression(0)
@@ -2672,7 +2676,14 @@ func (p *SequenceParser) expression(_p int) (localctx IExpressionContext) {
 		_prevctx = localctx
 		{
 			p.SetState(121)
-			p.Match(SequenceParserMINUS)
+			_la = p.GetTokenStream().LA(1)
+
+			if !(_la == SequenceParserMINUS || _la == SequenceParserPLUS) {
+				p.GetErrorHandler().RecoverInline(p)
+			} else {
+				p.GetErrorHandler().ReportMatch(p)
+				p.Consume()
+			}
 		}
 		{
 			p.SetState(122)
