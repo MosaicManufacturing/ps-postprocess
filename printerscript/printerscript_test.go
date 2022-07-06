@@ -186,6 +186,11 @@ func Test_IdentifiersAssignmentAndExpressions(t *testing.T) {
 	if result.Output != "; x = -19\n" {
 		t.Error("mismatch in output")
 	}
+	expectLocal(t, "b=2\na=b++1", "a", 3.0)
+	expectLocal(t, "a=+1", "a", 1.0)
+	expectLocal(t, "b=2\na=b-1", "a", 1.0)
+	expectLocal(t, "b=2\na=b--1", "a", 3.0)
+	expectLocal(t, "a=-1", "a", -1.0)
 }
 
 func Test_OutputPrecision(t *testing.T) {
@@ -213,6 +218,13 @@ func Test_Not(t *testing.T) {
 	expectSuccess(t, "a = ! x")
 	expectLocal(t, "x=1\na = !x", "a", 0.0)
 	expectLocal(t, "a = !z", "a", 1.0)
+}
+
+func Test_UnaryPlus(t *testing.T) {
+	expectLocal(t, "x=1\na = +x", "a", 1.0)
+	expectLocal(t, "x=1\na = ++x", "a", 1.0)
+	expectLocal(t, "a = + +1", "a", 1.0)
+	expectLocal(t, "a = +0", "a", 0.0)
 }
 
 func Test_UnaryMinus(t *testing.T) {
@@ -260,7 +272,8 @@ func Test_Mod(t *testing.T) {
 
 func Test_Plus(t *testing.T) {
 	expectSyntaxError(t, "a = +")
-	expectSyntaxError(t, "a = + x")
+	expectSyntaxError(t, "a = x +")
+	expectSuccess(t, "a = + x")
 	expectSuccess(t, "a = x + y")
 	expectLocal(t, "x=1\ny=1\n  a = x + y", "a", 2.0)
 	expectLocal(t, "x=1\ny=1\n  a = x + 3", "a", 4.0)
@@ -271,6 +284,8 @@ func Test_Plus(t *testing.T) {
 
 func Test_Minus(t *testing.T) {
 	expectSyntaxError(t, "a = -")
+	expectSyntaxError(t, "a = x -")
+	expectSuccess(t, "a = - x")
 	expectSuccess(t, "a = x - y")
 	expectLocal(t, "x=1\ny=1\n  a = x - y", "a", 0.0)
 	expectLocal(t, "x=1\ny=1\n  a = x - 3", "a", -2.0)

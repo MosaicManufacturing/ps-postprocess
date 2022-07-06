@@ -147,6 +147,9 @@ func evaluateUnaryOp(op string, operand float64) (float64, error) {
 	if op == "-" {
 		return -operand, nil
 	}
+	if op == "+" {
+		return operand, nil
+	}
 	return 0, fmt.Errorf("unknown unary operator: '%s'", op)
 }
 
