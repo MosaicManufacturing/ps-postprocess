@@ -27,7 +27,7 @@ type InterpreterResult struct {
 // if lexing failed. In the case of a syntax error, the error will be a
 // SyntaxError including line and column information.
 func Lex(input string) (*TokenStream, error) {
-	input = normalizeInput(input)
+	input = Normalize(input)
 	if interpreter.DEBUG {
 		fmt.Println("===== LEXER =====")
 	}

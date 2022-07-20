@@ -128,6 +128,7 @@ func LoadPaletteFromFile(path string) (Palette, error) {
 	}
 
 	// lex and parse scripts just once now, and re-use the parse trees when evaluating
+	palette.PreSideTransitionSequence = printerscript.Normalize(palette.PreSideTransitionSequence)
 	if len(strings.TrimSpace(palette.PreSideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.PreSideTransitionSequence)
 		if err != nil {
@@ -135,6 +136,7 @@ func LoadPaletteFromFile(path string) (Palette, error) {
 		}
 		palette.PreSideTransitionScript = tree
 	}
+	palette.SideTransitionSequence = printerscript.Normalize(palette.SideTransitionSequence)
 	if len(strings.TrimSpace(palette.SideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.SideTransitionSequence)
 		if err != nil {
@@ -142,6 +144,7 @@ func LoadPaletteFromFile(path string) (Palette, error) {
 		}
 		palette.SideTransitionScript = tree
 	}
+	palette.PostSideTransitionSequence = printerscript.Normalize(palette.PostSideTransitionSequence)
 	if len(strings.TrimSpace(palette.PostSideTransitionSequence)) > 0 {
 		tree, err := printerscript.LexAndParse(palette.PostSideTransitionSequence)
 		if err != nil {
