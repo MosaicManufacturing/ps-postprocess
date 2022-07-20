@@ -40,6 +40,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		LayerChange:    nil,
 		MaterialChange: make([]printerscript.Tree, len(s.MaterialChange)),
 	}
+	s.Start = printerscript.Normalize(s.Start)
 	if len(strings.TrimSpace(s.Start)) > 0 {
 		tree, err := printerscript.LexAndParse(s.Start)
 		if err != nil {
@@ -47,6 +48,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		}
 		parsed.Start = tree
 	}
+	s.End = printerscript.Normalize(s.End)
 	if len(strings.TrimSpace(s.End)) > 0 {
 		tree, err := printerscript.LexAndParse(s.End)
 		if err != nil {
@@ -54,6 +56,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		}
 		parsed.End = tree
 	}
+	s.LayerChange = printerscript.Normalize(s.LayerChange)
 	if len(strings.TrimSpace(s.LayerChange)) > 0 {
 		tree, err := printerscript.LexAndParse(s.LayerChange)
 		if err != nil {
@@ -62,6 +65,8 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		parsed.LayerChange = tree
 	}
 	for i, script := range s.MaterialChange {
+		script = printerscript.Normalize(script)
+		s.MaterialChange[i] = script
 		if len(strings.TrimSpace(script)) > 0 {
 			tree, err := printerscript.LexAndParse(script)
 			if err != nil {
