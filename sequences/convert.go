@@ -65,24 +65,26 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			return nil
 		} else if line.Raw == endOfStartPlaceholder {
 			inStartSequence = false
-			opts := printerscript.InterpreterOptions{
-				EOL:             EOL,
-				TrailingNewline: false,
-				Locals: locals.Prepare(currentTool, map[string]float64{
-					"layer":                   0,
-					"nextX":                   preflightResults.startSequenceNextPos.nextX,
-					"nextY":                   preflightResults.startSequenceNextPos.nextY,
-					"nextZ":                   preflightResults.startSequenceNextPos.nextZ,
-					"currentPrintTemperature": 0,
-					"currentBedTemperature":   float64(temperatureTracker.Bed),
-				}),
+			if scripts.Start != nil {
+				opts := printerscript.InterpreterOptions{
+					EOL:             EOL,
+					TrailingNewline: false,
+					Locals: locals.Prepare(currentTool, map[string]float64{
+						"layer":                   0,
+						"nextX":                   preflightResults.startSequenceNextPos.nextX,
+						"nextY":                   preflightResults.startSequenceNextPos.nextY,
+						"nextZ":                   preflightResults.startSequenceNextPos.nextZ,
+						"currentPrintTemperature": 0,
+						"currentBedTemperature":   float64(temperatureTracker.Bed),
+					}),
+				}
+				result, err := printerscript.EvaluateTree(scripts.Start, opts)
+				if err != nil {
+					return err
+				}
+				output = result.Output
 			}
-			result, err := printerscript.EvaluateTree(scripts.Start, opts)
-			if err != nil {
-				return err
-			}
-			output = result.Output
-		} else if line.Raw == endPlaceholder {
+		} else if line.Raw == endPlaceholder && scripts.End != nil {
 			opts := printerscript.InterpreterOptions{
 				EOL:             EOL,
 				TrailingNewline: false,
@@ -102,53 +104,57 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			if err != nil {
 				return err
 			}
-			currentLayer = float64(layer)
-			opts := printerscript.InterpreterOptions{
-				EOL:             EOL,
-				TrailingNewline: false,
-				Locals: locals.Prepare(currentTool, map[string]float64{
-					"layer":                   currentLayer,
-					"currentX":                float64(positionTracker.CurrentX),
-					"currentY":                float64(positionTracker.CurrentY),
-					"currentZ":                float64(positionTracker.CurrentZ),
-					"nextX":                   preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextX,
-					"nextY":                   preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextY,
-					"nextZ":                   layerZ,
-					"currentPrintTemperature": float64(temperatureTracker.Extruder),
-					"currentBedTemperature":   float64(temperatureTracker.Bed),
-				}),
+			if scripts.LayerChange != nil {
+				currentLayer = float64(layer)
+				opts := printerscript.InterpreterOptions{
+					EOL:             EOL,
+					TrailingNewline: false,
+					Locals: locals.Prepare(currentTool, map[string]float64{
+						"layer":                   currentLayer,
+						"currentX":                float64(positionTracker.CurrentX),
+						"currentY":                float64(positionTracker.CurrentY),
+						"currentZ":                float64(positionTracker.CurrentZ),
+						"nextX":                   preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextX,
+						"nextY":                   preflightResults.layerChangeNextPos[nextLayerChangeIdx].nextY,
+						"nextZ":                   layerZ,
+						"currentPrintTemperature": float64(temperatureTracker.Extruder),
+						"currentBedTemperature":   float64(temperatureTracker.Bed),
+					}),
+				}
+				result, err := printerscript.EvaluateTree(scripts.LayerChange, opts)
+				if err != nil {
+					return err
+				}
+				output = result.Output
 			}
-			result, err := printerscript.EvaluateTree(scripts.LayerChange, opts)
-			if err != nil {
-				return err
-			}
-			output = result.Output
 			nextLayerChangeIdx++
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
 			toTool, err := parseMaterialChangePlaceholder(line.Raw)
 			if err != nil {
 				return err
 			}
-			opts := printerscript.InterpreterOptions{
-				EOL:             EOL,
-				TrailingNewline: false,
-				Locals: locals.Prepare(currentTool, map[string]float64{
-					"layer":                   currentLayer,
-					"currentX":                float64(positionTracker.CurrentX),
-					"currentY":                float64(positionTracker.CurrentY),
-					"currentZ":                float64(positionTracker.CurrentZ),
-					"nextX":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextX,
-					"nextY":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextY,
-					"nextZ":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextZ,
-					"currentPrintTemperature": float64(temperatureTracker.Extruder),
-					"currentBedTemperature":   float64(temperatureTracker.Bed),
-				}),
+			if scripts.MaterialChange[toTool] != nil {
+				opts := printerscript.InterpreterOptions{
+					EOL:             EOL,
+					TrailingNewline: false,
+					Locals: locals.Prepare(currentTool, map[string]float64{
+						"layer":                   currentLayer,
+						"currentX":                float64(positionTracker.CurrentX),
+						"currentY":                float64(positionTracker.CurrentY),
+						"currentZ":                float64(positionTracker.CurrentZ),
+						"nextX":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextX,
+						"nextY":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextY,
+						"nextZ":                   preflightResults.materialChangeNextPos[nextMaterialChangeIdx].nextZ,
+						"currentPrintTemperature": float64(temperatureTracker.Extruder),
+						"currentBedTemperature":   float64(temperatureTracker.Bed),
+					}),
+				}
+				result, err := printerscript.EvaluateTree(scripts.MaterialChange[toTool], opts)
+				if err != nil {
+					return err
+				}
+				output = result.Output
 			}
-			result, err := printerscript.EvaluateTree(scripts.MaterialChange[toTool], opts)
-			if err != nil {
-				return err
-			}
-			output = result.Output
 			nextMaterialChangeIdx++
 		}
 		if inStartSequence {
