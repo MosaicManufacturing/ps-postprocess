@@ -8,6 +8,9 @@ import (
 	"strconv"
 )
 
+// important for production! only set this to false when debugging locally
+const enforcePieceLengths = true
+
 type Splice struct {
 	Drive  int
 	Length float32
@@ -69,16 +72,25 @@ func (msf *MSF) addSplice(splice Splice) error {
 		if splice.Length < minLength-5 {
 			message := "First Piece Too Short\n"
 			message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
-			return errors.New(message)
+			if enforcePieceLengths {
+				return errors.New(message)
+			} else {
+				fmt.Println(message)
+			}
 		}
 	} else {
 		// all others
 		spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
 		minSpliceLength := msf.Palette.GetSpliceMinLength()
 		if spliceDelta < minSpliceLength-5 {
+			fmt.Printf("piece too short on splice %d\n", len(msf.SpliceList)+1)
 			message := "Piece Too Short\n"
 			message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
-			return errors.New(message)
+			if enforcePieceLengths {
+				return errors.New(message)
+			} else {
+				fmt.Printf("splice %d: %s\n", len(msf.SpliceList)+1, message)
+			}
 		}
 	}
 	msf.SpliceList = append(msf.SpliceList, splice)

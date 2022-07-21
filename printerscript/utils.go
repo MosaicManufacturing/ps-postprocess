@@ -9,7 +9,7 @@ func normalizeNewlines(input string) string {
 	return strings.ReplaceAll(input, "\r", "\n")
 }
 
-func normalizeInput(input string) string {
+func Normalize(input string) string {
 	// remove directive if present
 	if strings.HasPrefix(input, "@printerscript ") {
 		input = input[strings.IndexRune(input, '\n'):]
