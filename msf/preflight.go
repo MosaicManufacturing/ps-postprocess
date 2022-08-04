@@ -52,7 +52,7 @@ type msfPreflight struct {
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
 	// used for side transition custom scripts
-	transitionNextPositions []sideTransitionLookahead
+	transitionNextPositions []SideTransitionLookahead
 	timeEstimate            float32 // seconds
 	totalLayers             int
 }
@@ -67,11 +67,12 @@ func (mp *msfPreflight) totalDrivesUsed() int {
 	return total
 }
 
-type sideTransitionLookahead struct {
-	X     float32
-	Y     float32
-	Z     float32
-	Moved bool
+type SideTransitionLookahead struct {
+	X       float32 // X position of the next print line after the transition
+	Y       float32 // Y position of the next print line after the transition
+	Z       float32 // Z position of the next print line after the transition
+	MovedXY bool    // true iff X or Y movement was seen during lookahead process
+	MovedZ  bool    // true iff Z movement was seen during lookahead process
 }
 
 func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
@@ -91,7 +92,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	// account for a firmware purge (not part of G-code) once
 	state.E.TotalExtrusion += palette.FirmwarePurge
 	// prepare to collect lookahead positions
-	transitionNextPosition := sideTransitionLookahead{}
+	transitionNextPosition := SideTransitionLookahead{}
 
 	minSpliceLength := palette.GetSpliceMinLength()
 
@@ -117,27 +118,28 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			}
 			if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
 				continueLookahead := true
-				if transitionNextPosition.Moved {
+				if transitionNextPosition.MovedXY {
 					// had X/Y (and maybe Z) movement, and now we're extruding
 					//  - commit the most recent XYZ values, but ignore the ones in this command
 					if _, ok := line.Params["e"]; ok {
 						continueLookahead = false
 						results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
-						transitionNextPosition = sideTransitionLookahead{}
+						transitionNextPosition = SideTransitionLookahead{}
 						state.CurrentlyTransitioning = false
 					}
 				}
 				if continueLookahead {
 					if x, ok := line.Params["x"]; ok {
 						transitionNextPosition.X = x
-						transitionNextPosition.Moved = true
+						transitionNextPosition.MovedXY = true
 					}
 					if y, ok := line.Params["y"]; ok {
 						transitionNextPosition.Y = y
-						transitionNextPosition.Moved = true
+						transitionNextPosition.MovedXY = true
 					}
 					if z, ok := line.Params["z"]; ok {
 						transitionNextPosition.Z = z
+						transitionNextPosition.MovedZ = true
 					}
 				}
 			} else if state.OnWipeTower {

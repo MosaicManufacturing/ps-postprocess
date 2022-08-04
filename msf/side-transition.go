@@ -58,10 +58,9 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
 	return sequence, nil
 }
 
-func checkLeaveSideTransitionAdjustZ(state *State, upcomingZ float32) {
-	// TODO: expand the preflight lookahead logic to include information about
-	//   whether a Z move command will be applied without our intervention
-	if state.XYZF.CurrentZ != upcomingZ {
+func checkLeaveSideTransitionAdjustZ(state *State, upcomingPosition SideTransitionLookahead) {
+	upcomingZ := upcomingPosition.Z
+	if state.XYZF.CurrentZ != upcomingZ && !upcomingPosition.MovedZ {
 		state.NeedsPostTransitionZAdjust = true
 		state.PostTransitionZ = upcomingZ
 	}
@@ -79,16 +78,16 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 			"currentX":                float64(state.XYZF.CurrentX),
 			"currentY":                float64(state.XYZF.CurrentY),
 			"currentZ":                float64(state.XYZF.CurrentZ),
-			"nextX":                   float64(upcomingXYZ[0]),
-			"nextY":                   float64(upcomingXYZ[1]),
-			"nextZ":                   float64(upcomingXYZ[2]),
+			"nextX":                   float64(upcomingXYZ.X),
+			"nextY":                   float64(upcomingXYZ.Y),
+			"nextZ":                   float64(upcomingXYZ.Z),
 			"transitionLength":        float64(transitionLength),
 		})
 		sequence, err := evaluateScript(state.Palette.PostSideTransitionScript, locals, state)
 		if err != nil {
 			return "", err
 		}
-		checkLeaveSideTransitionAdjustZ(state, upcomingXYZ[2])
+		checkLeaveSideTransitionAdjustZ(state, upcomingXYZ)
 		return sequence, nil
 	}
 
@@ -103,7 +102,7 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 	sequence += resetEAxis(state)
 
 	sequence += "; leave side transition" + EOL
-	checkLeaveSideTransitionAdjustZ(state, upcomingXYZ[2])
+	checkLeaveSideTransitionAdjustZ(state, upcomingXYZ)
 	return sequence, nil
 }
 
