@@ -19,12 +19,14 @@ type State struct {
 	Temperature              gcode.TemperatureTracker
 	TimeEstimate             float32
 
-	PastStartSequence      bool
-	FirstToolChange        bool // don't treat the first T command as a toolchange
-	CurrentTool            int
-	CurrentlyTransitioning bool
-	OnWipeTower            bool
-	TowerBoundingBox       gcode.BoundingBox
+	PastStartSequence          bool
+	FirstToolChange            bool // don't treat the first T command as a toolchange
+	CurrentTool                int
+	CurrentlyTransitioning     bool
+	NeedsPostTransitionZAdjust bool
+	PostTransitionZ            float32
+	OnWipeTower                bool
+	TowerBoundingBox           gcode.BoundingBox
 
 	LastPingStart    float32
 	CurrentlyPinging bool

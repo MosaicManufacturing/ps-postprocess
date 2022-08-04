@@ -58,10 +58,20 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
 	return sequence, nil
 }
 
+func checkLeaveSideTransitionAdjustZ(state *State, upcomingZ float32) {
+	// TODO: expand the preflight lookahead logic to include information about
+	//   whether a Z move command will be applied without our intervention
+	if state.XYZF.CurrentZ != upcomingZ {
+		state.NeedsPostTransitionZAdjust = true
+		state.PostTransitionZ = upcomingZ
+	}
+}
+
 func leaveSideTransition(transitionLength float32, state *State, retractDistance float32) (string, error) {
+	transitionIdx := len(state.MSF.SpliceList) - 1
+	upcomingXYZ := state.TransitionNextPositions[transitionIdx]
 	if state.Palette.PostSideTransitionScript != nil {
 		// user script instead of built-in logic
-		transitionIdx := len(state.MSF.SpliceList) - 1
 		locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
 			"layer":                   float64(state.CurrentLayer),
 			"currentPrintTemperature": float64(state.Temperature.Extruder),
@@ -69,12 +79,17 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 			"currentX":                float64(state.XYZF.CurrentX),
 			"currentY":                float64(state.XYZF.CurrentY),
 			"currentZ":                float64(state.XYZF.CurrentZ),
-			"nextX":                   float64(state.TransitionNextPositions[transitionIdx][0]),
-			"nextY":                   float64(state.TransitionNextPositions[transitionIdx][1]),
-			"nextZ":                   float64(state.TransitionNextPositions[transitionIdx][2]),
+			"nextX":                   float64(upcomingXYZ[0]),
+			"nextY":                   float64(upcomingXYZ[1]),
+			"nextZ":                   float64(upcomingXYZ[2]),
 			"transitionLength":        float64(transitionLength),
 		})
-		return evaluateScript(state.Palette.PostSideTransitionScript, locals, state)
+		sequence, err := evaluateScript(state.Palette.PostSideTransitionScript, locals, state)
+		if err != nil {
+			return "", err
+		}
+		checkLeaveSideTransitionAdjustZ(state, upcomingXYZ[2])
+		return sequence, nil
 	}
 
 	sequence := ""
@@ -88,6 +103,7 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 	sequence += resetEAxis(state)
 
 	sequence += "; leave side transition" + EOL
+	checkLeaveSideTransitionAdjustZ(state, upcomingXYZ[2])
 	return sequence, nil
 }
 
