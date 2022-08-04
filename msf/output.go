@@ -24,11 +24,7 @@ func _paletteOutput(
 	state := NewState(palette)
 	state.MSF = msfOut
 	state.TowerBoundingBox = preflight.towerBoundingBox
-	for _, position := range preflight.transitionNextPositions {
-		state.TransitionNextPositions = append(state.TransitionNextPositions, [3]float32{
-			position.X, position.Y, position.Z,
-		})
-	}
+	state.TransitionNextPositions = preflight.transitionNextPositions
 	locals.Global["totalTime"] = float64(preflight.timeEstimate)
 	locals.Global["totalLayers"] = float64(preflight.totalLayers)
 
@@ -122,6 +118,33 @@ func _paletteOutput(
 			state.E.TrackInstruction(line)
 			state.XYZF.TrackInstruction(line)
 			state.Temperature.TrackInstruction(line)
+		}
+		if state.NeedsPostTransitionZAdjust {
+			_, hasX := line.Params["x"]
+			_, hasY := line.Params["y"]
+			_, hasZ := line.Params["z"]
+			eParam, hasE := line.Params["e"]
+			isPrintLine := (hasX || hasY) && hasE
+			isRestart := !(hasX || hasY || hasZ) && hasE && state.E.CurrentRetraction+eParam == 0
+			if isPrintLine || isRestart {
+				// restore pre-transition Z height immediately before doing a print line
+				currentF := state.XYZF.CurrentFeedrate
+				if err := writeLines(writer, getZTravel(&state, state.PostTransitionZ, "restore layer Z")); err != nil {
+					return err
+				}
+				state.NeedsPostTransitionZAdjust = false
+				state.PostTransitionZ = 0
+				// restore most recent F value, as Z travel likely changed it
+				// (not needed for restart command, which always includes an F value)
+				if !isRestart {
+					feedrateAdjustment := getFeedrateAdjust(&state, currentF)
+					if len(feedrateAdjustment) > 0 {
+						if err := writeLines(writer, feedrateAdjustment); err != nil {
+							return err
+						}
+					}
+				}
+			}
 		}
 		if line.IsLinearMove() {
 			if err := writeLine(writer, line.Raw); err != nil {
