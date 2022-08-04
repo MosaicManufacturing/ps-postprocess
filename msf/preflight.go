@@ -242,6 +242,10 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					state.CurrentTool = tool
 					if palette.TransitionMethod != CustomTower {
 						state.CurrentlyTransitioning = true
+						// initialize default post-transition positions to account for sticky parameters
+						transitionNextPosition.X = state.XYZF.CurrentX
+						transitionNextPosition.Y = state.XYZF.CurrentY
+						transitionNextPosition.Z = state.XYZF.CurrentZ
 					}
 					results.drivesUsed[state.CurrentTool] = true
 				}
