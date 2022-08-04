@@ -119,7 +119,7 @@ func _paletteOutput(
 			state.XYZF.TrackInstruction(line)
 			state.Temperature.TrackInstruction(line)
 		}
-		if state.NeedsPostTransitionZAdjust {
+		if state.NeedsPostTransitionZAdjust && line.IsLinearMove() {
 			_, hasX := line.Params["x"]
 			_, hasY := line.Params["y"]
 			_, hasZ := line.Params["z"]
