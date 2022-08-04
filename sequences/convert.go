@@ -2,6 +2,7 @@ package sequences
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"mosaicmfg.com/ps-postprocess/printerscript"
@@ -133,7 +134,10 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			if err != nil {
 				return err
 			}
-			if scripts.MaterialChange[toTool] != nil {
+			if scripts.MaterialChange[toTool] == nil {
+				// don't output the unprocessed placeholder line
+				output = fmt.Sprintf("; material change (%d)", toTool)
+			} else {
 				opts := printerscript.InterpreterOptions{
 					EOL:             EOL,
 					TrailingNewline: false,

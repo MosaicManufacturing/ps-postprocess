@@ -84,6 +84,20 @@ func getFirmwareRestart() string {
 	return "G11" + EOL
 }
 
+func getFeedrateAdjust(state *State, feedrate float32) string {
+	if state.XYZF.CurrentFeedrate == feedrate {
+		return ""
+	}
+	cmd := gcode.Command{
+		Command: "G1",
+		Params: map[string]float32{
+			"f": feedrate,
+		},
+	}
+	state.XYZF.TrackInstruction(cmd)
+	return cmd.String() + EOL
+}
+
 func getZTravel(state *State, toZ float32, comment string) string {
 	if state.XYZF.CurrentZ == toZ {
 		return ""
