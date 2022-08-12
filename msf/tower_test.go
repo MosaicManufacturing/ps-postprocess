@@ -315,6 +315,10 @@ func Test_8ColorTowerShortTransitionsWithInfill(t *testing.T) {
 	testWithInputFiles(t, "4")
 }
 
+func Test_8ColorTowerVariableTransitions(t *testing.T) {
+	testWithInputFiles(t, "5")
+}
+
 // TODO: add tests for the following cases (including combinations):
 //   - first piece length handling (auto-brims)
 //   - inclusion of sparse layers
