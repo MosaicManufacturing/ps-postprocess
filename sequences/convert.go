@@ -91,6 +91,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				TrailingNewline: false,
 				Locals: locals.Prepare(currentTool, map[string]float64{
 					"layer":                   float64(preflightResults.totalLayers),
+					"currentX":                float64(positionTracker.CurrentX),
+					"currentY":                float64(positionTracker.CurrentY),
+					"currentZ":                float64(positionTracker.CurrentZ),
 					"currentPrintTemperature": float64(temperatureTracker.Extruder),
 					"currentBedTemperature":   float64(temperatureTracker.Bed),
 				}),
