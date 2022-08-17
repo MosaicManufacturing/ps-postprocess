@@ -58,7 +58,7 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
 	return sequence, nil
 }
 
-func checkLeaveSideTransitionAdjustZ(state *State, upcomingPosition SideTransitionLookahead) {
+func checkLeaveSideTransitionAdjustZ(state *State, upcomingPosition TransitionLookahead) {
 	upcomingZ := upcomingPosition.Z
 	if state.XYZF.CurrentZ != upcomingZ && !upcomingPosition.MovedZ {
 		state.NeedsPostTransitionZAdjust = true

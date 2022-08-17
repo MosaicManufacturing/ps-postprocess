@@ -29,7 +29,7 @@ type msfPreflight struct {
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
 	// used for side transition custom scripts
-	transitionNextPositions []SideTransitionLookahead
+	transitionNextPositions []TransitionLookahead
 	timeEstimate            float32 // seconds
 	totalLayers             int
 }
@@ -42,14 +42,6 @@ func (mp *msfPreflight) totalDrivesUsed() int {
 		}
 	}
 	return total
-}
-
-type SideTransitionLookahead struct {
-	X       float32 // X position of the next print line after the transition
-	Y       float32 // Y position of the next print line after the transition
-	Z       float32 // Z position of the next print line after the transition
-	MovedXY bool    // true iff X or Y movement was seen during lookahead process
-	MovedZ  bool    // true iff Z movement was seen during lookahead process
 }
 
 func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
@@ -69,7 +61,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	// account for a firmware purge (not part of G-code) once
 	state.E.TotalExtrusion += palette.FirmwarePurge
 	// prepare to collect lookahead positions
-	transitionNextPosition := SideTransitionLookahead{}
+	transitionNextPosition := TransitionLookahead{} // todo: rename variable
 
 	minSpliceLength := palette.GetSpliceMinLength()
 
@@ -101,7 +93,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					if _, ok := line.Params["e"]; ok {
 						continueLookahead = false
 						results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
-						transitionNextPosition = SideTransitionLookahead{}
+						transitionNextPosition = TransitionLookahead{}
 						state.CurrentlyTransitioning = false
 					}
 				}
