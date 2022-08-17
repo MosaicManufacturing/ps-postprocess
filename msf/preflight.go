@@ -10,29 +10,6 @@ import (
 // round layer thicknesses and top Zs to this many decimal places
 const maxZPrecision = 5
 
-type Transition struct {
-	Layer            int
-	From             int
-	To               int
-	TotalExtrusion   float32 // total non-tower extrusion at start of transition
-	TransitionLength float32 // actual transition length as specified by user
-	PurgeLength      float32 // amount of filament to extrude
-	UsableInfill     float32 // subtract this amount from the splice length
-}
-
-func (t Transition) String() string {
-	return fmt.Sprintf(
-		"Layer = %d, From = %d, To = %d, TotalExtrusion = %f, TransitionLength = %f, PurgeLength = %f, UsableInfill = %f",
-		t.Layer,
-		t.From,
-		t.To,
-		t.TotalExtrusion,
-		t.TransitionLength,
-		t.PurgeLength,
-		t.UsableInfill,
-	)
-}
-
 type msfPreflight struct {
 	// always used
 	drivesUsed []bool
