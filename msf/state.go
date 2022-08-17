@@ -34,6 +34,7 @@ type State struct {
 	NextPingStart    float32
 
 	TransitionNextPositions []TransitionLookahead
+	ScriptNextPositions     []ScriptLookahead
 	Locals                  sequences.Locals // for PrinterScript side transition sequences
 }
 

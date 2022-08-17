@@ -30,13 +30,9 @@ type sequencesPreflight struct {
 }
 
 func preflight(inpath string) (sequencesPreflight, error) {
-	results := sequencesPreflight{
-		layerChangeNextPos:    make([]lookahead, 0),
-		materialChangeNextPos: make([]lookahead, 0),
-	}
-	position := gcode.PositionTracker{}
-
-	currentLookaheads := make([]lookahead, 0)
+	var results sequencesPreflight
+	var position gcode.PositionTracker
+	var currentLookaheads []lookahead
 
 	commitCurrentLookaheads := func() {
 		if len(currentLookaheads) == 0 {

@@ -227,3 +227,14 @@ func testWithInputFiles(t *testing.T, folderName string) {
 	}
 	testTowerOutput(t, &palette, string(printContent), &preflightResults, locals)
 }
+
+func preflightWithInputFiles(t *testing.T, folderName string) (msfPreflight, error) {
+	printPath := path.Join("test-files", folderName, "print.gcode")
+	palettePath := path.Join("test-files", folderName, "palette.json")
+
+	palette, err := LoadPaletteFromFile(palettePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return preflight(printPath, &palette)
+}

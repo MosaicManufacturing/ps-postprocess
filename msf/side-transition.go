@@ -68,7 +68,17 @@ func checkLeaveSideTransitionAdjustZ(state *State, upcomingPosition TransitionLo
 
 func leaveSideTransition(transitionLength float32, state *State, retractDistance float32) (string, error) {
 	transitionIdx := len(state.MSF.SpliceList) - 1
-	upcomingXYZ := state.TransitionNextPositions[transitionIdx]
+	upcomingXYZ := state.ScriptNextPositions[transitionIdx]
+	nextX, nextY, nextZ := state.XYZF.CurrentX, state.XYZF.CurrentY, state.XYZF.CurrentZ
+	if upcomingXYZ.InitializedX {
+		nextX = upcomingXYZ.X
+	}
+	if upcomingXYZ.InitializedY {
+		nextY = upcomingXYZ.Y
+	}
+	if upcomingXYZ.InitializedZ {
+		nextZ = upcomingXYZ.Z
+	}
 	if state.Palette.PostSideTransitionScript != nil {
 		// user script instead of built-in logic
 		locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
@@ -78,16 +88,16 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 			"currentX":                float64(state.XYZF.CurrentX),
 			"currentY":                float64(state.XYZF.CurrentY),
 			"currentZ":                float64(state.XYZF.CurrentZ),
-			"nextX":                   float64(upcomingXYZ.X),
-			"nextY":                   float64(upcomingXYZ.Y),
-			"nextZ":                   float64(upcomingXYZ.Z),
+			"nextX":                   float64(nextX),
+			"nextY":                   float64(nextY),
+			"nextZ":                   float64(nextZ),
 			"transitionLength":        float64(transitionLength),
 		})
 		sequence, err := evaluateScript(state.Palette.PostSideTransitionScript, locals, state)
 		if err != nil {
 			return "", err
 		}
-		checkLeaveSideTransitionAdjustZ(state, upcomingXYZ)
+		checkLeaveSideTransitionAdjustZ(state, state.TransitionNextPositions[transitionIdx])
 		return sequence, nil
 	}
 
@@ -102,7 +112,7 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 	sequence += resetEAxis(state)
 
 	sequence += "; leave side transition" + EOL
-	checkLeaveSideTransitionAdjustZ(state, upcomingXYZ)
+	checkLeaveSideTransitionAdjustZ(state, state.TransitionNextPositions[transitionIdx])
 	return sequence, nil
 }
 

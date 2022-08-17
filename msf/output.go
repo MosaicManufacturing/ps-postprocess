@@ -25,6 +25,7 @@ func _paletteOutput(
 	state.MSF = msfOut
 	state.TowerBoundingBox = preflight.towerBoundingBox
 	state.TransitionNextPositions = preflight.transitionNextPositions
+	state.ScriptNextPositions = preflight.scriptNextPositions
 	locals.Global["totalTime"] = float64(preflight.timeEstimate)
 	locals.Global["totalLayers"] = float64(preflight.totalLayers)
 

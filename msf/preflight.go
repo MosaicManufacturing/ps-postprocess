@@ -28,9 +28,10 @@ type msfPreflight struct {
 	transitionsByLayer map[int][]Transition // array of Transition per layer
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
-	// used for side transition custom scripts
-	transitionNextPositions []TransitionLookahead
-	timeEstimate            float32 // seconds
+	// used for side transitions
+	transitionNextPositions []TransitionLookahead // used for "leave side" logic
+	scriptNextPositions     []ScriptLookahead     // used for "after side transition" script variables
+	timeEstimate            float32               // seconds
 	totalLayers             int
 }
 
@@ -61,7 +62,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	// account for a firmware purge (not part of G-code) once
 	state.E.TotalExtrusion += palette.FirmwarePurge
 	// prepare to collect lookahead positions
-	transitionNextPosition := TransitionLookahead{} // todo: rename variable
+	transitionNextPosition := TransitionLookahead{}
+	scriptNextPosition := ScriptLookahead{}
 
 	minSpliceLength := palette.GetSpliceMinLength()
 
@@ -92,6 +94,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					//  - commit the most recent XYZ values, but ignore the ones in this command
 					if _, ok := line.Params["e"]; ok {
 						continueLookahead = false
+						results.scriptNextPositions = append(results.scriptNextPositions, scriptNextPosition)
+						scriptNextPosition = ScriptLookahead{}
 						results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
 						transitionNextPosition = TransitionLookahead{}
 						state.CurrentlyTransitioning = false
@@ -101,14 +105,26 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					if x, ok := line.Params["x"]; ok {
 						transitionNextPosition.X = x
 						transitionNextPosition.MovedXY = true
+						if !scriptNextPosition.InitializedX {
+							scriptNextPosition.X = x
+							scriptNextPosition.InitializedX = true
+						}
 					}
 					if y, ok := line.Params["y"]; ok {
 						transitionNextPosition.Y = y
 						transitionNextPosition.MovedXY = true
+						if !scriptNextPosition.InitializedY {
+							scriptNextPosition.Y = y
+							scriptNextPosition.InitializedY = true
+						}
 					}
 					if z, ok := line.Params["z"]; ok {
 						transitionNextPosition.Z = z
 						transitionNextPosition.MovedZ = true
+						if !scriptNextPosition.InitializedZ {
+							scriptNextPosition.Z = z
+							scriptNextPosition.InitializedZ = true
+						}
 					}
 				}
 			} else if state.OnWipeTower {
@@ -318,6 +334,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 
 	if palette.TransitionMethod == SideTransitions && state.CurrentlyTransitioning {
 		results.transitionNextPositions = append(results.transitionNextPositions, transitionNextPosition)
+		results.scriptNextPositions = append(results.scriptNextPositions, scriptNextPosition)
 	}
 	if results.boundingBox.Min[2] > 0 {
 		results.boundingBox.Min[2] = 0

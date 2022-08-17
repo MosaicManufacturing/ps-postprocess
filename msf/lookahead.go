@@ -12,3 +12,13 @@ type TransitionLookahead struct {
 	MovedZ  bool    // true iff Z movement was seen during lookahead process
 }
 
+// ScriptLookahead contains XYZ coordinates representing the nextX/nextY/nextZ
+// PrinterScript locals for "after side transition" scripts. TODO: use me
+type ScriptLookahead struct {
+	X            float32
+	Y            float32
+	Z            float32
+	InitializedX bool
+	InitializedY bool
+	InitializedZ bool
+}
