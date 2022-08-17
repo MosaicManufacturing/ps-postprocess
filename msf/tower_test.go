@@ -2,6 +2,7 @@ package msf
 
 import (
 	"mosaicmfg.com/ps-postprocess/sequences"
+	"path"
 	"testing"
 )
 
@@ -300,23 +301,23 @@ G1 E50 F2400
 }
 
 func Test_4ColorTowerShortTransitions(t *testing.T) {
-	testWithInputFiles(t, "1")
+	testWithInputFiles(t, path.Join("tower", "1"))
 }
 
 func Test_4ColorTowerShortTransitionsWithInfill(t *testing.T) {
-	testWithInputFiles(t, "2")
+	testWithInputFiles(t, path.Join("tower", "2"))
 }
 
 func Test_8ColorTowerShortTransitions(t *testing.T) {
-	testWithInputFiles(t, "3")
+	testWithInputFiles(t, path.Join("tower", "3"))
 }
 
 func Test_8ColorTowerShortTransitionsWithInfill(t *testing.T) {
-	testWithInputFiles(t, "4")
+	testWithInputFiles(t, path.Join("tower", "4"))
 }
 
 func Test_8ColorTowerVariableTransitions(t *testing.T) {
-	testWithInputFiles(t, "5")
+	testWithInputFiles(t, path.Join("tower", "5"))
 }
 
 // TODO: add tests for the following cases (including combinations):
