@@ -113,6 +113,22 @@ func getExtrusionLength(extrusionWidth, layerHeight, length float32) float32 {
 	return filamentVolumeToLength(volume)
 }
 
+// getTowerExtrusionCorrectionFactor returns the difference, as a ratio, between the
+// naive estimate of a toolpath's cross-sectional area that treats it as a rectangle
+// (width * height) and the more accurate, smaller value that treats it as a rectangle
+// with semicircular end caps (the formula below).
+func getTowerExtrusionCorrectionFactor(extrusionWidth, layerHeight float32) float64 {
+	var x, y float64
+	if extrusionWidth >= layerHeight {
+		x, y = float64(extrusionWidth), float64(layerHeight)
+	} else {
+		x, y = float64(layerHeight), float64(extrusionWidth)
+	}
+	naiveArea := x * y
+	informedArea := y*(x-y) + y*y*math.Pi/4
+	return naiveArea / informedArea
+}
+
 func getPrintSummary(msf *MSF, timeEstimate float32) string {
 	totalFilament := msf.GetTotalFilamentLength()
 	filamentByDrive := msf.GetFilamentLengthsByDrive()

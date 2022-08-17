@@ -120,6 +120,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
 	layerFootprintAreas := make([]float32, totalLayers)
 	footprintArea := float64(0)
 	for layer, transitions := range preflight.transitionsByLayer {
+		layerThickness := layerThicknesses[layer]
 		layerPurgeLength := float32(0) // mm
 		for _, transition := range transitions {
 			layerPurgeLength += transition.PurgeLength / extrusionMultiplier
@@ -127,12 +128,15 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
 		layerPurgeVolume := float64(filamentLengthToVolume(layerPurgeLength)) // mm3
 		// adjust for max density
 		layerPurgeVolume /= maxDensity
-		// raise the volume slightly to account for errors in total toolpath extrusion
-		layerPurgeVolume *= 1.05
+
 		// ensure the layer has room for at least one ping
 		layerPurgeVolume = math.Max(layerPurgeVolume, minLayerVolume)
 
-		layerFootprintArea := float32(layerPurgeVolume) / layerThicknesses[layer]
+		// account for errors in total toolpath extrusion
+		wastedSpaceMultiplier := getTowerExtrusionCorrectionFactor(palette.TowerExtrusionWidth, layerThickness)
+		layerPurgeVolume *= wastedSpaceMultiplier
+
+		layerFootprintArea := float32(layerPurgeVolume) / layerThickness
 		layerFootprintAreas[layer] = layerFootprintArea
 		footprintArea = math.Max(footprintArea, float64(layerFootprintArea))
 	}
