@@ -4,5 +4,9 @@ runs:
   using: composite
   steps:
     - uses: actions/setup-go@v3
+    - run: echo "::set-env name=GOPATH::$(go env GOPATH)"
+      shell: bash
+    - run: echo "::add-path::$(go env GOPATH)/bin"
+      shell: bash
     - run: GOOS=linux GOARCH=amd64 ./licensebot-check.sh
       shell: bash
