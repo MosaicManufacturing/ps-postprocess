@@ -1,0 +1,8 @@
+name: Licensebot Check
+description: Check dependency licenses
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-go@v3
+    - run: GOOS=linux GOARCH=amd64 ./licensebot-check.sh
+      shell: bash
