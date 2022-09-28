@@ -4,6 +4,9 @@ on:
   push:
     branches: ['development']
 
+env:
+  DEPLOY_ENV: development
+
 jobs:
   test:
     name: Test
@@ -46,7 +49,7 @@ jobs:
           aws-role: ${{secrets.AWS_ROLE}}
           aws-region: ${{secrets.AWS_REGION}}
           s3-bucket: ${{secrets.S3_BUCKET}}
-          s3-key: go-utils/ps-postprocess-development
+          s3-key: go-utils/ps-postprocess-${{env.DEPLOY_ENV}}
           binary-name: ps-postprocess
 
   licensebot_trigger:
