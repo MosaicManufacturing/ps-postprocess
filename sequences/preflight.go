@@ -79,8 +79,13 @@ func preflight(inpath string) (sequencesPreflight, error) {
 				results.preheat.Bed = s
 			}
 			return nil
+		} else if results.preheat.Chamber == 0 &&
+			(line.Command == "M141" || line.Command == "M191") {
+			if s, ok := line.Params["s"]; ok {
+				results.preheat.Chamber = s
+			}
+			return nil
 		}
-		// TODO: check for first chamber temperature
 
 		if len(currentLookaheads) > 0 {
 			// logic: keep applying Z changes, and commit when we see X and/or Y change
