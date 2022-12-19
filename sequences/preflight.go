@@ -67,20 +67,33 @@ func preflight(inpath string) (sequencesPreflight, error) {
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNum int) error {
 		position.TrackInstruction(line)
 
-		if results.preheat.Extruder == 0 &&
-			(line.Command == "M104" || line.Command == "M109") {
+		if line.Command == "M104" || line.Command == "M109" {
+			// - first extruder temperature in the print
+			// - max extruder temperature in the print
 			if s, ok := line.Params["s"]; ok {
-				results.preheat.Extruder = s
+				if results.preheat.Extruder == 0 {
+					results.preheat.Extruder = s
+				}
+				if s > results.preheat.ExtruderMax {
+					results.preheat.ExtruderMax = s
+				}
 			}
 			return nil
 		} else if results.preheat.Bed == 0 &&
 			(line.Command == "M140" || line.Command == "M190") {
+			// - first print bed temperature in the print
 			if s, ok := line.Params["s"]; ok {
 				results.preheat.Bed = s
 			}
 			return nil
+		} else if results.preheat.Chamber == 0 &&
+			(line.Command == "M141" || line.Command == "M191") {
+			// - first chamber temperature in the print
+			if s, ok := line.Params["s"]; ok {
+				results.preheat.Chamber = s
+			}
+			return nil
 		}
-		// TODO: check for first chamber temperature
 
 		if len(currentLookaheads) > 0 {
 			// logic: keep applying Z changes, and commit when we see X and/or Y change
