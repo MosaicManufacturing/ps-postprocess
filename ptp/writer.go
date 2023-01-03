@@ -16,6 +16,7 @@ type state struct {
 	bufferedFromTool       int     // used for interpolation when outputting a buffered transition line
 	bufferedT              float32 // used for interpolation when outputting a buffered transition line
 	travelLineBuffered     bool    // if true, a travel line from prevX/Y/Z to currentX/Y/Z needs to be output
+	inWipe                 bool    // if true, "wipe and retract" commands are occurring
 	currentX               float32
 	currentY               float32
 	currentZ               float32
