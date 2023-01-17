@@ -220,8 +220,11 @@ func GenerateToolpath(argv []string) {
 						writer.AddRestart()
 					}
 				} else if eDecreased {
-					// add retract point regardless of there being X/Y/Z movement as well
-					writer.AddRetract()
+					// don't add retract point until wipe sequence, if any, is complete
+					if !writer.state.inWipe {
+						// add retract point regardless of there being X/Y/Z movement as well
+						writer.AddRetract()
+					}
 				}
 				currentE = e
 			}
@@ -256,7 +259,16 @@ func GenerateToolpath(argv []string) {
 				writer.SetTool(int(t))
 			}
 		} else if line.Comment != "" {
-			if strings.HasPrefix(line.Comment, "TYPE:") {
+			if line.Comment == "WIPE_START" {
+				writer.state.inWipe = true
+			} else if line.Comment == "WIPE_END" {
+				// retract points were not added during the wipe sequence
+				if writer.state.inWipe {
+					// add retract point regardless of there being X/Y/Z movement as well
+					writer.AddRetract()
+				}
+				writer.state.inWipe = false
+			} else if strings.HasPrefix(line.Comment, "TYPE:") {
 				// path type hints
 				pathType := convertPathType(line.Comment[5:])
 				writer.SetPathType(pathType)

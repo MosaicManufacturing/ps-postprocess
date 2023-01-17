@@ -6,9 +6,10 @@ import (
 )
 
 type PreheatHints struct {
-	Extruder float32 `json:"extruder"`
-	Bed      float32 `json:"bed"`
-	Chamber  float32 `json:"chamber"`
+	Extruder    float32 `json:"extruder"`    // first extruder temperature used in the print
+	ExtruderMax float32 `json:"extruderMax"` // highest extruder temperature used in the print
+	Bed         float32 `json:"bed"`         // first bed temperature used in the print
+	Chamber     float32 `json:"chamber"`     // first chamber temperature used in the print
 }
 
 func (p *PreheatHints) Save(path string) error {
