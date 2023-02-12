@@ -188,8 +188,8 @@ func prependFile(filepath, content string) error {
 	return os.Rename(tempfile.Name(), filepath)
 }
 
-func getPtpStartComment(purgeLength, transitionLength, spliceOffset float32) string {
-	return fmt.Sprintf(";PTP_TYPE:DenseTowerSegment (purge=%f,transition=%f,offset=%f)%s", purgeLength, transitionLength, spliceOffset, EOL)
+func getPtpStartComment(purgeLength, transitionLength, spliceOffset, target float32) string {
+	return fmt.Sprintf(";PTP_TYPE:DenseTowerSegment (purge=%f,transition=%f,offset=%f,target=%f)%s", purgeLength, transitionLength, spliceOffset, target, EOL)
 }
 
 func getPtpEndComment() string {

@@ -256,6 +256,7 @@ func _paletteOutput(
 							currentTransition.PurgeLength,
 							currentTransition.TransitionLength,
 							spliceOffset,
+							palette.TransitionTarget,
 						)
 						if err := writeLines(writer, ptpComment); err != nil {
 							return err
