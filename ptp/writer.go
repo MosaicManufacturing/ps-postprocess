@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-type state struct {
+type writerState struct {
 	lastLineWasPrint       bool    // if true, corner triangles will be created to join the lines
 	printLineBuffered      bool    // if true, a print line from prevX/Y/Z to currentX/Y/Z needs to be output
 	transitionLineBuffered bool    // if true, use `bufferedFromTool` to create a gradient
@@ -39,8 +39,8 @@ type state struct {
 	layerHeightsSeen       map[float32]bool
 }
 
-func getStartingState() state {
-	return state{
+func getStartingWriterState() writerState {
+	return writerState{
 		lastLineWasPrint:       false,
 		printLineBuffered:      false,
 		transitionLineBuffered: false,
@@ -87,7 +87,7 @@ type Writer struct {
 
 	brimIsSkirt bool         // whether brim paths should be called skirts
 	toolColors  [][3]float32 // array of [r, g, b] floats in range 0..1
-	state       state
+	state       writerState
 }
 
 func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer {
@@ -166,7 +166,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 		maxLayerHeight: 0,
 		brimIsSkirt:    brimIsSkirt,
 		toolColors:     toolColors,
-		state:          getStartingState(),
+		state:          getStartingWriterState(),
 	}
 }
 
