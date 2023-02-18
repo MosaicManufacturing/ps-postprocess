@@ -59,13 +59,18 @@ type writerState struct {
 
 func getStartingWriterState() writerState {
 	return writerState{
-		layerHeights:     []float32{0}, // initial state is "in the start sequence"
-		toolsSeen:        make(map[int]bool),
-		pathTypesSeen:    make(map[PathType]bool),
-		feedratesSeen:    make(map[float32]bool),
-		fanSpeedsSeen:    make(map[int]bool),
-		temperaturesSeen: make(map[float32]bool),
-		layerHeightsSeen: make(map[float32]bool),
+		layerHeights:             []float32{0}, // initial state is "in the start sequence"
+		layerStartIndices:        []uint32{0},
+		layerStartTravelIndices:  []uint32{0},
+		layerStartRetractIndices: []uint32{0},
+		layerStartRestartIndices: []uint32{0},
+		layerStartPingIndices:    []uint32{0},
+		toolsSeen:                make(map[int]bool),
+		pathTypesSeen:            make(map[PathType]bool),
+		feedratesSeen:            make(map[float32]bool),
+		fanSpeedsSeen:            make(map[int]bool),
+		temperaturesSeen:         make(map[float32]bool),
+		layerHeightsSeen:         make(map[float32]bool),
 	}
 }
 
