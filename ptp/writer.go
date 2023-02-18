@@ -103,6 +103,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 			"travelPosition":   fmt.Sprintf("%s.%s", outpath, "travelPosition"),
 			"retractPosition":  fmt.Sprintf("%s.%s", outpath, "retractPosition"),
 			"restartPosition":  fmt.Sprintf("%s.%s", outpath, "restartPosition"),
+			"pingPosition":     fmt.Sprintf("%s.%s", outpath, "pingPosition"),
 			"toolColor":        fmt.Sprintf("%s.%s", outpath, "toolColor"),
 			"pathTypeColor":    fmt.Sprintf("%s.%s", outpath, "pathTypeColor"),
 			"feedrateColor":    fmt.Sprintf("%s.%s", outpath, "feedrateColor"),
@@ -119,6 +120,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 			"travelPosition":   nil,
 			"retractPosition":  nil,
 			"restartPosition":  nil,
+			"pingPosition":     nil,
 			"toolColor":        nil,
 			"pathTypeColor":    nil,
 			"feedrateColor":    nil,
@@ -135,6 +137,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 			"travelPosition":   nil,
 			"retractPosition":  nil,
 			"restartPosition":  nil,
+			"pingPosition":     nil,
 			"toolColor":        nil,
 			"pathTypeColor":    nil,
 			"feedrateColor":    nil,
@@ -151,6 +154,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 			"travelPosition":   0,
 			"retractPosition":  0,
 			"restartPosition":  0,
+			"pingPosition":     0,
 			"toolColor":        0,
 			"pathTypeColor":    0,
 			"feedrateColor":    0,
@@ -205,6 +209,7 @@ func (w *Writer) Initialize() error {
 		"travelPosition",
 		"retractPosition",
 		"restartPosition",
+		"pingPosition",
 		"toolColor",
 		"pathTypeColor",
 		"feedrateColor",
@@ -250,6 +255,7 @@ func (w *Writer) Finalize() error {
 		"travelPosition",
 		"retractPosition",
 		"restartPosition",
+		"pingPosition",
 		"toolColor",
 		"pathTypeColor",
 		"feedrateColor",
@@ -382,6 +388,20 @@ func (w *Writer) writeRestartPosition(x, y, z float32) error {
 		return err
 	}
 	w.bufferSizes["restartPosition"] += floatBytes * 3
+	return nil
+}
+
+func (w *Writer) writePingPosition(x, y, z float32) error {
+	if err := writeFloat32LE(w.writers["pingPosition"], x); err != nil {
+		return err
+	}
+	if err := writeFloat32LE(w.writers["pingPosition"], y); err != nil {
+		return err
+	}
+	if err := writeFloat32LE(w.writers["pingPosition"], z); err != nil {
+		return err
+	}
+	w.bufferSizes["pingPosition"] += floatBytes * 3
 	return nil
 }
 
@@ -605,6 +625,13 @@ func (w *Writer) outputRestartPoint() error {
 	return nil
 }
 
+func (w *Writer) outputPingPoint() error {
+	if err := w.writePingPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (w *Writer) AddXYZTravelTo(x, y, z float32) error {
 	// flush print line buffer if necessary
 	if w.state.printLineBuffered {
@@ -676,26 +703,6 @@ func (w *Writer) AddRetract() error {
 	return w.outputRetractPoint()
 }
 
-func (w *Writer) AddRestart() error {
-	// flush print line buffer if necessary
-	if w.state.printLineBuffered {
-		if err := w.outputPrintLine(); err != nil {
-			return err
-		}
-		w.state.printLineBuffered = false
-		w.state.lastLineWasPrint = true
-	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
-	}
-	return w.outputRestartPoint()
-}
-
 func (w *Writer) AddRetractAt(x, y, z float32, savePosition bool) error {
 	// flush print line buffer if necessary
 	if w.state.printLineBuffered {
@@ -735,6 +742,26 @@ func (w *Writer) AddRetractAt(x, y, z float32, savePosition bool) error {
 	return nil
 }
 
+func (w *Writer) AddRestart() error {
+	// flush print line buffer if necessary
+	if w.state.printLineBuffered {
+		if err := w.outputPrintLine(); err != nil {
+			return err
+		}
+		w.state.printLineBuffered = false
+		w.state.lastLineWasPrint = true
+	}
+	// flush travel line buffer if necessary
+	if w.state.travelLineBuffered {
+		if err := w.outputTravelLine(); err != nil {
+			return err
+		}
+		w.state.travelLineBuffered = false
+		w.state.lastLineWasPrint = false
+	}
+	return w.outputRestartPoint()
+}
+
 func (w *Writer) AddRestartAt(x, y, z float32, savePosition bool) error {
 	// flush print line buffer if necessary
 	if w.state.printLineBuffered {
@@ -762,6 +789,65 @@ func (w *Writer) AddRestartAt(x, y, z float32, savePosition bool) error {
 	w.state.lastLineWasPrint = false
 
 	if err := w.outputRestartPoint(); err != nil {
+		return err
+	}
+
+	if !savePosition {
+		w.state.currentX = w.state.prevX
+		w.state.currentY = w.state.prevY
+		w.state.currentZ = w.state.prevZ
+	}
+
+	return nil
+}
+
+func (w *Writer) AddPing() error {
+	// flush print line buffer if necessary
+	if w.state.printLineBuffered {
+		if err := w.outputPrintLine(); err != nil {
+			return err
+		}
+		w.state.printLineBuffered = false
+		w.state.lastLineWasPrint = true
+	}
+	// flush travel line buffer if necessary
+	if w.state.travelLineBuffered {
+		if err := w.outputTravelLine(); err != nil {
+			return err
+		}
+		w.state.travelLineBuffered = false
+		w.state.lastLineWasPrint = false
+	}
+	return w.outputPingPoint()
+}
+
+func (w *Writer) AddPingAt(x, y, z float32, savePosition bool) error {
+	// flush print line buffer if necessary
+	if w.state.printLineBuffered {
+		if err := w.outputPrintLine(); err != nil {
+			return err
+		}
+		w.state.printLineBuffered = false
+		w.state.lastLineWasPrint = true
+	}
+	// flush travel line buffer if necessary
+	if w.state.travelLineBuffered {
+		if err := w.outputTravelLine(); err != nil {
+			return err
+		}
+		w.state.travelLineBuffered = false
+		w.state.lastLineWasPrint = false
+	}
+	// update history
+	w.state.prevX = w.state.currentX
+	w.state.prevY = w.state.currentY
+	w.state.prevZ = w.state.currentZ
+	w.state.currentX = x
+	w.state.currentY = y
+	w.state.currentZ = z
+	w.state.lastLineWasPrint = false
+
+	if err := w.outputPingPoint(); err != nil {
 		return err
 	}
 
