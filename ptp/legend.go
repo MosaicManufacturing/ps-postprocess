@@ -101,15 +101,20 @@ func (l *legendEntry) MarshalJSON() ([]byte, error) {
 }
 
 type ptpLegend struct {
-	Header         legendHeader  `json:"header"`         // header data (version, buffer offsets and sizes)
-	Colors         legendColors  `json:"colors"`         // max/min colors for interpolated coloring
-	Tool           []legendEntry `json:"tool"`           // legend of tools seen
-	PathType       []legendEntry `json:"pathType"`       // legend of path types seen
-	Feedrate       []legendEntry `json:"feedrate"`       // legend of feedrates -- needs gradation
-	FanSpeed       []legendEntry `json:"fanSpeed"`       // legend of fan speeds -- possible gradation
-	Temperature    []legendEntry `json:"temperature"`    // legend of temperatures -- needs gradation
-	LayerThickness []legendEntry `json:"layerThickness"` // legend of layer heights -- needs gradation
-	ZValues        []float32     `json:"zValues"`        // Z values for UI sliders
+	Header                   legendHeader  `json:"header"`                   // header data (version, buffer offsets and sizes)
+	Colors                   legendColors  `json:"colors"`                   // max/min colors for interpolated coloring
+	Tool                     []legendEntry `json:"tool"`                     // legend of tools seen
+	PathType                 []legendEntry `json:"pathType"`                 // legend of path types seen
+	Feedrate                 []legendEntry `json:"feedrate"`                 // legend of feedrates -- needs gradation
+	FanSpeed                 []legendEntry `json:"fanSpeed"`                 // legend of fan speeds -- possible gradation
+	Temperature              []legendEntry `json:"temperature"`              // legend of temperatures -- needs gradation
+	LayerThickness           []legendEntry `json:"layerThickness"`           // legend of layer heights -- needs gradation
+	ZValues                  []float32     `json:"zValues"`                  // Z values for UI sliders
+	LayerStartIndices        []uint32      `json:"layerStartIndices"`        // index values for rendering layer ranges
+	LayerStartTravelIndices  []uint32      `json:"layerStartTravelIndices"`  // // index values for rendering layer ranges
+	LayerStartRetractIndices []uint32      `json:"layerStartRetractIndices"` // // index values for rendering layer ranges
+	LayerStartRestartIndices []uint32      `json:"layerStartRestartIndices"` // // index values for rendering layer ranges
+	LayerStartPingIndices    []uint32      `json:"layerStartPingIndices"`    // // index values for rendering layer ranges
 }
 
 func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
@@ -339,15 +344,20 @@ func (w *Writer) getLayerThicknessLegend() []legendEntry {
 
 func (w *Writer) getLegend() ([]byte, error) {
 	legend := ptpLegend{
-		Header:         w.getLegendHeader(),
-		Colors:         getLegendColors(),
-		Tool:           w.getToolLegend(),
-		PathType:       w.getPathTypeLegend(),
-		Feedrate:       w.getFeedrateLegend(),
-		FanSpeed:       w.getFanSpeedLegend(),
-		Temperature:    w.getTemperatureLegend(),
-		LayerThickness: w.getLayerThicknessLegend(),
-		ZValues:        w.state.layerHeights,
+		Header:                   w.getLegendHeader(),
+		Colors:                   getLegendColors(),
+		Tool:                     w.getToolLegend(),
+		PathType:                 w.getPathTypeLegend(),
+		Feedrate:                 w.getFeedrateLegend(),
+		FanSpeed:                 w.getFanSpeedLegend(),
+		Temperature:              w.getTemperatureLegend(),
+		LayerThickness:           w.getLayerThicknessLegend(),
+		ZValues:                  w.state.layerHeights,
+		LayerStartIndices:        w.state.layerStartIndices,
+		LayerStartTravelIndices:  w.state.layerStartTravelIndices,
+		LayerStartRetractIndices: w.state.layerStartRetractIndices,
+		LayerStartRestartIndices: w.state.layerStartRestartIndices,
+		LayerStartPingIndices:    w.state.layerStartPingIndices,
 	}
 	return json.Marshal(legend)
 }

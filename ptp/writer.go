@@ -30,14 +30,31 @@ type writerState struct {
 	currentFeedrate        float32
 	currentFanSpeed        int
 	currentTemperature     float32
-	currentLayerIndex      uint32    // 0 == start sequence, 1 == first layer, N + 1 == end sequence
-	layerHeights           []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
-	toolsSeen              map[int]bool
-	pathTypesSeen          map[PathType]bool
-	feedratesSeen          map[float32]bool
-	fanSpeedsSeen          map[int]bool
-	temperaturesSeen       map[float32]bool
-	layerThicknessesSeen   map[float32]bool
+
+	// track the display height of each layer (for UI sliders to use), but for each geometry
+	// also track the actual start index of the data for this layer, so that we can render
+	// a subset of the geometry based on index ranges rather than Z-height clipping.
+	//
+	// for a print with N layers, 0..N-1,
+	// - layer 0 is the start sequence
+	// - layer 1 is the first of the print
+	// - ...
+	// - layer N is the last layer of the print
+	// - layer N + 1 is the end sequence
+	layerHeights             []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
+	layerStartIndices        []uint32  // index of first vertex in layer
+	layerStartTravelIndices  []uint32  // index of first travel vertex in layer
+	layerStartRetractIndices []uint32  // index of first retract point in layer
+	layerStartRestartIndices []uint32  // index of first restart point in layer
+	layerStartPingIndices    []uint32  // index of first ping point in layer
+
+	// sets used to track unique values seen, for generating the legend
+	toolsSeen            map[int]bool
+	pathTypesSeen        map[PathType]bool
+	feedratesSeen        map[float32]bool
+	fanSpeedsSeen        map[int]bool
+	temperaturesSeen     map[float32]bool
+	layerThicknessesSeen map[float32]bool
 }
 
 func getStartingWriterState() writerState {
@@ -486,8 +503,14 @@ func (w *Writer) LayerChange(z float32) error {
 	if err := w.flushLineBuffers(); err != nil {
 		return err
 	}
-	w.state.currentLayerIndex += 1
+	// add to the list of Z heights
 	w.state.layerHeights = append(w.state.layerHeights, z)
+	// set starting indices for geometry this layer
+	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getNextIndex())
+	w.state.layerStartTravelIndices = append(w.state.layerStartIndices, w.getNextTravelIndex())
+	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getNextRetractIndex())
+	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getNextRestartIndex())
+	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getNextPingIndex())
 	return nil
 }
 
@@ -858,6 +881,26 @@ func (w *Writer) AddPingAt(x, y, z float32, savePosition bool) error {
 	return nil
 }
 
+func (w *Writer) getNextIndex() uint32 {
+	return uint32(w.bufferSizes["position"] / (floatBytes * 3))
+}
+
+func (w *Writer) getNextTravelIndex() uint32 {
+	return uint32(w.bufferSizes["travelPosition"] / (floatBytes * 3))
+}
+
+func (w *Writer) getNextRetractIndex() uint32 {
+	return uint32(w.bufferSizes["retractPosition"] / (floatBytes * 3))
+}
+
+func (w *Writer) getNextRestartIndex() uint32 {
+	return uint32(w.bufferSizes["restartPosition"] / (floatBytes * 3))
+}
+
+func (w *Writer) getNextPingIndex() uint32 {
+	return uint32(w.bufferSizes["pingPosition"] / (floatBytes * 3))
+}
+
 func (w *Writer) outputPrintLine() error {
 	fromTool := 0
 	t := float32(1)
@@ -894,7 +937,7 @@ func (w *Writer) outputPrintLine() error {
 
 	// if current segment is connected to previous segment, include corner triangles
 	if w.state.lastLineWasPrint {
-		lastIndex := uint32((w.bufferSizes["position"] / (floatBytes * 3)) - 1)
+		lastIndex := w.getNextIndex() - 1
 		a := lastIndex - 3
 		b := lastIndex - 2
 		c := lastIndex - 1
@@ -920,7 +963,7 @@ func (w *Writer) outputPrintLine() error {
 		return err
 	}
 
-	lastIndex := uint32((w.bufferSizes["position"] / (floatBytes * 3)) - 1)
+	lastIndex := w.getNextIndex() - 1
 	a := lastIndex - 3
 	b := lastIndex - 2
 	c := lastIndex - 1
