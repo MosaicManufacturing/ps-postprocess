@@ -110,7 +110,7 @@ var pathTypeColorStrings = map[PathType]string{
 	PathTypeBridge:           "#bcd4de",
 	PathTypeIroning:          "#d67a89",
 	PathTypeTransition:       "#d1d1d1",
-	PathTypePing:             "#d1d1d1",
+	PathTypePing:             "#999999",
 }
 
 var feedrateColorMin = colorRed
