@@ -108,7 +108,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 			"feedrateColor":       fmt.Sprintf("%s.%s", outpath, "feedrateColor"),
 			"fanSpeedColor":       fmt.Sprintf("%s.%s", outpath, "fanSpeedColor"),
 			"temperatureColor":    fmt.Sprintf("%s.%s", outpath, "temperatureColor"),
-			"layerThicknessColor": fmt.Sprintf("%s.%s", outpath, "layerThicknessColor"),
+			"layerThicknessColor": fmt.Sprintf("%s.%s", outpath, "layerHeightColor"),
 		},
 		files: map[string]*os.File{
 			"main":                nil,
