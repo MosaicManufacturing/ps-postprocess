@@ -511,11 +511,11 @@ func (w *Writer) LayerChange(z float32) error {
 	// add to the list of Z heights
 	w.state.layerHeights = append(w.state.layerHeights, z)
 	// set starting indices for geometry this layer
-	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getNextIndex())
-	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getNextTravelIndex())
-	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getNextRetractIndex())
-	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getNextRestartIndex())
-	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getNextPingIndex())
+	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getLayerStartIndex())
+	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getLayerStartTravelIndex())
+	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getLayerStartRetractIndex())
+	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getLayerStartRestartIndex())
+	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getLayerStartPingIndex())
 	return nil
 }
 
@@ -886,23 +886,27 @@ func (w *Writer) AddPingAt(x, y, z float32, savePosition bool) error {
 	return nil
 }
 
-func (w *Writer) getNextIndex() uint32 {
-	return uint32(w.bufferSizes["position"] / (floatBytes * 3))
+func (w *Writer) getLastIndex() uint32 {
+	return uint32((w.bufferSizes["position"] / (floatBytes * 3)) - 1)
 }
 
-func (w *Writer) getNextTravelIndex() uint32 {
+func (w *Writer) getLayerStartIndex() uint32 {
+	return uint32(w.bufferSizes["index"] / uint32Bytes)
+}
+
+func (w *Writer) getLayerStartTravelIndex() uint32 {
 	return uint32(w.bufferSizes["travelPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getNextRetractIndex() uint32 {
+func (w *Writer) getLayerStartRetractIndex() uint32 {
 	return uint32(w.bufferSizes["retractPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getNextRestartIndex() uint32 {
+func (w *Writer) getLayerStartRestartIndex() uint32 {
 	return uint32(w.bufferSizes["restartPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getNextPingIndex() uint32 {
+func (w *Writer) getLayerStartPingIndex() uint32 {
 	return uint32(w.bufferSizes["pingPosition"] / (floatBytes * 3))
 }
 
@@ -942,7 +946,7 @@ func (w *Writer) outputPrintLine() error {
 
 	// if current segment is connected to previous segment, include corner triangles
 	if w.state.lastLineWasPrint {
-		lastIndex := w.getNextIndex() - 1
+		lastIndex := w.getLastIndex()
 		a := lastIndex - 3
 		b := lastIndex - 2
 		c := lastIndex - 1
@@ -968,7 +972,7 @@ func (w *Writer) outputPrintLine() error {
 		return err
 	}
 
-	lastIndex := w.getNextIndex() - 1
+	lastIndex := w.getLastIndex()
 	a := lastIndex - 3
 	b := lastIndex - 2
 	c := lastIndex - 1
