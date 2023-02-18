@@ -100,7 +100,7 @@ func (l *legendEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(arr)
 }
 
-type legend struct {
+type ptpLegend struct {
 	Header         legendHeader  `json:"header"`         // header data (version, buffer offsets and sizes)
 	Colors         legendColors  `json:"colors"`         // max/min colors for interpolated coloring
 	Tool           []legendEntry `json:"tool"`           // legend of tools seen
@@ -338,7 +338,7 @@ func (w *Writer) getLayerThicknessLegend() []legendEntry {
 }
 
 func (w *Writer) getLegend() ([]byte, error) {
-	legend := legend{
+	legend := ptpLegend{
 		Header:         w.getLegendHeader(),
 		Colors:         getLegendColors(),
 		Tool:           w.getToolLegend(),
