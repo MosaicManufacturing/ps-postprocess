@@ -31,6 +31,7 @@ var (
 	colorOrange     = [3]float32{0xd5 / 255.0, 0x57 / 255.0, 0x3b / 255.0} // #d5573b
 	colorSky        = [3]float32{0xd4 / 255.0, 0xde / 255.0, 0xff / 255.0} // #d4deff
 	colorLightGrey  = [3]float32{0xd1 / 255.0, 0xd1 / 255.0, 0xd1 / 255.0} // #d1d1d1
+	colorMediumGrey = [3]float32{0x99 / 255.0, 0x99 / 255.0, 0x99 / 255.0} // #32292f
 )
 
 type PathType int
@@ -90,7 +91,7 @@ var pathTypeColors = map[PathType][3]float32{
 	PathTypeBridge:           colorSky,
 	PathTypeIroning:          colorPink,
 	PathTypeTransition:       colorLightGrey,
-	PathTypePing:             colorDarkGrey,
+	PathTypePing:             colorMediumGrey,
 }
 
 var pathTypeColorStrings = map[PathType]string{
