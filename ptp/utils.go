@@ -128,3 +128,12 @@ func prepareFloatForJSON(val float32, maxDecimals int) string {
 	val64 := math.Round(float64(val)*roundingFactor) / roundingFactor
 	return strconv.FormatFloat(val64, 'f', -1, 64)
 }
+
+func setToSlice[T comparable](set map[T]bool, sortFn func([]T)) []T {
+	values := make([]T, 0, len(set))
+	for value := range set {
+		values = append(values, value)
+	}
+	sortFn(values)
+	return values
+}

@@ -125,11 +125,7 @@ func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
 }
 
 func (w *Writer) getToolLegend() []legendEntry {
-	toolsSeen := make([]int, 0, len(w.state.toolsSeen))
-	for tool := range w.state.toolsSeen {
-		toolsSeen = append(toolsSeen, tool)
-	}
-	sort.Ints(toolsSeen)
+	toolsSeen := setToSlice(w.state.toolsSeen, sort.Ints)
 	legend := make([]legendEntry, 0, len(w.state.toolsSeen))
 	for _, tool := range toolsSeen {
 		legend = append(legend, legendEntry{
@@ -162,12 +158,7 @@ func (w *Writer) getPathTypeLegend() []legendEntry {
 }
 
 func (w *Writer) getFeedrateLegend() []legendEntry {
-	feedratesSeen := make([]float32, 0, len(w.state.feedratesSeen))
-	for feedrate := range w.state.feedratesSeen {
-		feedratesSeen = append(feedratesSeen, feedrate)
-	}
-	sortFloat32Slice(feedratesSeen)
-
+	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(feedratesSeen))
 	if len(feedratesSeen) <= 6 {
 		for _, feedrate := range feedratesSeen {
@@ -203,12 +194,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 }
 
 func (w *Writer) getFanSpeedLegend() []legendEntry {
-	fanSpeedsSeen := make([]int, 0, len(w.state.fanSpeedsSeen))
-	for pwmValue := range w.state.fanSpeedsSeen {
-		fanSpeedsSeen = append(fanSpeedsSeen, pwmValue)
-	}
-	sort.Ints(fanSpeedsSeen)
-
+	fanSpeedsSeen := setToSlice(w.state.fanSpeedsSeen, sort.Ints)
 	legend := make([]legendEntry, 0, len(fanSpeedsSeen))
 	if len(fanSpeedsSeen) == 1 && fanSpeedsSeen[0] == 0 {
 		legend = append(legend, legendEntry{
@@ -266,12 +252,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 }
 
 func (w *Writer) getTemperatureLegend() []legendEntry {
-	temperaturesSeen := make([]float32, 0, len(w.state.temperaturesSeen))
-	for temperature := range w.state.temperaturesSeen {
-		temperaturesSeen = append(temperaturesSeen, temperature)
-	}
-	sortFloat32Slice(temperaturesSeen)
-
+	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(temperaturesSeen))
 	if len(temperaturesSeen) <= 6 {
 		for _, temperature := range temperaturesSeen {
@@ -314,12 +295,7 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 }
 
 func (w *Writer) getLayerThicknessLegend() []legendEntry {
-	layerThicknessesSeen := make([]float32, 0, len(w.state.layerThicknessesSeen))
-	for layerThickness := range w.state.layerThicknessesSeen {
-		layerThicknessesSeen = append(layerThicknessesSeen, layerThickness)
-	}
-	sortFloat32Slice(layerThicknessesSeen)
-
+	layerThicknessesSeen := setToSlice(w.state.layerThicknessesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(layerThicknessesSeen))
 	if len(layerThicknessesSeen) == 1 {
 		legend = []legendEntry{
