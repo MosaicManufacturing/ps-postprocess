@@ -40,9 +40,13 @@ func getStartingGeneratorState() generatorState {
 	}
 }
 
+var (
+	rePtpTowerComment  = regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
+	rePingPauseComment = regexp.MustCompile("Ping (\\d+) pause ([12])")
+)
+
 func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
-	re := regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
-	matches := re.FindStringSubmatch(comment)
+	matches := rePtpTowerComment.FindStringSubmatch(comment)
 	if len(matches) < 5 {
 		return errors.New("failed to parse PTP comment"), 0, 0, 0, 0
 	}
@@ -287,6 +291,20 @@ func generateToolpath(argv []string) error {
 				state.startDenseTowerSegment(purgeLength, transitionLength, offset, target)
 			} else if strings.HasPrefix(line.Comment, "PTP_END") {
 				state.transitioning = false
+			} else if strings.HasPrefix(line.Comment, "Ping") {
+				matches := rePingPauseComment.FindStringSubmatch(line.Comment)
+				if len(matches) >= 3 {
+					var pathType PathType
+					isStart := matches[2] == "1"
+					if isStart {
+						pathType = PathTypePing
+					} else {
+						pathType = PathTypeTransition
+					}
+					if err = writer.SetPathType(pathType); err != nil {
+						return err
+					}
+				}
 			} else if strings.HasPrefix(line.Comment, "Printing with input ") {
 				tool, err := strconv.ParseInt(line.Comment[20:], 10, 32)
 				if err != nil {

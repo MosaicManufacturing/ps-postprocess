@@ -71,7 +71,7 @@ var pathTypeNames = map[PathType]string{
 	PathTypeBridge:           "Bridge",
 	PathTypeIroning:          "Ironing",
 	PathTypeTransition:       "Transition",
-	PathTypePing:             "Ping",
+	PathTypePing:             "Ping Sequence",
 }
 
 var pathTypeColors = map[PathType][3]float32{
@@ -90,7 +90,7 @@ var pathTypeColors = map[PathType][3]float32{
 	PathTypeBridge:           colorSky,
 	PathTypeIroning:          colorPink,
 	PathTypeTransition:       colorLightGrey,
-	PathTypePing:             colorLightGrey,
+	PathTypePing:             colorDarkGrey,
 }
 
 var pathTypeColorStrings = map[PathType]string{
