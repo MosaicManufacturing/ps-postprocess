@@ -127,7 +127,7 @@ func generateToolpath(argv []string) error {
 	writer := NewWriter(outpath, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
-	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
+	writer.SetLayerThicknessBounds(preflight.minLayerThickness, preflight.maxLayerThickness)
 	if err = writer.Initialize(); err != nil {
 		return err
 	}
@@ -280,7 +280,7 @@ func generateToolpath(argv []string) error {
 				if err != nil {
 					return err
 				}
-				if err = writer.SetLayerHeight(roundZ(float32(height))); err != nil {
+				if err = writer.SetLayerThickness(roundZ(float32(height))); err != nil {
 					return err
 				}
 			} else if strings.HasPrefix(line.Comment, "PTP_TYPE:") {

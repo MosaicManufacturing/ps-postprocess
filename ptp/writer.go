@@ -24,7 +24,7 @@ type writerState struct {
 	prevY                  float32
 	prevZ                  float32
 	currentExtrusionWidth  float32
-	currentLayerHeight     float32
+	currentLayerThickness  float32
 	currentTool            int
 	currentPathType        PathType
 	currentFeedrate        float32
@@ -36,7 +36,7 @@ type writerState struct {
 	feedratesSeen          map[float32]bool
 	fanSpeedsSeen          map[int]bool
 	temperaturesSeen       map[float32]bool
-	layerHeightsSeen       map[float32]bool
+	layerThicknessesSeen   map[float32]bool
 }
 
 func getStartingWriterState() writerState {
@@ -54,7 +54,7 @@ func getStartingWriterState() writerState {
 		prevY:                  0,
 		prevZ:                  0,
 		currentExtrusionWidth:  0,
-		currentLayerHeight:     0,
+		currentLayerThickness:  0,
 		currentTool:            0,
 		currentPathType:        PathTypeUnknown,
 		currentFeedrate:        0,
@@ -66,7 +66,7 @@ func getStartingWriterState() writerState {
 		feedratesSeen:          make(map[float32]bool),
 		fanSpeedsSeen:          make(map[int]bool),
 		temperaturesSeen:       make(map[float32]bool),
-		layerHeightsSeen:       make(map[float32]bool),
+		layerThicknessesSeen:   make(map[float32]bool),
 	}
 }
 
@@ -78,12 +78,12 @@ type Writer struct {
 	bufferSizes map[string]int
 
 	// bounds for interpolated color scales
-	minFeedrate    float32
-	maxFeedrate    float32
-	minTemperature float32
-	maxTemperature float32
-	minLayerHeight float32
-	maxLayerHeight float32
+	minFeedrate       float32
+	maxFeedrate       float32
+	minTemperature    float32
+	maxTemperature    float32
+	minLayerThickness float32
+	maxLayerThickness float32
 
 	brimIsSkirt bool         // if true, PathTypeBrim will be referred to as Skirt
 	toolColors  [][3]float32 // array of [r, g, b] floats in range 0..1
@@ -94,83 +94,83 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 	return Writer{
 		version: ptpVersion,
 		paths: map[string]string{
-			"main":             outpath,
-			"legend":           fmt.Sprintf("%s.%s", outpath, "legend"),
-			"normal":           fmt.Sprintf("%s.%s", outpath, "normal"),
-			"index":            fmt.Sprintf("%s.%s", outpath, "index"),
-			"extrusionWidth":   fmt.Sprintf("%s.%s", outpath, "extrusionWidth"),
-			"layerHeight":      fmt.Sprintf("%s.%s", outpath, "layerHeight"),
-			"travelPosition":   fmt.Sprintf("%s.%s", outpath, "travelPosition"),
-			"retractPosition":  fmt.Sprintf("%s.%s", outpath, "retractPosition"),
-			"restartPosition":  fmt.Sprintf("%s.%s", outpath, "restartPosition"),
-			"pingPosition":     fmt.Sprintf("%s.%s", outpath, "pingPosition"),
-			"toolColor":        fmt.Sprintf("%s.%s", outpath, "toolColor"),
-			"pathTypeColor":    fmt.Sprintf("%s.%s", outpath, "pathTypeColor"),
-			"feedrateColor":    fmt.Sprintf("%s.%s", outpath, "feedrateColor"),
-			"fanSpeedColor":    fmt.Sprintf("%s.%s", outpath, "fanSpeedColor"),
-			"temperatureColor": fmt.Sprintf("%s.%s", outpath, "temperatureColor"),
-			"layerHeightColor": fmt.Sprintf("%s.%s", outpath, "layerHeightColor"),
+			"main":                outpath,
+			"legend":              fmt.Sprintf("%s.%s", outpath, "legend"),
+			"normal":              fmt.Sprintf("%s.%s", outpath, "normal"),
+			"index":               fmt.Sprintf("%s.%s", outpath, "index"),
+			"extrusionWidth":      fmt.Sprintf("%s.%s", outpath, "extrusionWidth"),
+			"layerThickness":      fmt.Sprintf("%s.%s", outpath, "layerThickness"),
+			"travelPosition":      fmt.Sprintf("%s.%s", outpath, "travelPosition"),
+			"retractPosition":     fmt.Sprintf("%s.%s", outpath, "retractPosition"),
+			"restartPosition":     fmt.Sprintf("%s.%s", outpath, "restartPosition"),
+			"pingPosition":        fmt.Sprintf("%s.%s", outpath, "pingPosition"),
+			"toolColor":           fmt.Sprintf("%s.%s", outpath, "toolColor"),
+			"pathTypeColor":       fmt.Sprintf("%s.%s", outpath, "pathTypeColor"),
+			"feedrateColor":       fmt.Sprintf("%s.%s", outpath, "feedrateColor"),
+			"fanSpeedColor":       fmt.Sprintf("%s.%s", outpath, "fanSpeedColor"),
+			"temperatureColor":    fmt.Sprintf("%s.%s", outpath, "temperatureColor"),
+			"layerThicknessColor": fmt.Sprintf("%s.%s", outpath, "layerThicknessColor"),
 		},
 		files: map[string]*os.File{
-			"main":             nil,
-			"normal":           nil,
-			"index":            nil,
-			"extrusionWidth":   nil,
-			"layerHeight":      nil,
-			"travelPosition":   nil,
-			"retractPosition":  nil,
-			"restartPosition":  nil,
-			"pingPosition":     nil,
-			"toolColor":        nil,
-			"pathTypeColor":    nil,
-			"feedrateColor":    nil,
-			"fanSpeedColor":    nil,
-			"temperatureColor": nil,
-			"layerHeightColor": nil,
+			"main":                nil,
+			"normal":              nil,
+			"index":               nil,
+			"extrusionWidth":      nil,
+			"layerThickness":      nil,
+			"travelPosition":      nil,
+			"retractPosition":     nil,
+			"restartPosition":     nil,
+			"pingPosition":        nil,
+			"toolColor":           nil,
+			"pathTypeColor":       nil,
+			"feedrateColor":       nil,
+			"fanSpeedColor":       nil,
+			"temperatureColor":    nil,
+			"layerThicknessColor": nil,
 		},
 		writers: map[string]*bufio.Writer{
-			"main":             nil,
-			"normal":           nil,
-			"index":            nil,
-			"extrusionWidth":   nil,
-			"layerHeight":      nil,
-			"travelPosition":   nil,
-			"retractPosition":  nil,
-			"restartPosition":  nil,
-			"pingPosition":     nil,
-			"toolColor":        nil,
-			"pathTypeColor":    nil,
-			"feedrateColor":    nil,
-			"fanSpeedColor":    nil,
-			"temperatureColor": nil,
-			"layerHeightColor": nil,
+			"main":                nil,
+			"normal":              nil,
+			"index":               nil,
+			"extrusionWidth":      nil,
+			"layerThickness":      nil,
+			"travelPosition":      nil,
+			"retractPosition":     nil,
+			"restartPosition":     nil,
+			"pingPosition":        nil,
+			"toolColor":           nil,
+			"pathTypeColor":       nil,
+			"feedrateColor":       nil,
+			"fanSpeedColor":       nil,
+			"temperatureColor":    nil,
+			"layerThicknessColor": nil,
 		},
 		bufferSizes: map[string]int{
-			"position":         0,
-			"normal":           0,
-			"index":            0,
-			"extrusionWidth":   0,
-			"layerHeight":      0,
-			"travelPosition":   0,
-			"retractPosition":  0,
-			"restartPosition":  0,
-			"pingPosition":     0,
-			"toolColor":        0,
-			"pathTypeColor":    0,
-			"feedrateColor":    0,
-			"fanSpeedColor":    0,
-			"temperatureColor": 0,
-			"layerHeightColor": 0,
+			"position":            0,
+			"normal":              0,
+			"index":               0,
+			"extrusionWidth":      0,
+			"layerThickness":      0,
+			"travelPosition":      0,
+			"retractPosition":     0,
+			"restartPosition":     0,
+			"pingPosition":        0,
+			"toolColor":           0,
+			"pathTypeColor":       0,
+			"feedrateColor":       0,
+			"fanSpeedColor":       0,
+			"temperatureColor":    0,
+			"layerThicknessColor": 0,
 		},
-		minFeedrate:    0,
-		maxFeedrate:    0,
-		minTemperature: 0,
-		maxTemperature: 0,
-		minLayerHeight: 0,
-		maxLayerHeight: 0,
-		brimIsSkirt:    brimIsSkirt,
-		toolColors:     toolColors,
-		state:          getStartingWriterState(),
+		minFeedrate:       0,
+		maxFeedrate:       0,
+		minTemperature:    0,
+		maxTemperature:    0,
+		minLayerThickness: 0,
+		maxLayerThickness: 0,
+		brimIsSkirt:       brimIsSkirt,
+		toolColors:        toolColors,
+		state:             getStartingWriterState(),
 	}
 }
 
@@ -184,9 +184,9 @@ func (w *Writer) SetTemperatureBounds(min, max float32) {
 	w.maxTemperature = max
 }
 
-func (w *Writer) SetLayerHeightBounds(min, max float32) {
-	w.minLayerHeight = min
-	w.maxLayerHeight = max
+func (w *Writer) SetLayerThicknessBounds(min, max float32) {
+	w.minLayerThickness = min
+	w.maxLayerThickness = max
 }
 
 func (w *Writer) Initialize() error {
@@ -196,7 +196,7 @@ func (w *Writer) Initialize() error {
 	if w.maxTemperature < w.minTemperature || w.minTemperature < 0 || w.maxTemperature <= 0 {
 		return errors.New("invalid temperature bounds for creating legend")
 	}
-	if w.maxLayerHeight < w.minLayerHeight || w.minLayerHeight < 0 || w.maxLayerHeight <= 0 {
+	if w.maxLayerThickness < w.minLayerThickness || w.minLayerThickness < 0 || w.maxLayerThickness <= 0 {
 		return errors.New("invalid layer height bounds for creating legend")
 	}
 
@@ -205,7 +205,7 @@ func (w *Writer) Initialize() error {
 		"normal",
 		"index",
 		"extrusionWidth",
-		"layerHeight",
+		"layerThickness",
 		"travelPosition",
 		"retractPosition",
 		"restartPosition",
@@ -215,7 +215,7 @@ func (w *Writer) Initialize() error {
 		"feedrateColor",
 		"fanSpeedColor",
 		"temperatureColor",
-		"layerHeightColor",
+		"layerThicknessColor",
 	}
 	for _, filename := range filenamesToOpen {
 		if err := openForWrite(w, filename); err != nil {
@@ -251,7 +251,7 @@ func (w *Writer) Finalize() error {
 		"normal",
 		"index",
 		"extrusionWidth",
-		"layerHeight",
+		"layerThickness",
 		"travelPosition",
 		"retractPosition",
 		"restartPosition",
@@ -261,7 +261,7 @@ func (w *Writer) Finalize() error {
 		"feedrateColor",
 		"fanSpeedColor",
 		"temperatureColor",
-		"layerHeightColor",
+		"layerThicknessColor",
 	}
 	for _, filename := range filenamesToClose {
 		if err := flushAndClose(w, filename); err != nil {
@@ -274,7 +274,7 @@ func (w *Writer) Finalize() error {
 		"normal",
 		"index",
 		"extrusionWidth",
-		"layerHeight",
+		"layerThickness",
 	}
 	for _, filename := range filenamesToConcatenate {
 		if err := concatOntoWriter(w, "main", filename); err != nil {
@@ -341,11 +341,11 @@ func (w *Writer) writeExtrusionWidth(width float32) error {
 	return nil
 }
 
-func (w *Writer) writeLayerHeight(height float32) error {
-	if err := writeFloat32LE(w.writers["layerHeight"], height); err != nil {
+func (w *Writer) writeLayerThickness(height float32) error {
+	if err := writeFloat32LE(w.writers["layerThickness"], height); err != nil {
 		return err
 	}
-	w.bufferSizes["layerHeight"] += floatBytes
+	w.bufferSizes["layerThickness"] += floatBytes
 	return nil
 }
 
@@ -480,15 +480,15 @@ func (w *Writer) writeTemperatureColor(temperature float32) error {
 	return nil
 }
 
-func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
+func (w *Writer) writeLayerThicknessColor(layerThickness float32) error {
 	t := float32(1)
-	if w.maxLayerHeight > w.minLayerHeight {
-		t = (layerHeight - w.minLayerHeight) / (w.maxLayerHeight - w.minLayerHeight)
+	if w.maxLayerThickness > w.minLayerThickness {
+		t = (layerThickness - w.minLayerThickness) / (w.maxLayerThickness - w.minLayerThickness)
 	}
-	if err := writeFloat32LE(w.writers["layerHeightColor"], t); err != nil {
+	if err := writeFloat32LE(w.writers["layerThicknessColor"], t); err != nil {
 		return err
 	}
-	w.bufferSizes["layerHeightColor"] += floatBytes
+	w.bufferSizes["layerThicknessColor"] += floatBytes
 	return nil
 }
 
@@ -507,8 +507,8 @@ func (w *Writer) SetExtrusionWidth(width float32) error {
 	return nil
 }
 
-func (w *Writer) SetLayerHeight(height float32) error {
-	if height == w.state.currentLayerHeight {
+func (w *Writer) SetLayerThickness(height float32) error {
+	if height == w.state.currentLayerThickness {
 		return nil
 	}
 	if w.state.printLineBuffered {
@@ -518,7 +518,7 @@ func (w *Writer) SetLayerHeight(height float32) error {
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
 	}
-	w.state.currentLayerHeight = height
+	w.state.currentLayerThickness = height
 	return nil
 }
 
@@ -643,12 +643,11 @@ func (w *Writer) AddXYZTravelTo(x, y, z float32) error {
 	}
 	// handle travel line buffering/merging
 	if w.state.travelLineBuffered {
-		isMergeable := directionallyCollinear(
+		if directionallyCollinear(
 			w.state.prevX, w.state.prevY, w.state.prevZ,
 			w.state.currentX, w.state.currentY, w.state.currentZ,
 			x, y, z,
-		)
-		if isMergeable {
+		) {
 			// spoof history
 			w.state.currentX = w.state.prevX
 			w.state.currentY = w.state.prevY
@@ -946,7 +945,7 @@ func (w *Writer) outputPrintLine() error {
 	// layer height
 	//
 	for i := 0; i < 4; i++ {
-		if err := w.writeLayerHeight(w.state.currentLayerHeight); err != nil {
+		if err := w.writeLayerThickness(w.state.currentLayerThickness); err != nil {
 			return err
 		}
 	}
@@ -1000,7 +999,7 @@ func (w *Writer) outputPrintLine() error {
 	// layer height colors
 	//
 	for i := 0; i < 4; i++ {
-		if err := w.writeLayerHeightColor(w.state.currentLayerHeight); err != nil {
+		if err := w.writeLayerThicknessColor(w.state.currentLayerThickness); err != nil {
 			return err
 		}
 	}
@@ -1019,12 +1018,11 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
 	}
 	// handle print line buffering/merging
 	if w.state.printLineBuffered {
-		isMergeable := directionallyCollinear(
+		if directionallyCollinear(
 			w.state.prevX, w.state.prevY, w.state.prevZ,
 			w.state.currentX, w.state.currentY, w.state.currentZ,
 			x, y, zFloat,
-		)
-		if isMergeable {
+		) {
 			// spoof history so that segments are merged
 			w.state.currentX = w.state.prevX
 			w.state.currentY = w.state.prevY
@@ -1061,8 +1059,8 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
 	w.state.feedratesSeen[w.state.currentFeedrate] = true
 	w.state.fanSpeedsSeen[w.state.currentFanSpeed] = true
 	w.state.temperaturesSeen[w.state.currentTemperature] = true
-	if w.state.currentLayerHeight > 0 {
-		w.state.layerHeightsSeen[w.state.currentLayerHeight] = true
+	if w.state.currentLayerThickness > 0 {
+		w.state.layerThicknessesSeen[w.state.currentLayerThickness] = true
 	}
 
 	if !savePosition {

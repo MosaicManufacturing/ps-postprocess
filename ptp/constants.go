@@ -121,5 +121,5 @@ var fanColorMax = colorGreen
 var temperatureColorMin = colorTeal
 var temperatureColorMax = colorRed
 
-var layerHeightColorMin = colorTeal
-var layerHeightColorMax = colorOrange
+var layerThicknessColorMin = colorTeal
+var layerThicknessColorMax = colorOrange
