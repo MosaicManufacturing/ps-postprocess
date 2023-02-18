@@ -239,6 +239,10 @@ func generateToolpath(argv []string) error {
 					return err
 				}
 			}
+		} else if line.Command == "O31" {
+			if err = writer.AddPing(); err != nil {
+				return err
+			}
 		} else if line.Comment != "" {
 			if line.Comment == "WIPE_START" {
 				writer.state.inWipe = true
