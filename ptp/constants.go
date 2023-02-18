@@ -1,6 +1,6 @@
 package ptp
 
-const ptpVersion = uint8(5)
+const ptpVersion = uint8(6)
 
 const (
 	floatBytes  = 4
