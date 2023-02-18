@@ -106,16 +106,29 @@ func (s *generatorState) getT() float32 {
 	return interpolateTowerColor(s.extrusionSoFar/s.purgeLength, s.target)
 }
 
+func parseArgvFloat32(arg string) (float32, error) {
+	if val, err := strconv.ParseFloat(arg, 32); err != nil {
+		return 0, err
+	} else {
+		return float32(val), nil
+	}
+}
+
 func generateToolpath(argv []string) error {
 	argc := len(argv)
 
-	if argc != 4 {
-		return errors.New("expected 4 command-line arguments")
+	if argc != 6 {
+		return errors.New("expected 6 command-line arguments")
 	}
 	inpath := argv[0]
 	outpath := argv[1]
-	brimIsSkirt := argv[2] == "true"
-	toolColors, err := parseToolColors(argv[3])
+	initialExtrusionWidth, err := parseArgvFloat32(argv[2])
+	if err != nil {
+		return err
+	}
+	initialLayerHeight, err := parseArgvFloat32(argv[3])
+	brimIsSkirt := argv[4] == "true"
+	toolColors, err := parseToolColors(argv[5])
 	if err != nil {
 		return err
 	}
@@ -124,7 +137,7 @@ func generateToolpath(argv []string) error {
 		return err
 	}
 
-	writer := NewWriter(outpath, brimIsSkirt, toolColors)
+	writer := NewWriter(outpath, initialExtrusionWidth, initialLayerHeight, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
 	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)

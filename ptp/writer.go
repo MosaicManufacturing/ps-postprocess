@@ -57,8 +57,10 @@ type writerState struct {
 	layerHeightsSeen map[float32]bool
 }
 
-func getStartingWriterState() writerState {
+func getStartingWriterState(initialExtrusionWidth, initialLayerHeight float32) writerState {
 	return writerState{
+		currentExtrusionWidth:    initialExtrusionWidth,
+		currentLayerHeight:       initialLayerHeight,
 		layerHeights:             []float32{0}, // initial state is "in the start sequence"
 		layerStartIndices:        []uint32{0},
 		layerStartTravelIndices:  []uint32{0},
@@ -94,7 +96,7 @@ type Writer struct {
 	state       writerState
 }
 
-func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer {
+func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32, brimIsSkirt bool, toolColors [][3]float32) Writer {
 	return Writer{
 		version: ptpVersion,
 		paths: map[string]string{
@@ -174,7 +176,7 @@ func NewWriter(outpath string, brimIsSkirt bool, toolColors [][3]float32) Writer
 		maxLayerHeight: 0,
 		brimIsSkirt:    brimIsSkirt,
 		toolColors:     toolColors,
-		state:          getStartingWriterState(),
+		state:          getStartingWriterState(initialExtrusionWidth, initialLayerHeight),
 	}
 }
 
