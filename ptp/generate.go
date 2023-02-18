@@ -127,7 +127,7 @@ func generateToolpath(argv []string) error {
 	writer := NewWriter(outpath, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
-	writer.SetLayerThicknessBounds(preflight.minLayerThickness, preflight.maxLayerThickness)
+	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
 	if err = writer.Initialize(); err != nil {
 		return err
 	}
@@ -267,6 +267,7 @@ func generateToolpath(argv []string) error {
 				if err = writer.LayerChange(float32(z)); err != nil {
 					return err
 				}
+				// TODO: do we need to explicitly also trigger a layer change at end sequence?
 			} else if strings.HasPrefix(line.Comment, "TYPE:") {
 				// path type hints
 				pathType := convertPathType(line.Comment[5:])
@@ -288,7 +289,7 @@ func generateToolpath(argv []string) error {
 				if err != nil {
 					return err
 				}
-				if err = writer.SetLayerThickness(roundZ(float32(height))); err != nil {
+				if err = writer.SetLayerHeight(roundZ(float32(height))); err != nil {
 					return err
 				}
 			} else if strings.HasPrefix(line.Comment, "PTP_TYPE:") {

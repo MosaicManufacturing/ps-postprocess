@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	maxDecimalsFeedrate       = 1
-	maxDecimalsFanSpeed       = 0
-	maxDecimalsTemperature    = 1
-	maxDecimalsLayerThickness = 4
+	maxDecimalsFeedrate    = 1
+	maxDecimalsFanSpeed    = 0
+	maxDecimalsTemperature = 1
+	maxDecimalsLayerHeight = 4
 )
 
 type bufferData struct {
@@ -20,36 +20,36 @@ type bufferData struct {
 }
 
 type legendHeader struct {
-	Version             int        `json:"version"`
-	Position            bufferData `json:"position"`
-	Normal              bufferData `json:"normal"`
-	Index               bufferData `json:"index"`
-	ExtrusionWidth      bufferData `json:"extrusionWidth"`
-	LayerThickness      bufferData `json:"layerThickness"`
-	TravelPosition      bufferData `json:"travelPosition"`
-	ToolColor           bufferData `json:"toolColor"`
-	PathTypeColor       bufferData `json:"pathTypeColor"`
-	FeedrateColor       bufferData `json:"feedrateColor"`
-	FanSpeedColor       bufferData `json:"fanSpeedColor"`
-	TemperatureColor    bufferData `json:"temperatureColor"`
-	LayerThicknessColor bufferData `json:"layerThicknessColor"`
+	Version          int        `json:"version"`
+	Position         bufferData `json:"position"`
+	Normal           bufferData `json:"normal"`
+	Index            bufferData `json:"index"`
+	ExtrusionWidth   bufferData `json:"extrusionWidth"`
+	LayerHeight      bufferData `json:"layerHeight"`
+	TravelPosition   bufferData `json:"travelPosition"`
+	ToolColor        bufferData `json:"toolColor"`
+	PathTypeColor    bufferData `json:"pathTypeColor"`
+	FeedrateColor    bufferData `json:"feedrateColor"`
+	FanSpeedColor    bufferData `json:"fanSpeedColor"`
+	TemperatureColor bufferData `json:"temperatureColor"`
+	LayerHeightColor bufferData `json:"layerHeightColor"`
 }
 
 func (w *Writer) getLegendHeader() legendHeader {
 	header := legendHeader{
-		Version:             int(w.version),
-		Position:            bufferData{Offset: 0, Size: w.bufferSizes["position"]},
-		Normal:              bufferData{Offset: 0, Size: w.bufferSizes["normal"]},
-		Index:               bufferData{Offset: 0, Size: w.bufferSizes["index"]},
-		ExtrusionWidth:      bufferData{Offset: 0, Size: w.bufferSizes["extrusionWidth"]},
-		LayerThickness:      bufferData{Offset: 0, Size: w.bufferSizes["layerThickness"]},
-		TravelPosition:      bufferData{Offset: 0, Size: w.bufferSizes["travelPosition"]},
-		ToolColor:           bufferData{Offset: 0, Size: w.bufferSizes["toolColor"]},
-		PathTypeColor:       bufferData{Offset: 0, Size: w.bufferSizes["pathTypeColor"]},
-		FeedrateColor:       bufferData{Offset: 0, Size: w.bufferSizes["feedrateColor"]},
-		FanSpeedColor:       bufferData{Offset: 0, Size: w.bufferSizes["fanSpeedColor"]},
-		TemperatureColor:    bufferData{Offset: 0, Size: w.bufferSizes["temperatureColor"]},
-		LayerThicknessColor: bufferData{Offset: 0, Size: w.bufferSizes["layerThicknessColor"]},
+		Version:          int(w.version),
+		Position:         bufferData{Offset: 0, Size: w.bufferSizes["position"]},
+		Normal:           bufferData{Offset: 0, Size: w.bufferSizes["normal"]},
+		Index:            bufferData{Offset: 0, Size: w.bufferSizes["index"]},
+		ExtrusionWidth:   bufferData{Offset: 0, Size: w.bufferSizes["extrusionWidth"]},
+		LayerHeight:      bufferData{Offset: 0, Size: w.bufferSizes["layerHeight"]},
+		TravelPosition:   bufferData{Offset: 0, Size: w.bufferSizes["travelPosition"]},
+		ToolColor:        bufferData{Offset: 0, Size: w.bufferSizes["toolColor"]},
+		PathTypeColor:    bufferData{Offset: 0, Size: w.bufferSizes["pathTypeColor"]},
+		FeedrateColor:    bufferData{Offset: 0, Size: w.bufferSizes["feedrateColor"]},
+		FanSpeedColor:    bufferData{Offset: 0, Size: w.bufferSizes["fanSpeedColor"]},
+		TemperatureColor: bufferData{Offset: 0, Size: w.bufferSizes["temperatureColor"]},
+		LayerHeightColor: bufferData{Offset: 0, Size: w.bufferSizes["layerHeightColor"]},
 	}
 	offset := headerSize
 	header.Position.Offset = offset
@@ -60,8 +60,8 @@ func (w *Writer) getLegendHeader() legendHeader {
 	offset += w.bufferSizes["index"]
 	header.ExtrusionWidth.Offset = offset
 	offset += w.bufferSizes["extrusionWidth"]
-	header.LayerThickness.Offset = offset
-	offset += w.bufferSizes["layerThickness"]
+	header.LayerHeight.Offset = offset
+	offset += w.bufferSizes["layerHeight"]
 	header.TravelPosition.Offset = offset
 	return header
 }
@@ -85,8 +85,8 @@ func getLegendColors() legendColors {
 		MaxFanSpeedColor:    fanColorMax,
 		MinTemperatureColor: temperatureColorMin,
 		MaxTemperatureColor: temperatureColorMax,
-		MinLayerHeightColor: layerThicknessColorMin,
-		MaxLayerHeightColor: layerThicknessColorMax,
+		MinLayerHeightColor: layerHeightColorMin,
+		MaxLayerHeightColor: layerHeightColorMax,
 	}
 }
 
@@ -108,7 +108,7 @@ type ptpLegend struct {
 	Feedrate                 []legendEntry `json:"feedrate"`                 // legend of feedrates -- needs gradation
 	FanSpeed                 []legendEntry `json:"fanSpeed"`                 // legend of fan speeds -- possible gradation
 	Temperature              []legendEntry `json:"temperature"`              // legend of temperatures -- needs gradation
-	LayerThickness           []legendEntry `json:"layerThickness"`           // legend of layer heights -- needs gradation
+	LayerHeight              []legendEntry `json:"layerHeight"`              // legend of layer heights -- needs gradation
 	ZValues                  []float32     `json:"zValues"`                  // Z values for UI sliders
 	LayerStartIndices        []uint32      `json:"layerStartIndices"`        // index values for rendering layer ranges
 	LayerStartTravelIndices  []uint32      `json:"layerStartTravelIndices"`  // // index values for rendering layer ranges
@@ -299,43 +299,43 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 	return removeDuplicateLegendEntries(legend)
 }
 
-func (w *Writer) getLayerThicknessLegend() []legendEntry {
-	layerThicknessesSeen := setToSlice(w.state.layerThicknessesSeen, sortFloat32Slice)
-	legend := make([]legendEntry, 0, len(layerThicknessesSeen))
-	if len(layerThicknessesSeen) == 1 {
+func (w *Writer) getLayerHeightLegend() []legendEntry {
+	layerHeightsSeen := setToSlice(w.state.layerHeightsSeen, sortFloat32Slice)
+	legend := make([]legendEntry, 0, len(layerHeightsSeen))
+	if len(layerHeightsSeen) == 1 {
 		legend = []legendEntry{
 			{
-				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerThicknessesSeen[0], maxDecimalsLayerThickness)),
-				Color: floatsToHex(layerThicknessColorMax[0], layerThicknessColorMax[1], layerThicknessColorMax[2]),
+				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeightsSeen[0], maxDecimalsLayerHeight)),
+				Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
 			},
 		}
-	} else if len(layerThicknessesSeen) <= 6 {
-		for _, layerThickness := range layerThicknessesSeen {
-			t := (layerThickness - w.minLayerThickness) / (w.maxLayerThickness - w.minLayerThickness)
-			r := lerp(layerThicknessColorMin[0], layerThicknessColorMax[0], t)
-			g := lerp(layerThicknessColorMin[1], layerThicknessColorMax[1], t)
-			b := lerp(layerThicknessColorMin[2], layerThicknessColorMax[2], t)
+	} else if len(layerHeightsSeen) <= 6 {
+		for _, layerHeight := range layerHeightsSeen {
+			t := (layerHeight - w.minLayerHeight) / (w.maxLayerHeight - w.minLayerHeight)
+			r := lerp(layerHeightColorMin[0], layerHeightColorMax[0], t)
+			g := lerp(layerHeightColorMin[1], layerHeightColorMax[1], t)
+			b := lerp(layerHeightColorMin[2], layerHeightColorMax[2], t)
 			legend = append(legend, legendEntry{
-				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerThickness, maxDecimalsLayerThickness)),
+				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeight, maxDecimalsLayerHeight)),
 				Color: floatsToHex(r, g, b),
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxLayerThickness-w.minLayerThickness)*1000/6) / 1000)
+		step := float32(math.Round(float64(w.maxLayerHeight-w.minLayerHeight)*1000/6) / 1000)
 		for i := 0; i < 6; i++ {
-			layerThickness := (float32(i) * step) + w.minLayerThickness
+			layerHeight := (float32(i) * step) + w.minLayerHeight
 			t := float32(i) / 5
-			r := lerp(layerThicknessColorMin[0], layerThicknessColorMax[0], t)
-			g := lerp(layerThicknessColorMin[1], layerThicknessColorMax[1], t)
-			b := lerp(layerThicknessColorMin[2], layerThicknessColorMax[2], t)
+			r := lerp(layerHeightColorMin[0], layerHeightColorMax[0], t)
+			g := lerp(layerHeightColorMin[1], layerHeightColorMax[1], t)
+			b := lerp(layerHeightColorMin[2], layerHeightColorMax[2], t)
 			legend = append(legend, legendEntry{
-				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerThickness, maxDecimalsLayerThickness)),
+				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeight, maxDecimalsLayerHeight)),
 				Color: floatsToHex(r, g, b),
 			})
 		}
 		legend = append(legend, legendEntry{
-			Label: fmt.Sprintf("%s mm", prepareFloatForJSON(w.maxLayerThickness, maxDecimalsLayerThickness)),
-			Color: floatsToHex(layerThicknessColorMax[0], layerThicknessColorMax[1], layerThicknessColorMax[2]),
+			Label: fmt.Sprintf("%s mm", prepareFloatForJSON(w.maxLayerHeight, maxDecimalsLayerHeight)),
+			Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
 		})
 	}
 	// de-duplicate legend entries with labels that are identical after rounding
@@ -351,7 +351,7 @@ func (w *Writer) getLegend() ([]byte, error) {
 		Feedrate:                 w.getFeedrateLegend(),
 		FanSpeed:                 w.getFanSpeedLegend(),
 		Temperature:              w.getTemperatureLegend(),
-		LayerThickness:           w.getLayerThicknessLegend(),
+		LayerHeight:              w.getLayerHeightLegend(),
 		ZValues:                  w.state.layerHeights,
 		LayerStartIndices:        w.state.layerStartIndices,
 		LayerStartTravelIndices:  w.state.layerStartTravelIndices,

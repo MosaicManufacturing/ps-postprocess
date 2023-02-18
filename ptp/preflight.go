@@ -8,12 +8,12 @@ import (
 )
 
 type ptpPreflight struct {
-	minFeedrate       float32
-	maxFeedrate       float32
-	minTemperature    float32
-	maxTemperature    float32
-	minLayerThickness float32
-	maxLayerThickness float32
+	minFeedrate    float32
+	maxFeedrate    float32
+	minTemperature float32
+	maxTemperature float32
+	minLayerHeight float32
+	maxLayerHeight float32
 }
 
 func toolpathPreflight(inpath string) (ptpPreflight, error) {
@@ -21,8 +21,8 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 	maxFeedrate := float32(math.Inf(-1))
 	minTemperature := float32(math.Inf(1))
 	maxTemperature := float32(math.Inf(-1))
-	minLayerThickness := float32(math.Inf(1))
-	maxLayerThickness := float32(math.Inf(-1))
+	minLayerHeight := float32(math.Inf(1))
+	maxLayerHeight := float32(math.Inf(-1))
 	currentFeedrate := float32(0)
 
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
@@ -65,11 +65,11 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 				return err
 			}
 			height32 := roundZ(float32(height))
-			if height32 < minLayerThickness {
-				minLayerThickness = height32
+			if height32 < minLayerHeight {
+				minLayerHeight = height32
 			}
-			if height32 > maxLayerThickness {
-				maxLayerThickness = height32
+			if height32 > maxLayerHeight {
+				maxLayerHeight = height32
 			}
 		}
 		return nil
@@ -78,12 +78,12 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 		return ptpPreflight{}, err
 	}
 	results := ptpPreflight{
-		minFeedrate:       minFeedrate,
-		maxFeedrate:       maxFeedrate,
-		minTemperature:    minTemperature,
-		maxTemperature:    maxTemperature,
-		minLayerThickness: minLayerThickness,
-		maxLayerThickness: maxLayerThickness,
+		minFeedrate:    minFeedrate,
+		maxFeedrate:    maxFeedrate,
+		minTemperature: minTemperature,
+		maxTemperature: maxTemperature,
+		minLayerHeight: minLayerHeight,
+		maxLayerHeight: maxLayerHeight,
 	}
 	return results, err
 }
