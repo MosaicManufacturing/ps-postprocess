@@ -196,20 +196,27 @@ func (w *Writer) Initialize() error {
 		return errors.New("invalid layer height bounds for creating legend")
 	}
 
-	openForWrite(w, "main")
-	openForWrite(w, "normal")
-	openForWrite(w, "index")
-	openForWrite(w, "extrusionWidth")
-	openForWrite(w, "layerHeight")
-	openForWrite(w, "travelPosition")
-	openForWrite(w, "retractPosition")
-	openForWrite(w, "restartPosition")
-	openForWrite(w, "toolColor")
-	openForWrite(w, "pathTypeColor")
-	openForWrite(w, "feedrateColor")
-	openForWrite(w, "fanSpeedColor")
-	openForWrite(w, "temperatureColor")
-	openForWrite(w, "layerHeightColor")
+	filenamesToOpen := []string{
+		"main",
+		"normal",
+		"index",
+		"extrusionWidth",
+		"layerHeight",
+		"travelPosition",
+		"retractPosition",
+		"restartPosition",
+		"toolColor",
+		"pathTypeColor",
+		"feedrateColor",
+		"fanSpeedColor",
+		"temperatureColor",
+		"layerHeightColor",
+	}
+	for _, filename := range filenamesToOpen {
+		if err := openForWrite(w, filename); err != nil {
+			return err
+		}
+	}
 	return w.writeHeader()
 }
 
@@ -231,30 +238,45 @@ func (w *Writer) Finalize() error {
 	}
 
 	// close the temp files
-	flushAndClose(w, "normal")
-	flushAndClose(w, "index")
-	flushAndClose(w, "extrusionWidth")
-	flushAndClose(w, "layerHeight")
-	flushAndClose(w, "travelPosition")
-	flushAndClose(w, "retractPosition")
-	flushAndClose(w, "restartPosition")
-	flushAndClose(w, "toolColor")
-	flushAndClose(w, "pathTypeColor")
-	flushAndClose(w, "feedrateColor")
-	flushAndClose(w, "fanSpeedColor")
-	flushAndClose(w, "temperatureColor")
-	flushAndClose(w, "layerHeightColor")
+	filenamesToClose := []string{
+		"normal",
+		"index",
+		"extrusionWidth",
+		"layerHeight",
+		"travelPosition",
+		"retractPosition",
+		"restartPosition",
+		"toolColor",
+		"pathTypeColor",
+		"feedrateColor",
+		"fanSpeedColor",
+		"temperatureColor",
+		"layerHeightColor",
+	}
+	for _, filename := range filenamesToClose {
+		if err := flushAndClose(w, filename); err != nil {
+			return err
+		}
+	}
 
 	// concatenate the files
-	concatOntoWriter(w, "main", "normal")
-	concatOntoWriter(w, "main", "index")
-	concatOntoWriter(w, "main", "extrusionWidth")
-	concatOntoWriter(w, "main", "layerHeight")
+	filenamesToConcatenate := []string{
+		"normal",
+		"index",
+		"extrusionWidth",
+		"layerHeight",
+	}
+	for _, filename := range filenamesToConcatenate {
+		if err := concatOntoWriter(w, "main", filename); err != nil {
+			return err
+		}
+	}
 
 	// write legend and commit main file
-	w.saveLegend()
-	flushAndClose(w, "main")
-	return nil
+	if err := w.saveLegend(); err != nil {
+		return err
+	}
+	return flushAndClose(w, "main")
 }
 
 func (w *Writer) saveLegend() error {
