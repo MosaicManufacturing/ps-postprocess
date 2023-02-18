@@ -67,26 +67,26 @@ func (w *Writer) getLegendHeader() legendHeader {
 }
 
 type legendColors struct {
-	MinFeedrateColor       [3]float32 `json:"minFeedrateColor"`
-	MaxFeedrateColor       [3]float32 `json:"maxFeedrateColor"`
-	MinFanSpeedColor       [3]float32 `json:"minFanSpeedColor"`
-	MaxFanSpeedColor       [3]float32 `json:"maxFanSpeedColor"`
-	MinTemperatureColor    [3]float32 `json:"minTemperatureColor"`
-	MaxTemperatureColor    [3]float32 `json:"maxTemperatureColor"`
-	MinLayerThicknessColor [3]float32 `json:"minLayerThicknessColor"`
-	MaxLayerThicknessColor [3]float32 `json:"maxLayerThicknessColor"`
+	MinFeedrateColor    [3]float32 `json:"minFeedrateColor"`
+	MaxFeedrateColor    [3]float32 `json:"maxFeedrateColor"`
+	MinFanSpeedColor    [3]float32 `json:"minFanSpeedColor"`
+	MaxFanSpeedColor    [3]float32 `json:"maxFanSpeedColor"`
+	MinTemperatureColor [3]float32 `json:"minTemperatureColor"`
+	MaxTemperatureColor [3]float32 `json:"maxTemperatureColor"`
+	MinLayerHeightColor [3]float32 `json:"minLayerHeightColor"`
+	MaxLayerHeightColor [3]float32 `json:"maxLayerHeightColor"`
 }
 
 func getLegendColors() legendColors {
 	return legendColors{
-		MinFeedrateColor:       feedrateColorMin,
-		MaxFeedrateColor:       feedrateColorMax,
-		MinFanSpeedColor:       fanColorMin,
-		MaxFanSpeedColor:       fanColorMax,
-		MinTemperatureColor:    temperatureColorMin,
-		MaxTemperatureColor:    temperatureColorMax,
-		MinLayerThicknessColor: layerThicknessColorMin,
-		MaxLayerThicknessColor: layerThicknessColorMax,
+		MinFeedrateColor:    feedrateColorMin,
+		MaxFeedrateColor:    feedrateColorMax,
+		MinFanSpeedColor:    fanColorMin,
+		MaxFanSpeedColor:    fanColorMax,
+		MinTemperatureColor: temperatureColorMin,
+		MaxTemperatureColor: temperatureColorMax,
+		MinLayerHeightColor: layerThicknessColorMin,
+		MaxLayerHeightColor: layerThicknessColorMax,
 	}
 }
 
