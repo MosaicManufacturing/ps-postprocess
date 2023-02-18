@@ -30,7 +30,8 @@ type writerState struct {
 	currentFeedrate        float32
 	currentFanSpeed        int
 	currentTemperature     float32
-	zSeen                  map[float32]bool
+	currentLayerIndex      uint32    // 0 == start sequence, 1 == first layer, N + 1 == end sequence
+	layerHeights           []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
 	toolsSeen              map[int]bool
 	pathTypesSeen          map[PathType]bool
 	feedratesSeen          map[float32]bool
@@ -41,32 +42,13 @@ type writerState struct {
 
 func getStartingWriterState() writerState {
 	return writerState{
-		lastLineWasPrint:       false,
-		printLineBuffered:      false,
-		transitionLineBuffered: false,
-		bufferedFromTool:       0,
-		bufferedT:              0,
-		travelLineBuffered:     false,
-		currentX:               0,
-		currentY:               0,
-		currentZ:               0,
-		prevX:                  0,
-		prevY:                  0,
-		prevZ:                  0,
-		currentExtrusionWidth:  0,
-		currentLayerThickness:  0,
-		currentTool:            0,
-		currentPathType:        PathTypeUnknown,
-		currentFeedrate:        0,
-		currentFanSpeed:        0,
-		currentTemperature:     0,
-		zSeen:                  make(map[float32]bool),
-		toolsSeen:              make(map[int]bool),
-		pathTypesSeen:          make(map[PathType]bool),
-		feedratesSeen:          make(map[float32]bool),
-		fanSpeedsSeen:          make(map[int]bool),
-		temperaturesSeen:       make(map[float32]bool),
-		layerThicknessesSeen:   make(map[float32]bool),
+		layerHeights:         []float32{0}, // initial state is "in the start sequence"
+		toolsSeen:            make(map[int]bool),
+		pathTypesSeen:        make(map[PathType]bool),
+		feedratesSeen:        make(map[float32]bool),
+		fanSpeedsSeen:        make(map[int]bool),
+		temperaturesSeen:     make(map[float32]bool),
+		layerThicknessesSeen: make(map[float32]bool),
 	}
 }
 
@@ -232,8 +214,7 @@ func (w *Writer) writeHeader() error {
 	return err
 }
 
-func (w *Writer) Finalize() error {
-	// flush any remaining buffers
+func (w *Writer) flushLineBuffers() error {
 	if w.state.printLineBuffered {
 		if err := w.outputPrintLine(); err != nil {
 			return err
@@ -244,6 +225,14 @@ func (w *Writer) Finalize() error {
 			return err
 		}
 		w.state.travelLineBuffered = false
+	}
+	return nil
+}
+
+func (w *Writer) Finalize() error {
+	// flush any remaining buffers
+	if err := w.flushLineBuffers(); err != nil {
+		return err
 	}
 
 	// close the temp files
@@ -489,6 +478,16 @@ func (w *Writer) writeLayerThicknessColor(layerThickness float32) error {
 		return err
 	}
 	w.bufferSizes["layerThicknessColor"] += floatBytes
+	return nil
+}
+
+func (w *Writer) LayerChange(z float32) error {
+	// flush any buffered lines
+	if err := w.flushLineBuffers(); err != nil {
+		return err
+	}
+	w.state.currentLayerIndex += 1
+	w.state.layerHeights = append(w.state.layerHeights, z)
 	return nil
 }
 
@@ -1053,7 +1052,6 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
 		return nil
 	}
 
-	w.state.zSeen[zFloat] = true
 	w.state.toolsSeen[w.state.currentTool] = true
 	w.state.pathTypesSeen[w.state.currentPathType] = true
 	w.state.feedratesSeen[w.state.currentFeedrate] = true

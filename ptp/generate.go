@@ -259,6 +259,14 @@ func generateToolpath(argv []string) error {
 					}
 				}
 				writer.state.inWipe = false
+			} else if strings.HasPrefix(line.Comment, "Z:") {
+				z, err := strconv.ParseFloat(line.Comment[2:], 32)
+				if err != nil {
+					return err
+				}
+				if err = writer.LayerChange(float32(z)); err != nil {
+					return err
+				}
 			} else if strings.HasPrefix(line.Comment, "TYPE:") {
 				// path type hints
 				pathType := convertPathType(line.Comment[5:])

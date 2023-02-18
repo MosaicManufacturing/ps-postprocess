@@ -361,15 +361,6 @@ func (w *Writer) getLayerThicknessLegend() []legendEntry {
 	return removeDuplicateLegendEntries(legend)
 }
 
-func (w *Writer) getZValues() []float32 {
-	zSeen := make([]float32, 0, len(w.state.zSeen))
-	for z := range w.state.zSeen {
-		zSeen = append(zSeen, z)
-	}
-	sortFloat32Slice(zSeen)
-	return zSeen
-}
-
 func (w *Writer) getLegend() ([]byte, error) {
 	legend := legend{
 		Header:         w.getLegendHeader(),
@@ -380,7 +371,7 @@ func (w *Writer) getLegend() ([]byte, error) {
 		FanSpeed:       w.getFanSpeedLegend(),
 		Temperature:    w.getTemperatureLegend(),
 		LayerThickness: w.getLayerThicknessLegend(),
-		ZValues:        w.getZValues(),
+		ZValues:        w.state.layerHeights,
 	}
 	return json.Marshal(legend)
 }
