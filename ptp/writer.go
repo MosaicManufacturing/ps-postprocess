@@ -85,7 +85,7 @@ type Writer struct {
 	minLayerHeight float32
 	maxLayerHeight float32
 
-	brimIsSkirt bool         // whether brim paths should be called skirts
+	brimIsSkirt bool         // if true, PathTypeBrim will be referred to as Skirt
 	toolColors  [][3]float32 // array of [r, g, b] floats in range 0..1
 	state       writerState
 }
