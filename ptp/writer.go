@@ -512,7 +512,7 @@ func (w *Writer) LayerChange(z float32) error {
 	w.state.layerHeights = append(w.state.layerHeights, z)
 	// set starting indices for geometry this layer
 	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getNextIndex())
-	w.state.layerStartTravelIndices = append(w.state.layerStartIndices, w.getNextTravelIndex())
+	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getNextTravelIndex())
 	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getNextRetractIndex())
 	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getNextRestartIndex())
 	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getNextPingIndex())
