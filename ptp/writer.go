@@ -259,6 +259,8 @@ func (w *Writer) Finalize() error {
 		return err
 	}
 
+	w.updateLayerStartIndices()
+
 	// close the temp files
 	filenamesToClose := []string{
 		"normal",
@@ -505,6 +507,14 @@ func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
 	return nil
 }
 
+func (w *Writer) updateLayerStartIndices() {
+	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getLayerStartIndex())
+	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getLayerStartTravelIndex())
+	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getLayerStartRetractIndex())
+	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getLayerStartRestartIndex())
+	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getLayerStartPingIndex())
+}
+
 func (w *Writer) LayerChange(z float32) error {
 	// flush any buffered lines
 	if err := w.flushLineBuffers(); err != nil {
@@ -513,11 +523,7 @@ func (w *Writer) LayerChange(z float32) error {
 	// add to the list of Z heights
 	w.state.layerHeights = append(w.state.layerHeights, z)
 	// set starting indices for geometry this layer
-	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getLayerStartIndex())
-	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getLayerStartTravelIndex())
-	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getLayerStartRetractIndex())
-	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getLayerStartRestartIndex())
-	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getLayerStartPingIndex())
+	w.updateLayerStartIndices()
 	return nil
 }
 
