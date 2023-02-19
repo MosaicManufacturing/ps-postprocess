@@ -75,7 +75,7 @@ type Writer struct {
 	paths       map[string]string
 	files       map[string]*os.File
 	writers     map[string]*bufio.Writer
-	bufferSizes map[string]int
+	bufferSizes map[string]uint32
 
 	// bounds for interpolated color scales
 	minFeedrate    float32
@@ -154,7 +154,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"temperatureColor": nil,
 			"layerHeightColor": nil,
 		},
-		bufferSizes: map[string]int{
+		bufferSizes: map[string]uint32{
 			"position":         0,
 			"normal":           0,
 			"index":            0,
@@ -928,15 +928,15 @@ func (w *Writer) AddPingAt(x, y, z float32, savePosition bool) error {
 }
 
 func (w *Writer) getLastIndex() uint32 {
-	return uint32((w.bufferSizes["position"] / (floatBytes * 3)) - 1)
+	return (w.bufferSizes["position"] / (floatBytes * 3)) - 1
 }
 
 func (w *Writer) getCurrentIndex() uint32 {
-	return uint32(w.bufferSizes["index"] / uint32Bytes)
+	return w.bufferSizes["index"] / uint32Bytes
 }
 
 func (w *Writer) getCurrentTravelIndex() uint32 {
-	return uint32(w.bufferSizes["travelPosition"] / (floatBytes * 3))
+	return w.bufferSizes["travelPosition"] / (floatBytes * 3)
 }
 
 func (w *Writer) outputPrintLine() error {

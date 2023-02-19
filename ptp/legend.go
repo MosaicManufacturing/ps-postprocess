@@ -15,8 +15,8 @@ const (
 )
 
 type bufferData struct {
-	Offset int `json:"offset"`
-	Size   int `json:"size"`
+	Offset uint32 `json:"offset"`
+	Size   uint32 `json:"size"`
 }
 
 type legendHeader struct {

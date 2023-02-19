@@ -15,7 +15,7 @@ const collinearityEpsilon = 10e-5
 
 // in-file header only contains version information
 // (buffer offsets and sizes are now stored in the legend file)
-const headerSize = 4
+const headerSize = uint32(4)
 
 var (
 	colorWhite      = [3]float32{0xff / 255.0, 0xff / 255.0, 0xff / 255.0} // #ffffff
