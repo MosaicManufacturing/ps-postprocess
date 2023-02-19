@@ -549,10 +549,6 @@ func (w *Writer) updateLayerStartIndices() {
 }
 
 func (w *Writer) LayerChange(z float32) error {
-	// flush any buffered lines
-	if err := w.flushLineBuffers(); err != nil {
-		return err
-	}
 	// add to the list of Z heights
 	w.state.layerHeights = append(w.state.layerHeights, z)
 	// set starting indices for geometry this layer
