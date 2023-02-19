@@ -38,8 +38,8 @@ type PathType int
 
 const (
 	PathTypeUnknown PathType = iota
-	PathTypeStartSequence
-	PathTypeEndSequence
+	PathTypeTravel
+	PathTypeSequence
 	PathTypeRaft
 	PathTypeBrim
 	PathTypeSupport
@@ -52,14 +52,13 @@ const (
 	PathTypeBridge
 	PathTypeIroning
 	PathTypeTransition
-	PathTypePing
 	pathTypeCount
 )
 
 var pathTypeNames = map[PathType]string{
 	PathTypeUnknown:          "Unknown",
-	PathTypeStartSequence:    "Start Sequence",
-	PathTypeEndSequence:      "End Sequence",
+	PathTypeTravel:           "Travel",
+	PathTypeSequence:         "User Sequence",
 	PathTypeRaft:             "Raft",
 	PathTypeBrim:             "Skirt/Brim",
 	PathTypeSupport:          "Support",
@@ -72,13 +71,12 @@ var pathTypeNames = map[PathType]string{
 	PathTypeBridge:           "Bridge",
 	PathTypeIroning:          "Ironing",
 	PathTypeTransition:       "Transition",
-	PathTypePing:             "Ping Sequence",
 }
 
 var pathTypeColors = map[PathType][3]float32{
 	PathTypeUnknown:          colorWhite,
-	PathTypeStartSequence:    colorDarkGrey,
-	PathTypeEndSequence:      colorDarkGrey,
+	PathTypeTravel:           colorDarkGrey,
+	PathTypeSequence:         colorDarkGrey,
 	PathTypeRaft:             colorLilac,
 	PathTypeBrim:             colorSky,
 	PathTypeSupport:          colorPurple,
@@ -91,13 +89,12 @@ var pathTypeColors = map[PathType][3]float32{
 	PathTypeBridge:           colorSky,
 	PathTypeIroning:          colorPink,
 	PathTypeTransition:       colorLightGrey,
-	PathTypePing:             colorMediumGrey,
 }
 
 var pathTypeColorStrings = map[PathType]string{
 	PathTypeUnknown:          "#ffffff",
-	PathTypeStartSequence:    "#32292f",
-	PathTypeEndSequence:      "#32292f",
+	PathTypeTravel:           "#32292f",
+	PathTypeSequence:         "#32292f",
 	PathTypeRaft:             "#9789ba",
 	PathTypeBrim:             "#d4deff",
 	PathTypeSupport:          "#3d315b",
@@ -110,7 +107,6 @@ var pathTypeColorStrings = map[PathType]string{
 	PathTypeBridge:           "#bcd4de",
 	PathTypeIroning:          "#d67a89",
 	PathTypeTransition:       "#d1d1d1",
-	PathTypePing:             "#999999",
 }
 
 var feedrateColorMin = colorRed
