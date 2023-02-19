@@ -101,20 +101,18 @@ func (l *legendEntry) MarshalJSON() ([]byte, error) {
 }
 
 type ptpLegend struct {
-	Header                   legendHeader  `json:"header"`                   // header data (version, buffer offsets and sizes)
-	Colors                   legendColors  `json:"colors"`                   // max/min colors for interpolated coloring
-	Tool                     []legendEntry `json:"tool"`                     // legend of tools seen
-	PathType                 []legendEntry `json:"pathType"`                 // legend of path types seen
-	Feedrate                 []legendEntry `json:"feedrate"`                 // legend of feedrates -- needs gradation
-	FanSpeed                 []legendEntry `json:"fanSpeed"`                 // legend of fan speeds -- possible gradation
-	Temperature              []legendEntry `json:"temperature"`              // legend of temperatures -- needs gradation
-	LayerHeight              []legendEntry `json:"layerHeight"`              // legend of layer heights -- needs gradation
-	ZValues                  []float32     `json:"zValues"`                  // Z values for UI sliders
-	LayerStartIndices        []uint32      `json:"layerStartIndices"`        // index values for rendering layer ranges
-	LayerStartTravelIndices  []uint32      `json:"layerStartTravelIndices"`  // // index values for rendering layer ranges
-	LayerStartRetractIndices []uint32      `json:"layerStartRetractIndices"` // // index values for rendering layer ranges
-	LayerStartRestartIndices []uint32      `json:"layerStartRestartIndices"` // // index values for rendering layer ranges
-	LayerStartPingIndices    []uint32      `json:"layerStartPingIndices"`    // // index values for rendering layer ranges
+	Header                  legendHeader  `json:"header"`                  // header data (version, buffer offsets and sizes)
+	Colors                  legendColors  `json:"colors"`                  // max/min colors for interpolated coloring
+	Tool                    []legendEntry `json:"tool"`                    // legend of tools seen
+	PathType                []legendEntry `json:"pathType"`                // legend of path types seen
+	Feedrate                []legendEntry `json:"feedrate"`                // legend of feedrates -- needs gradation
+	FanSpeed                []legendEntry `json:"fanSpeed"`                // legend of fan speeds -- possible gradation
+	Temperature             []legendEntry `json:"temperature"`             // legend of temperatures -- needs gradation
+	LayerHeight             []legendEntry `json:"layerHeight"`             // legend of layer heights -- needs gradation
+	ZValues                 []float32     `json:"zValues"`                 // Z values for UI sliders
+	LayerStartIndices       []uint32      `json:"layerStartIndices"`       // index values for rendering layer ranges
+	LayerStartTravelIndices []uint32      `json:"layerStartTravelIndices"` // index values for rendering layer ranges
+	HasPings                bool          `json:"hasPings"`                // for UI to show the relevant option
 }
 
 func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
@@ -355,6 +353,7 @@ func (w *Writer) getLegend() ([]byte, error) {
 		ZValues:                 w.state.layerHeights,
 		LayerStartIndices:       w.state.layerStartIndices,
 		LayerStartTravelIndices: w.state.layerStartTravelIndices,
+		HasPings:                w.bufferSizes["pingPosition"] > 0,
 	}
 	return json.Marshal(legend)
 }
