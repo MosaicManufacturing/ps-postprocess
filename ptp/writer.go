@@ -405,10 +405,10 @@ func (w *Writer) writeRetractPosition(x, y, z float32) error {
 }
 
 func (w *Writer) writeIndexAtRetract(idx uint32) error {
-	if err := writeUint32LE(w.writers["indexAtRetract"], idx); err != nil {
+	if err := writeFloat32LE(w.writers["indexAtRetract"], float32(idx)); err != nil {
 		return err
 	}
-	w.bufferSizes["indexAtRetract"] += uint32Bytes
+	w.bufferSizes["indexAtRetract"] += floatBytes
 	return nil
 }
 
@@ -427,10 +427,10 @@ func (w *Writer) writeRestartPosition(x, y, z float32) error {
 }
 
 func (w *Writer) writeIndexAtRestart(idx uint32) error {
-	if err := writeUint32LE(w.writers["indexAtRestart"], idx); err != nil {
+	if err := writeFloat32LE(w.writers["indexAtRestart"], float32(idx)); err != nil {
 		return err
 	}
-	w.bufferSizes["indexAtRestart"] += uint32Bytes
+	w.bufferSizes["indexAtRestart"] += floatBytes
 	return nil
 }
 
@@ -449,10 +449,10 @@ func (w *Writer) writePingPosition(x, y, z float32) error {
 }
 
 func (w *Writer) writeIndexAtPing(idx uint32) error {
-	if err := writeUint32LE(w.writers["indexAtPing"], idx); err != nil {
+	if err := writeFloat32LE(w.writers["indexAtPing"], float32(idx)); err != nil {
 		return err
 	}
-	w.bufferSizes["indexAtPing"] += uint32Bytes
+	w.bufferSizes["indexAtPing"] += floatBytes
 	return nil
 }
 
