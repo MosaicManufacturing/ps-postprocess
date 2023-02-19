@@ -26,6 +26,7 @@ type legendHeader struct {
 	Index            bufferData `json:"index"`
 	ExtrusionWidth   bufferData `json:"extrusionWidth"`
 	LayerHeight      bufferData `json:"layerHeight"`
+	IsTravel         bufferData `json:"isTravel"`
 	ToolColor        bufferData `json:"toolColor"`
 	PathTypeColor    bufferData `json:"pathTypeColor"`
 	FeedrateColor    bufferData `json:"feedrateColor"`
@@ -42,6 +43,7 @@ func (w *Writer) getLegendHeader() legendHeader {
 		Index:            bufferData{Offset: 0, Size: w.bufferSizes["index"]},
 		ExtrusionWidth:   bufferData{Offset: 0, Size: w.bufferSizes["extrusionWidth"]},
 		LayerHeight:      bufferData{Offset: 0, Size: w.bufferSizes["layerHeight"]},
+		IsTravel:         bufferData{Offset: 0, Size: w.bufferSizes["isTravel"]},
 		ToolColor:        bufferData{Offset: 0, Size: w.bufferSizes["toolColor"]},
 		PathTypeColor:    bufferData{Offset: 0, Size: w.bufferSizes["pathTypeColor"]},
 		FeedrateColor:    bufferData{Offset: 0, Size: w.bufferSizes["feedrateColor"]},
@@ -59,6 +61,8 @@ func (w *Writer) getLegendHeader() legendHeader {
 	header.ExtrusionWidth.Offset = offset
 	offset += w.bufferSizes["extrusionWidth"]
 	header.LayerHeight.Offset = offset
+	offset += w.bufferSizes["layerHeight"]
+	header.IsTravel.Offset = offset
 	return header
 }
 

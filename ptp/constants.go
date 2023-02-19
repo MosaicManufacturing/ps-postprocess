@@ -4,6 +4,7 @@ const ptpVersion = uint8(6)
 
 const (
 	floatBytes  = 4
+	uint8Bytes  = 1
 	uint32Bytes = 4
 )
 

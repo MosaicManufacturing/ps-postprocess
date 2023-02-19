@@ -104,6 +104,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            fmt.Sprintf("%s.%s", outpath, "index"),
 			"extrusionWidth":   fmt.Sprintf("%s.%s", outpath, "extrusionWidth"),
 			"layerHeight":      fmt.Sprintf("%s.%s", outpath, "layerHeight"),
+			"isTravel":         fmt.Sprintf("%s.%s", outpath, "isTravel"),
 			"retractPosition":  fmt.Sprintf("%s.%s", outpath, "retractPosition"),
 			"indexAtRetract":   fmt.Sprintf("%s.%s", outpath, "indexAtRetract"),
 			"restartPosition":  fmt.Sprintf("%s.%s", outpath, "restartPosition"),
@@ -123,6 +124,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            nil,
 			"extrusionWidth":   nil,
 			"layerHeight":      nil,
+			"isTravel":         nil,
 			"retractPosition":  nil,
 			"indexAtRetract":   nil,
 			"restartPosition":  nil,
@@ -142,6 +144,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            nil,
 			"extrusionWidth":   nil,
 			"layerHeight":      nil,
+			"isTravel":         nil,
 			"retractPosition":  nil,
 			"indexAtRetract":   nil,
 			"restartPosition":  nil,
@@ -161,6 +164,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            0,
 			"extrusionWidth":   0,
 			"layerHeight":      0,
+			"isTravel":         0,
 			"retractPosition":  0,
 			"indexAtRetract":   0,
 			"restartPosition":  0,
@@ -218,6 +222,7 @@ func (w *Writer) Initialize() error {
 		"index",
 		"extrusionWidth",
 		"layerHeight",
+		"isTravel",
 		"retractPosition",
 		"indexAtRetract",
 		"restartPosition",
@@ -270,6 +275,7 @@ func (w *Writer) Finalize() error {
 		"index",
 		"extrusionWidth",
 		"layerHeight",
+		"isTravel",
 		"retractPosition",
 		"indexAtRetract",
 		"restartPosition",
@@ -295,6 +301,7 @@ func (w *Writer) Finalize() error {
 		"index",
 		"extrusionWidth",
 		"layerHeight",
+		"isTravel",
 	}
 	for _, filename := range filenamesToConcatenate {
 		if err := concatOntoWriter(w, "main", filename); err != nil {
@@ -366,6 +373,18 @@ func (w *Writer) writeLayerHeight(height float32) error {
 		return err
 	}
 	w.bufferSizes["layerHeight"] += floatBytes
+	return nil
+}
+
+func (w *Writer) writeIsTravel(isTravel bool) error {
+	val := uint8(0)
+	if isTravel {
+		val = 1
+	}
+	if err := writeUint8(w.writers["isTravel"], val); err != nil {
+		return err
+	}
+	w.bufferSizes["isTravel"] += uint8Bytes
 	return nil
 }
 
@@ -920,6 +939,15 @@ func (w *Writer) outputPrintLine() error {
 	//
 	for i := 0; i < 4; i++ {
 		if err := w.writeLayerHeight(w.state.currentLayerHeight); err != nil {
+			return err
+		}
+	}
+
+	//
+	// travel flag
+	//
+	for i := 0; i < 4; i++ {
+		if err := w.writeIsTravel(w.state.travelling); err != nil {
 			return err
 		}
 	}

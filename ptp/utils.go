@@ -123,6 +123,10 @@ func writeFloat32LE(writer *bufio.Writer, val float32) error {
 	return writeUint32LE(writer, math.Float32bits(val))
 }
 
+func writeUint8(writer *bufio.Writer, val uint8) error {
+	return writer.WriteByte(val)
+}
+
 func prepareFloatForJSON(val float32, maxDecimals int) string {
 	roundingFactor := math.Pow(10, float64(maxDecimals))
 	val64 := math.Round(float64(val)*roundingFactor) / roundingFactor
