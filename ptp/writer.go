@@ -15,7 +15,6 @@ type writerState struct {
 	transitionLineBuffered bool    // if true, use `bufferedFromTool` to create a gradient
 	bufferedFromTool       int     // used for interpolation when outputting a buffered transition line
 	bufferedT              float32 // used for interpolation when outputting a buffered transition line
-	travelLineBuffered     bool    // if true, a travel line from prevX/Y/Z to currentX/Y/Z needs to be output
 	inWipe                 bool    // if true, "wipe and retract" commands are occurring
 	currentX               float32
 	currentY               float32
@@ -25,11 +24,18 @@ type writerState struct {
 	prevZ                  float32
 	currentExtrusionWidth  float32
 	currentLayerHeight     float32
-	currentTool            int
+	currentTool            int // == travelTool when outputting travel moves!
 	currentPathType        PathType
 	currentFeedrate        float32
 	currentFanSpeed        int
 	currentTemperature     float32
+
+	// buffered data while adding travel paths (to be able to revert to the previous values after)
+	travelling                   bool
+	travelBufferedPathType       PathType
+	travelBufferedExtrusionWidth float32
+	travelBufferedLayerHeight    float32
+	travelBufferedTool           int
 
 	// track the display height of each layer (for UI sliders to use), but for each geometry
 	// also track the actual start index of the data for this layer, so that we can render
@@ -41,9 +47,8 @@ type writerState struct {
 	// - ...
 	// - layer N is the last layer of the print
 	// - layer N + 1 is the end sequence
-	layerHeights            []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
-	layerStartIndices       []uint32  // index of first vertex in layer
-	layerStartTravelIndices []uint32  // index of first travel vertex in layer
+	layerHeights      []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
+	layerStartIndices []uint32  // index of first vertex in layer
 
 	// sets used to track unique values seen, for generating the legend
 	toolsSeen        map[int]bool
@@ -56,17 +61,16 @@ type writerState struct {
 
 func getStartingWriterState(initialExtrusionWidth, initialLayerHeight float32) writerState {
 	return writerState{
-		currentExtrusionWidth:   initialExtrusionWidth,
-		currentLayerHeight:      initialLayerHeight,
-		layerHeights:            []float32{0}, // initial state is "in the start sequence"
-		layerStartIndices:       []uint32{0},
-		layerStartTravelIndices: []uint32{0},
-		toolsSeen:               make(map[int]bool),
-		pathTypesSeen:           make(map[PathType]bool),
-		feedratesSeen:           make(map[float32]bool),
-		fanSpeedsSeen:           make(map[int]bool),
-		temperaturesSeen:        make(map[float32]bool),
-		layerHeightsSeen:        make(map[float32]bool),
+		currentExtrusionWidth: initialExtrusionWidth,
+		currentLayerHeight:    initialLayerHeight,
+		layerHeights:          []float32{0}, // initial state is "in the start sequence"
+		layerStartIndices:     []uint32{0},
+		toolsSeen:             make(map[int]bool),
+		pathTypesSeen:         make(map[PathType]bool),
+		feedratesSeen:         make(map[float32]bool),
+		fanSpeedsSeen:         make(map[int]bool),
+		temperaturesSeen:      make(map[float32]bool),
+		layerHeightsSeen:      make(map[float32]bool),
 	}
 }
 
@@ -100,7 +104,6 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            fmt.Sprintf("%s.%s", outpath, "index"),
 			"extrusionWidth":   fmt.Sprintf("%s.%s", outpath, "extrusionWidth"),
 			"layerHeight":      fmt.Sprintf("%s.%s", outpath, "layerHeight"),
-			"travelPosition":   fmt.Sprintf("%s.%s", outpath, "travelPosition"),
 			"retractPosition":  fmt.Sprintf("%s.%s", outpath, "retractPosition"),
 			"indexAtRetract":   fmt.Sprintf("%s.%s", outpath, "indexAtRetract"),
 			"restartPosition":  fmt.Sprintf("%s.%s", outpath, "restartPosition"),
@@ -120,7 +123,6 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            nil,
 			"extrusionWidth":   nil,
 			"layerHeight":      nil,
-			"travelPosition":   nil,
 			"retractPosition":  nil,
 			"indexAtRetract":   nil,
 			"restartPosition":  nil,
@@ -140,7 +142,6 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            nil,
 			"extrusionWidth":   nil,
 			"layerHeight":      nil,
-			"travelPosition":   nil,
 			"retractPosition":  nil,
 			"indexAtRetract":   nil,
 			"restartPosition":  nil,
@@ -160,7 +161,6 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"index":            0,
 			"extrusionWidth":   0,
 			"layerHeight":      0,
-			"travelPosition":   0,
 			"retractPosition":  0,
 			"indexAtRetract":   0,
 			"restartPosition":  0,
@@ -218,7 +218,6 @@ func (w *Writer) Initialize() error {
 		"index",
 		"extrusionWidth",
 		"layerHeight",
-		"travelPosition",
 		"retractPosition",
 		"indexAtRetract",
 		"restartPosition",
@@ -253,11 +252,6 @@ func (w *Writer) flushLineBuffers() error {
 			return err
 		}
 		w.state.printLineBuffered = false
-	} else if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
 	}
 	return nil
 }
@@ -276,7 +270,6 @@ func (w *Writer) Finalize() error {
 		"index",
 		"extrusionWidth",
 		"layerHeight",
-		"travelPosition",
 		"retractPosition",
 		"indexAtRetract",
 		"restartPosition",
@@ -376,20 +369,6 @@ func (w *Writer) writeLayerHeight(height float32) error {
 	return nil
 }
 
-func (w *Writer) writeTravelPosition(x, y, z float32) error {
-	if err := writeFloat32LE(w.writers["travelPosition"], x); err != nil {
-		return err
-	}
-	if err := writeFloat32LE(w.writers["travelPosition"], y); err != nil {
-		return err
-	}
-	if err := writeFloat32LE(w.writers["travelPosition"], z); err != nil {
-		return err
-	}
-	w.bufferSizes["travelPosition"] += floatBytes * 3
-	return nil
-}
-
 func (w *Writer) writeRetractPosition(x, y, z float32) error {
 	if err := writeFloat32LE(w.writers["retractPosition"], x); err != nil {
 		return err
@@ -458,7 +437,11 @@ func (w *Writer) writeIndexAtPing(idx uint32) error {
 
 func (w *Writer) writeToolColor(toTool, fromTool int, t float32) error {
 	var r, g, b float32
-	if t >= 1 {
+	if toTool < 0 {
+		r = travelColor[0]
+		g = travelColor[1]
+		b = travelColor[2]
+	} else if t >= 1 {
 		r = w.toolColors[toTool][0]
 		g = w.toolColors[toTool][1]
 		b = w.toolColors[toTool][2]
@@ -545,7 +528,6 @@ func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
 
 func (w *Writer) updateLayerStartIndices() {
 	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getCurrentIndex())
-	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getCurrentTravelIndex())
 }
 
 func (w *Writer) LayerChange(z float32) error {
@@ -561,6 +543,10 @@ func (w *Writer) LayerChange(z float32) error {
 }
 
 func (w *Writer) SetExtrusionWidth(width float32) error {
+	if w.state.travelling {
+		w.state.travelBufferedExtrusionWidth = width
+		return nil
+	}
 	if width == w.state.currentExtrusionWidth {
 		return nil
 	}
@@ -576,6 +562,10 @@ func (w *Writer) SetExtrusionWidth(width float32) error {
 }
 
 func (w *Writer) SetLayerHeight(height float32) error {
+	if w.state.travelling {
+		w.state.travelBufferedLayerHeight = height
+		return nil
+	}
 	if height == w.state.currentLayerHeight {
 		return nil
 	}
@@ -591,6 +581,10 @@ func (w *Writer) SetLayerHeight(height float32) error {
 }
 
 func (w *Writer) SetTool(tool int) error {
+	if w.state.travelling {
+		w.state.travelBufferedTool = tool
+		return nil
+	}
 	if tool == w.state.currentTool {
 		return nil
 	}
@@ -606,6 +600,10 @@ func (w *Writer) SetTool(tool int) error {
 }
 
 func (w *Writer) SetPathType(pathType PathType) error {
+	if w.state.travelling {
+		w.state.travelBufferedPathType = pathType
+		return nil
+	}
 	if pathType == w.state.currentPathType {
 		return nil
 	}
@@ -669,16 +667,6 @@ func (w *Writer) GetCurrentPosition() (float32, float32, float32) {
 	return w.state.currentX, w.state.currentY, w.state.currentZ
 }
 
-func (w *Writer) outputTravelLine() error {
-	if err := w.writeTravelPosition(w.state.prevX, w.state.prevY, w.state.prevZ); err != nil {
-		return err
-	}
-	if err := w.writeTravelPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (w *Writer) outputRetractPoint() error {
 	if err := w.writeRetractPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
 		return err
@@ -701,49 +689,7 @@ func (w *Writer) outputPingPoint() error {
 }
 
 func (w *Writer) AddXYZTravelTo(x, y, z float32) error {
-	// flush print line buffer if necessary
-	if w.state.printLineBuffered {
-		if err := w.outputPrintLine(); err != nil {
-			return err
-		}
-		w.state.printLineBuffered = false
-		w.state.lastLineWasPrint = true
-	}
-	// handle travel line buffering/merging
-	if w.state.travelLineBuffered {
-		if directionallyCollinear(
-			w.state.prevX, w.state.prevY, w.state.prevZ,
-			w.state.currentX, w.state.currentY, w.state.currentZ,
-			x, y, z,
-		) {
-			// spoof history
-			w.state.currentX = w.state.prevX
-			w.state.currentY = w.state.prevY
-			w.state.currentZ = w.state.prevZ
-		} else {
-			if err := w.outputTravelLine(); err != nil {
-				return err
-			}
-		}
-	}
-	// update history
-	w.state.prevX = w.state.currentX
-	w.state.prevY = w.state.currentY
-	w.state.prevZ = w.state.currentZ
-	w.state.currentX = x
-	w.state.currentY = y
-	w.state.currentZ = z
-	w.state.lastLineWasPrint = false
-	w.state.travelLineBuffered = true
-
-	if math.Abs(float64(w.state.currentX-w.state.prevX)) < skipThreshold &&
-		math.Abs(float64(w.state.currentY-w.state.prevY)) < skipThreshold &&
-		math.Abs(float64(w.state.currentZ-w.state.prevZ)) < skipThreshold {
-		// don't output exceedingly-small line segments
-		w.state.travelLineBuffered = false
-		return nil
-	}
-	return nil
+	return w.addXYZPrintLineTo(x, y, z, true, true)
 }
 
 func (w *Writer) AddXYTravelTo(x, y float32) error {
@@ -759,14 +705,6 @@ func (w *Writer) AddRetract() error {
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
 	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
-	}
 	return w.outputRetractPoint()
 }
 
@@ -778,14 +716,6 @@ func (w *Writer) AddRetractAt(x, y, z float32, savePosition bool) error {
 		}
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
-	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
 	}
 	// update history
 	w.state.prevX = w.state.currentX
@@ -818,14 +748,6 @@ func (w *Writer) AddRestart() error {
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
 	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
-	}
 	return w.outputRestartPoint()
 }
 
@@ -837,14 +759,6 @@ func (w *Writer) AddRestartAt(x, y, z float32, savePosition bool) error {
 		}
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
-	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
 	}
 	// update history
 	w.state.prevX = w.state.currentX
@@ -877,14 +791,6 @@ func (w *Writer) AddPing() error {
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
 	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
-	}
 	return w.outputPingPoint()
 }
 
@@ -896,14 +802,6 @@ func (w *Writer) AddPingAt(x, y, z float32, savePosition bool) error {
 		}
 		w.state.printLineBuffered = false
 		w.state.lastLineWasPrint = true
-	}
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
-		}
-		w.state.travelLineBuffered = false
-		w.state.lastLineWasPrint = false
 	}
 	// update history
 	w.state.prevX = w.state.currentX
@@ -933,10 +831,6 @@ func (w *Writer) getLastIndex() uint32 {
 
 func (w *Writer) getCurrentIndex() uint32 {
 	return w.bufferSizes["index"] / uint32Bytes
-}
-
-func (w *Writer) getCurrentTravelIndex() uint32 {
-	return w.bufferSizes["travelPosition"] / (floatBytes * 3)
 }
 
 func (w *Writer) outputPrintLine() error {
@@ -1087,15 +981,49 @@ func (w *Writer) outputPrintLine() error {
 	return nil
 }
 
-func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
+func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition, isTravel bool) error {
 	zFloat := roundZ(z)
-	// flush travel line buffer if necessary
-	if w.state.travelLineBuffered {
-		if err := w.outputTravelLine(); err != nil {
-			return err
+
+	if isTravel {
+		if w.state.currentPathType != PathTypeTravel {
+			// starting travel path after non-travel line
+			w.state.travelBufferedPathType = w.state.currentPathType
+			w.state.travelBufferedExtrusionWidth = w.state.currentExtrusionWidth
+			w.state.travelBufferedLayerHeight = w.state.currentLayerHeight
+			w.state.travelBufferedTool = w.state.currentTool
+			if err := w.SetPathType(PathTypeTravel); err != nil {
+				return err
+			}
+			if err := w.SetExtrusionWidth(travelExtrusionWidth); err != nil {
+				return err
+			}
+			if err := w.SetLayerHeight(travelLayerHeight); err != nil {
+				return err
+			}
+			if err := w.SetTool(travelTool); err != nil {
+				return err
+			}
+			w.state.travelling = true
 		}
-		w.state.travelLineBuffered = false
+	} else {
+		if w.state.currentPathType == PathTypeTravel {
+			// starting non-travel path after travel line
+			w.state.travelling = false
+			if err := w.SetPathType(w.state.travelBufferedPathType); err != nil {
+				return err
+			}
+			if err := w.SetExtrusionWidth(w.state.travelBufferedExtrusionWidth); err != nil {
+				return err
+			}
+			if err := w.SetLayerHeight(w.state.travelBufferedLayerHeight); err != nil {
+				return err
+			}
+			if err := w.SetTool(w.state.travelBufferedTool); err != nil {
+				return err
+			}
+		}
 	}
+
 	// handle print line buffering/merging
 	if w.state.printLineBuffered {
 		if directionallyCollinear(
@@ -1133,12 +1061,14 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
 		return nil
 	}
 
-	w.state.toolsSeen[w.state.currentTool] = true
+	if w.state.currentTool >= 0 {
+		w.state.toolsSeen[w.state.currentTool] = true
+	}
 	w.state.pathTypesSeen[w.state.currentPathType] = true
 	w.state.feedratesSeen[w.state.currentFeedrate] = true
 	w.state.fanSpeedsSeen[w.state.currentFanSpeed] = true
 	w.state.temperaturesSeen[w.state.currentTemperature] = true
-	if w.state.currentLayerHeight > 0 {
+	if w.state.currentPathType != PathTypeTravel && w.state.currentLayerHeight > 0 {
 		w.state.layerHeightsSeen[w.state.currentLayerHeight] = true
 	}
 
@@ -1156,20 +1086,20 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition bool) error {
 	return nil
 }
 
-func (w *Writer) addXYPrintLineTo(x, y float32, savePosition bool) error {
-	return w.addXYZPrintLineTo(x, y, w.state.currentZ, savePosition)
+func (w *Writer) addXYPrintLineTo(x, y float32, savePosition, isTravel bool) error {
+	return w.addXYZPrintLineTo(x, y, w.state.currentZ, savePosition, isTravel)
 }
 
 func (w *Writer) AddXYZPrintLineTo(x, y, z float32) error {
-	return w.addXYZPrintLineTo(x, y, z, true)
+	return w.addXYZPrintLineTo(x, y, z, true, false)
 }
 
 func (w *Writer) AddXYPrintLineTo(x, y float32) error {
-	return w.addXYZPrintLineTo(x, y, w.state.currentZ, true)
+	return w.addXYZPrintLineTo(x, y, w.state.currentZ, true, false)
 }
 
 func (w *Writer) AddXYZTransitionLineTo(x, y, z float32, fromTool int, t float32) error {
-	if err := w.addXYZPrintLineTo(x, y, z, true); err != nil {
+	if err := w.addXYZPrintLineTo(x, y, z, true, false); err != nil {
 		return err
 	}
 	w.state.bufferedFromTool = fromTool
@@ -1179,7 +1109,7 @@ func (w *Writer) AddXYZTransitionLineTo(x, y, z float32, fromTool int, t float32
 }
 
 func (w *Writer) AddXYTransitionLineTo(x, y float32, fromTool int, t float32) error {
-	if err := w.addXYPrintLineTo(x, y, true); err != nil {
+	if err := w.addXYPrintLineTo(x, y, true, false); err != nil {
 		return err
 	}
 	w.state.bufferedFromTool = fromTool
@@ -1190,5 +1120,5 @@ func (w *Writer) AddXYTransitionLineTo(x, y float32, fromTool int, t float32) er
 
 func (w *Writer) AddSideTransitionDangler() error {
 	toZ := float32(math.Max(-20, float64(w.state.currentZ)-100))
-	return w.addXYZPrintLineTo(w.state.currentX, w.state.currentY, toZ, false)
+	return w.addXYZPrintLineTo(w.state.currentX, w.state.currentY, toZ, false, false)
 }

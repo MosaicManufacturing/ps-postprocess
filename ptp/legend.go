@@ -26,7 +26,6 @@ type legendHeader struct {
 	Index            bufferData `json:"index"`
 	ExtrusionWidth   bufferData `json:"extrusionWidth"`
 	LayerHeight      bufferData `json:"layerHeight"`
-	TravelPosition   bufferData `json:"travelPosition"`
 	ToolColor        bufferData `json:"toolColor"`
 	PathTypeColor    bufferData `json:"pathTypeColor"`
 	FeedrateColor    bufferData `json:"feedrateColor"`
@@ -43,7 +42,6 @@ func (w *Writer) getLegendHeader() legendHeader {
 		Index:            bufferData{Offset: 0, Size: w.bufferSizes["index"]},
 		ExtrusionWidth:   bufferData{Offset: 0, Size: w.bufferSizes["extrusionWidth"]},
 		LayerHeight:      bufferData{Offset: 0, Size: w.bufferSizes["layerHeight"]},
-		TravelPosition:   bufferData{Offset: 0, Size: w.bufferSizes["travelPosition"]},
 		ToolColor:        bufferData{Offset: 0, Size: w.bufferSizes["toolColor"]},
 		PathTypeColor:    bufferData{Offset: 0, Size: w.bufferSizes["pathTypeColor"]},
 		FeedrateColor:    bufferData{Offset: 0, Size: w.bufferSizes["feedrateColor"]},
@@ -61,8 +59,6 @@ func (w *Writer) getLegendHeader() legendHeader {
 	header.ExtrusionWidth.Offset = offset
 	offset += w.bufferSizes["extrusionWidth"]
 	header.LayerHeight.Offset = offset
-	offset += w.bufferSizes["layerHeight"]
-	header.TravelPosition.Offset = offset
 	return header
 }
 
@@ -342,18 +338,17 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
 
 func (w *Writer) getLegend() ([]byte, error) {
 	legend := ptpLegend{
-		Header:                  w.getLegendHeader(),
-		Colors:                  getLegendColors(),
-		Tool:                    w.getToolLegend(),
-		PathType:                w.getPathTypeLegend(),
-		Feedrate:                w.getFeedrateLegend(),
-		FanSpeed:                w.getFanSpeedLegend(),
-		Temperature:             w.getTemperatureLegend(),
-		LayerHeight:             w.getLayerHeightLegend(),
-		ZValues:                 w.state.layerHeights,
-		LayerStartIndices:       w.state.layerStartIndices,
-		LayerStartTravelIndices: w.state.layerStartTravelIndices,
-		HasPings:                w.bufferSizes["pingPosition"] > 0,
+		Header:            w.getLegendHeader(),
+		Colors:            getLegendColors(),
+		Tool:              w.getToolLegend(),
+		PathType:          w.getPathTypeLegend(),
+		Feedrate:          w.getFeedrateLegend(),
+		FanSpeed:          w.getFanSpeedLegend(),
+		Temperature:       w.getTemperatureLegend(),
+		LayerHeight:       w.getLayerHeightLegend(),
+		ZValues:           w.state.layerHeights,
+		LayerStartIndices: w.state.layerStartIndices,
+		HasPings:          w.bufferSizes["pingPosition"] > 0,
 	}
 	return json.Marshal(legend)
 }

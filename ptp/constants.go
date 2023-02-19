@@ -31,8 +31,15 @@ var (
 	colorOrange     = [3]float32{0xd5 / 255.0, 0x57 / 255.0, 0x3b / 255.0} // #d5573b
 	colorSky        = [3]float32{0xd4 / 255.0, 0xde / 255.0, 0xff / 255.0} // #d4deff
 	colorLightGrey  = [3]float32{0xd1 / 255.0, 0xd1 / 255.0, 0xd1 / 255.0} // #d1d1d1
-	colorMediumGrey = [3]float32{0x99 / 255.0, 0x99 / 255.0, 0x99 / 255.0} // #32292f
 )
+
+const (
+	travelExtrusionWidth = 0.08
+	travelLayerHeight    = 0.08
+	travelTool           = -1
+)
+
+var travelColor = [3]float32{0x99 / 255.0, 0x99 / 255.0, 0x99 / 255.0}
 
 type PathType int
 
@@ -75,7 +82,7 @@ var pathTypeNames = map[PathType]string{
 
 var pathTypeColors = map[PathType][3]float32{
 	PathTypeUnknown:          colorWhite,
-	PathTypeTravel:           colorDarkGrey,
+	PathTypeTravel:           travelColor,
 	PathTypeSequence:         colorDarkGrey,
 	PathTypeRaft:             colorLilac,
 	PathTypeBrim:             colorSky,
@@ -93,7 +100,7 @@ var pathTypeColors = map[PathType][3]float32{
 
 var pathTypeColorStrings = map[PathType]string{
 	PathTypeUnknown:          "#ffffff",
-	PathTypeTravel:           "#32292f",
+	PathTypeTravel:           "#999999",
 	PathTypeSequence:         "#32292f",
 	PathTypeRaft:             "#9789ba",
 	PathTypeBrim:             "#d4deff",
