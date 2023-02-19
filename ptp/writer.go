@@ -508,11 +508,11 @@ func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
 }
 
 func (w *Writer) updateLayerStartIndices() {
-	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getLayerStartIndex())
-	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getLayerStartTravelIndex())
-	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getLayerStartRetractIndex())
-	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getLayerStartRestartIndex())
-	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getLayerStartPingIndex())
+	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getCurrentIndex())
+	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getCurrentTravelIndex())
+	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getCurrentRetractIndex())
+	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getCurrentRestartIndex())
+	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getCurrentPingIndex())
 }
 
 func (w *Writer) LayerChange(z float32) error {
@@ -898,23 +898,23 @@ func (w *Writer) getLastIndex() uint32 {
 	return uint32((w.bufferSizes["position"] / (floatBytes * 3)) - 1)
 }
 
-func (w *Writer) getLayerStartIndex() uint32 {
+func (w *Writer) getCurrentIndex() uint32 {
 	return uint32(w.bufferSizes["index"] / uint32Bytes)
 }
 
-func (w *Writer) getLayerStartTravelIndex() uint32 {
+func (w *Writer) getCurrentTravelIndex() uint32 {
 	return uint32(w.bufferSizes["travelPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getLayerStartRetractIndex() uint32 {
+func (w *Writer) getCurrentRetractIndex() uint32 {
 	return uint32(w.bufferSizes["retractPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getLayerStartRestartIndex() uint32 {
+func (w *Writer) getCurrentRestartIndex() uint32 {
 	return uint32(w.bufferSizes["restartPosition"] / (floatBytes * 3))
 }
 
-func (w *Writer) getLayerStartPingIndex() uint32 {
+func (w *Writer) getCurrentPingIndex() uint32 {
 	return uint32(w.bufferSizes["pingPosition"] / (floatBytes * 3))
 }
 
