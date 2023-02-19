@@ -344,20 +344,17 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
 
 func (w *Writer) getLegend() ([]byte, error) {
 	legend := ptpLegend{
-		Header:                   w.getLegendHeader(),
-		Colors:                   getLegendColors(),
-		Tool:                     w.getToolLegend(),
-		PathType:                 w.getPathTypeLegend(),
-		Feedrate:                 w.getFeedrateLegend(),
-		FanSpeed:                 w.getFanSpeedLegend(),
-		Temperature:              w.getTemperatureLegend(),
-		LayerHeight:              w.getLayerHeightLegend(),
-		ZValues:                  w.state.layerHeights,
-		LayerStartIndices:        w.state.layerStartIndices,
-		LayerStartTravelIndices:  w.state.layerStartTravelIndices,
-		LayerStartRetractIndices: w.state.layerStartRetractIndices,
-		LayerStartRestartIndices: w.state.layerStartRestartIndices,
-		LayerStartPingIndices:    w.state.layerStartPingIndices,
+		Header:                  w.getLegendHeader(),
+		Colors:                  getLegendColors(),
+		Tool:                    w.getToolLegend(),
+		PathType:                w.getPathTypeLegend(),
+		Feedrate:                w.getFeedrateLegend(),
+		FanSpeed:                w.getFanSpeedLegend(),
+		Temperature:             w.getTemperatureLegend(),
+		LayerHeight:             w.getLayerHeightLegend(),
+		ZValues:                 w.state.layerHeights,
+		LayerStartIndices:       w.state.layerStartIndices,
+		LayerStartTravelIndices: w.state.layerStartTravelIndices,
 	}
 	return json.Marshal(legend)
 }

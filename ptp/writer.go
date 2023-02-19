@@ -41,12 +41,9 @@ type writerState struct {
 	// - ...
 	// - layer N is the last layer of the print
 	// - layer N + 1 is the end sequence
-	layerHeights             []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
-	layerStartIndices        []uint32  // index of first vertex in layer
-	layerStartTravelIndices  []uint32  // index of first travel vertex in layer
-	layerStartRetractIndices []uint32  // index of first retract point in layer
-	layerStartRestartIndices []uint32  // index of first restart point in layer
-	layerStartPingIndices    []uint32  // index of first ping point in layer
+	layerHeights            []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
+	layerStartIndices       []uint32  // index of first vertex in layer
+	layerStartTravelIndices []uint32  // index of first travel vertex in layer
 
 	// sets used to track unique values seen, for generating the legend
 	toolsSeen        map[int]bool
@@ -59,20 +56,17 @@ type writerState struct {
 
 func getStartingWriterState(initialExtrusionWidth, initialLayerHeight float32) writerState {
 	return writerState{
-		currentExtrusionWidth:    initialExtrusionWidth,
-		currentLayerHeight:       initialLayerHeight,
-		layerHeights:             []float32{0}, // initial state is "in the start sequence"
-		layerStartIndices:        []uint32{0},
-		layerStartTravelIndices:  []uint32{0},
-		layerStartRetractIndices: []uint32{0},
-		layerStartRestartIndices: []uint32{0},
-		layerStartPingIndices:    []uint32{0},
-		toolsSeen:                make(map[int]bool),
-		pathTypesSeen:            make(map[PathType]bool),
-		feedratesSeen:            make(map[float32]bool),
-		fanSpeedsSeen:            make(map[int]bool),
-		temperaturesSeen:         make(map[float32]bool),
-		layerHeightsSeen:         make(map[float32]bool),
+		currentExtrusionWidth:   initialExtrusionWidth,
+		currentLayerHeight:      initialLayerHeight,
+		layerHeights:            []float32{0}, // initial state is "in the start sequence"
+		layerStartIndices:       []uint32{0},
+		layerStartTravelIndices: []uint32{0},
+		toolsSeen:               make(map[int]bool),
+		pathTypesSeen:           make(map[PathType]bool),
+		feedratesSeen:           make(map[float32]bool),
+		fanSpeedsSeen:           make(map[int]bool),
+		temperaturesSeen:        make(map[float32]bool),
+		layerHeightsSeen:        make(map[float32]bool),
 	}
 }
 
@@ -108,8 +102,11 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"layerHeight":      fmt.Sprintf("%s.%s", outpath, "layerHeight"),
 			"travelPosition":   fmt.Sprintf("%s.%s", outpath, "travelPosition"),
 			"retractPosition":  fmt.Sprintf("%s.%s", outpath, "retractPosition"),
+			"indexAtRetract":   fmt.Sprintf("%s.%s", outpath, "indexAtRetract"),
 			"restartPosition":  fmt.Sprintf("%s.%s", outpath, "restartPosition"),
+			"indexAtRestart":   fmt.Sprintf("%s.%s", outpath, "indexAtRestart"),
 			"pingPosition":     fmt.Sprintf("%s.%s", outpath, "pingPosition"),
+			"indexAtPing":      fmt.Sprintf("%s.%s", outpath, "indexAtPing"),
 			"toolColor":        fmt.Sprintf("%s.%s", outpath, "toolColor"),
 			"pathTypeColor":    fmt.Sprintf("%s.%s", outpath, "pathTypeColor"),
 			"feedrateColor":    fmt.Sprintf("%s.%s", outpath, "feedrateColor"),
@@ -125,8 +122,11 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"layerHeight":      nil,
 			"travelPosition":   nil,
 			"retractPosition":  nil,
+			"indexAtRetract":   nil,
 			"restartPosition":  nil,
+			"indexAtRestart":   nil,
 			"pingPosition":     nil,
+			"indexAtPing":      nil,
 			"toolColor":        nil,
 			"pathTypeColor":    nil,
 			"feedrateColor":    nil,
@@ -142,8 +142,11 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"layerHeight":      nil,
 			"travelPosition":   nil,
 			"retractPosition":  nil,
+			"indexAtRetract":   nil,
 			"restartPosition":  nil,
+			"indexAtRestart":   nil,
 			"pingPosition":     nil,
+			"indexAtPing":      nil,
 			"toolColor":        nil,
 			"pathTypeColor":    nil,
 			"feedrateColor":    nil,
@@ -159,8 +162,11 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 			"layerHeight":      0,
 			"travelPosition":   0,
 			"retractPosition":  0,
+			"indexAtRetract":   0,
 			"restartPosition":  0,
+			"indexAtRestart":   0,
 			"pingPosition":     0,
+			"indexAtPing":      0,
 			"toolColor":        0,
 			"pathTypeColor":    0,
 			"feedrateColor":    0,
@@ -214,8 +220,11 @@ func (w *Writer) Initialize() error {
 		"layerHeight",
 		"travelPosition",
 		"retractPosition",
+		"indexAtRetract",
 		"restartPosition",
+		"indexAtRestart",
 		"pingPosition",
+		"indexAtPing",
 		"toolColor",
 		"pathTypeColor",
 		"feedrateColor",
@@ -269,8 +278,11 @@ func (w *Writer) Finalize() error {
 		"layerHeight",
 		"travelPosition",
 		"retractPosition",
+		"indexAtRetract",
 		"restartPosition",
+		"indexAtRestart",
 		"pingPosition",
+		"indexAtPing",
 		"toolColor",
 		"pathTypeColor",
 		"feedrateColor",
@@ -392,6 +404,14 @@ func (w *Writer) writeRetractPosition(x, y, z float32) error {
 	return nil
 }
 
+func (w *Writer) writeIndexAtRetract(idx uint32) error {
+	if err := writeUint32LE(w.writers["indexAtRetract"], idx); err != nil {
+		return err
+	}
+	w.bufferSizes["indexAtRetract"] += uint32Bytes
+	return nil
+}
+
 func (w *Writer) writeRestartPosition(x, y, z float32) error {
 	if err := writeFloat32LE(w.writers["restartPosition"], x); err != nil {
 		return err
@@ -406,6 +426,14 @@ func (w *Writer) writeRestartPosition(x, y, z float32) error {
 	return nil
 }
 
+func (w *Writer) writeIndexAtRestart(idx uint32) error {
+	if err := writeUint32LE(w.writers["indexAtRestart"], idx); err != nil {
+		return err
+	}
+	w.bufferSizes["indexAtRestart"] += uint32Bytes
+	return nil
+}
+
 func (w *Writer) writePingPosition(x, y, z float32) error {
 	if err := writeFloat32LE(w.writers["pingPosition"], x); err != nil {
 		return err
@@ -417,6 +445,14 @@ func (w *Writer) writePingPosition(x, y, z float32) error {
 		return err
 	}
 	w.bufferSizes["pingPosition"] += floatBytes * 3
+	return nil
+}
+
+func (w *Writer) writeIndexAtPing(idx uint32) error {
+	if err := writeUint32LE(w.writers["indexAtPing"], idx); err != nil {
+		return err
+	}
+	w.bufferSizes["indexAtPing"] += uint32Bytes
 	return nil
 }
 
@@ -510,9 +546,6 @@ func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
 func (w *Writer) updateLayerStartIndices() {
 	w.state.layerStartIndices = append(w.state.layerStartIndices, w.getCurrentIndex())
 	w.state.layerStartTravelIndices = append(w.state.layerStartTravelIndices, w.getCurrentTravelIndex())
-	w.state.layerStartRetractIndices = append(w.state.layerStartRetractIndices, w.getCurrentRetractIndex())
-	w.state.layerStartRestartIndices = append(w.state.layerStartRestartIndices, w.getCurrentRestartIndex())
-	w.state.layerStartPingIndices = append(w.state.layerStartPingIndices, w.getCurrentPingIndex())
 }
 
 func (w *Writer) LayerChange(z float32) error {
@@ -650,21 +683,21 @@ func (w *Writer) outputRetractPoint() error {
 	if err := w.writeRetractPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
 		return err
 	}
-	return nil
+	return w.writeIndexAtRetract(w.getCurrentIndex())
 }
 
 func (w *Writer) outputRestartPoint() error {
 	if err := w.writeRestartPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
 		return err
 	}
-	return nil
+	return w.writeIndexAtRestart(w.getCurrentIndex())
 }
 
 func (w *Writer) outputPingPoint() error {
 	if err := w.writePingPosition(w.state.currentX, w.state.currentY, w.state.currentZ); err != nil {
 		return err
 	}
-	return nil
+	return w.writeIndexAtPing(w.getCurrentIndex())
 }
 
 func (w *Writer) AddXYZTravelTo(x, y, z float32) error {
@@ -904,18 +937,6 @@ func (w *Writer) getCurrentIndex() uint32 {
 
 func (w *Writer) getCurrentTravelIndex() uint32 {
 	return uint32(w.bufferSizes["travelPosition"] / (floatBytes * 3))
-}
-
-func (w *Writer) getCurrentRetractIndex() uint32 {
-	return uint32(w.bufferSizes["retractPosition"] / (floatBytes * 3))
-}
-
-func (w *Writer) getCurrentRestartIndex() uint32 {
-	return uint32(w.bufferSizes["restartPosition"] / (floatBytes * 3))
-}
-
-func (w *Writer) getCurrentPingIndex() uint32 {
-	return uint32(w.bufferSizes["pingPosition"] / (floatBytes * 3))
 }
 
 func (w *Writer) outputPrintLine() error {
