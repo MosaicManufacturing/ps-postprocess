@@ -45,8 +45,7 @@ type writerState struct {
 	// - layer 0 is the start sequence
 	// - layer 1 is the first of the print
 	// - ...
-	// - layer N is the last layer of the print
-	// - layer N + 1 is the end sequence
+	// - layer N is the last layer of the print (+ end sequence)
 	layerHeights      []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
 	layerStartIndices []uint32  // index of first vertex in layer
 
