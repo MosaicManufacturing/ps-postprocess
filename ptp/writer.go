@@ -942,7 +942,8 @@ func (w *Writer) outputPrintLine() error {
 	// travel flag
 	//
 	for i := 0; i < 4; i++ {
-		if err := w.writeIsTravel(w.state.travelling); err != nil {
+		isTravel := w.state.travelling || w.state.currentPathType == PathTypeTravel
+		if err := w.writeIsTravel(isTravel); err != nil {
 			return err
 		}
 	}
