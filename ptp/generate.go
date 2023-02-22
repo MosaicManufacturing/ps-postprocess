@@ -114,8 +114,8 @@ func parseArgvFloat32(arg string) (float32, error) {
 func generateToolpath(argv []string) error {
 	argc := len(argv)
 
-	if argc != 6 {
-		return errors.New("expected 6 command-line arguments")
+	if argc != 7 {
+		return errors.New("expected 7 command-line arguments")
 	}
 	inpath := argv[0]
 	outpath := argv[1]
@@ -124,8 +124,12 @@ func generateToolpath(argv []string) error {
 		return err
 	}
 	initialLayerHeight, err := parseArgvFloat32(argv[3])
-	brimIsSkirt := argv[4] == "true"
-	toolColors, err := parseToolColors(argv[5])
+	zOffset, err := parseArgvFloat32(argv[4])
+	if err != nil {
+		return err
+	}
+	brimIsSkirt := argv[5] == "true"
+	toolColors, err := parseToolColors(argv[6])
 	if err != nil {
 		return err
 	}
@@ -134,7 +138,7 @@ func generateToolpath(argv []string) error {
 		return err
 	}
 
-	writer := NewWriter(outpath, initialExtrusionWidth, initialLayerHeight, brimIsSkirt, toolColors)
+	writer := NewWriter(outpath, initialExtrusionWidth, initialLayerHeight, zOffset, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
 	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)

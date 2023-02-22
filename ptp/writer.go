@@ -48,6 +48,7 @@ type writerState struct {
 	// - layer N is the last layer of the print (+ end sequence)
 	layerHeights      []float32 // [0] == 0, [1] == first layer height, [N + 1] == [N]
 	layerStartIndices []uint32  // index of first vertex in layer
+	zOffset           float32   // provided via CLI args
 
 	// sets used to track unique values seen, for generating the legend
 	toolsSeen        map[int]bool
@@ -58,11 +59,12 @@ type writerState struct {
 	layerHeightsSeen map[float32]bool
 }
 
-func getStartingWriterState(initialExtrusionWidth, initialLayerHeight float32) writerState {
+func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset float32) writerState {
 	return writerState{
 		currentExtrusionWidth: initialExtrusionWidth,
 		currentLayerHeight:    initialLayerHeight,
-		layerHeights:          []float32{0}, // initial state is "in the start sequence"
+		zOffset:               zOffset,
+		layerHeights:          []float32{roundZ(zOffset)}, // initial state is "in the start sequence"
 		layerStartIndices:     []uint32{0},
 		toolsSeen:             make(map[int]bool),
 		pathTypesSeen:         make(map[PathType]bool),
@@ -93,7 +95,7 @@ type Writer struct {
 	state       writerState
 }
 
-func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32, brimIsSkirt bool, toolColors [][3]float32) Writer {
+func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight, zOffset float32, brimIsSkirt bool, toolColors [][3]float32) Writer {
 	return Writer{
 		version: ptpVersion,
 		paths: map[string]string{
@@ -185,7 +187,7 @@ func NewWriter(outpath string, initialExtrusionWidth, initialLayerHeight float32
 		maxLayerHeight: 0,
 		brimIsSkirt:    brimIsSkirt,
 		toolColors:     toolColors,
-		state:          getStartingWriterState(initialExtrusionWidth, initialLayerHeight),
+		state:          getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset),
 	}
 }
 
@@ -554,7 +556,7 @@ func (w *Writer) LayerChange(z float32) error {
 		return err
 	}
 	// add to the list of Z heights
-	w.state.layerHeights = append(w.state.layerHeights, z)
+	w.state.layerHeights = append(w.state.layerHeights, roundZ(z+w.state.zOffset))
 	// set starting indices for geometry this layer
 	w.updateLayerStartIndices()
 	return nil
