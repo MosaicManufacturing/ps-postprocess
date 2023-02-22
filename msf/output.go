@@ -252,6 +252,15 @@ func _paletteOutput(
 						}
 						state.CurrentTool = tool
 						state.CurrentlyTransitioning = true
+						ptpComment := getPtpStartComment(
+							currentTransition.PurgeLength,
+							currentTransition.TransitionLength,
+							spliceOffset,
+							palette.TransitionTarget,
+						)
+						if err := writeLines(writer, ptpComment); err != nil {
+							return err
+						}
 						transition, err := state.Tower.GetNextSegment(&state, true)
 						upcomingDoubledSparseLayer = false
 						if err != nil {
@@ -261,6 +270,9 @@ func _paletteOutput(
 							return err
 						}
 						state.CurrentlyTransitioning = false
+						if err := writeLines(writer, getPtpEndComment()); err != nil {
+							return err
+						}
 					} else {
 						currentTransition := preflight.transitions[len(msfOut.SpliceList)]
 						currentPurgeLength := currentTransition.PurgeLength

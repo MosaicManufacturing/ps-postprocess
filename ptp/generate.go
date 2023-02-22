@@ -3,155 +3,103 @@ package ptp
 import (
 	"errors"
 	"log"
-	"math"
 	"mosaicmfg.com/ps-postprocess/gcode"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
-func parseToolColors(serialized string) ([][3]float32, error) {
-	perToolVals := strings.Split(serialized, "|")
-	toolColors := make([][3]float32, 0, len(perToolVals))
-	for _, colors := range perToolVals {
-		rgbParts := strings.Split(colors, ",")
-		if len(rgbParts) != 3 {
-			return nil, errors.New("expected 3 components for RGB value")
-		}
-		r, rErr := strconv.ParseFloat(rgbParts[0], 32)
-		if rErr != nil {
-			return nil, rErr
-		}
-		g, gErr := strconv.ParseFloat(rgbParts[1], 32)
-		if gErr != nil {
-			return nil, gErr
-		}
-		b, bErr := strconv.ParseFloat(rgbParts[2], 32)
-		if bErr != nil {
-			return nil, bErr
-		}
-		thisToolColors := [3]float32{float32(r), float32(g), float32(b)}
-		toolColors = append(toolColors, thisToolColors)
-	}
-	return toolColors, nil
+type generatorState struct {
+	// used for all generation
+	currentTool int
+	currentE    float32
+	relativeE   bool
+
+	// only used for transition tower gradients
+	extrusionSoFar   float32 // cumulative over the transition
+	transitioning    bool    // when true, values below are enabled
+	lastTool         int     // one behind currentTool
+	purgeLength      float32 // constant for entire transition
+	transitionLength float32 // constant for entire transition
+	offset           float32 // constant for entire transition
+	target           float32 // constant for entire transition
 }
 
-func convertPathType(hint string) PathType {
-	switch hint {
-	case "Perimeter":
-		return PathTypeInnerPerimeter
-	case "External perimeter":
-		fallthrough
-	case "Overhang perimeter":
-		return PathTypeOuterPerimeter
-	case "Internal infill":
-		return PathTypeInfill
-	case "Solid infill":
-		fallthrough
-	case "Top solid infill":
-		return PathTypeSolidLayer
-	case "Bridge infill":
-		return PathTypeBridge
-	case "Ironing":
-		return PathTypeIroning
-	case "Gap fill":
-		return PathTypeGapFill
-	case "Skirt":
-		fallthrough
-	case "Skirt/Brim":
-		return PathTypeBrim
-	case "Support material":
-		return PathTypeSupport
-	case "Support material interface":
-		return PathTypeSupportInterface
-	case "Wipe tower":
-		return PathTypeTransition
-	case "Side transition":
-		return PathTypeTransition
-	case "Custom":
-		return PathTypeStartSequence
+func getStartingGeneratorState() generatorState {
+	return generatorState{
+		currentTool:      0,
+		currentE:         0,
+		relativeE:        false,
+		transitioning:    false,
+		extrusionSoFar:   0,
+		lastTool:         0,
+		purgeLength:      0,
+		transitionLength: 0,
+		offset:           0,
+		target:           0,
 	}
-	return PathTypeUnknown
 }
 
-type ptpPreflight struct {
-	minFeedrate    float32
-	maxFeedrate    float32
-	minTemperature float32
-	maxTemperature float32
-	minLayerHeight float32
-	maxLayerHeight float32
+func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
+	re := regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
+	matches := re.FindStringSubmatch(comment)
+	if len(matches) < 5 {
+		return errors.New("failed to parse PTP comment"), 0, 0, 0, 0
+	}
+	purgeLength := float32(0)
+	transitionLength := float32(0)
+	offset := float32(0)
+	target := float32(0)
+	if asFloat, err := strconv.ParseFloat(matches[1], 32); err == nil {
+		purgeLength = float32(asFloat)
+	} else {
+		return err, 0, 0, 0, 0
+	}
+	if asFloat, err := strconv.ParseFloat(matches[2], 32); err == nil {
+		transitionLength = float32(asFloat)
+	} else {
+		return err, 0, 0, 0, 0
+	}
+	if asFloat, err := strconv.ParseFloat(matches[3], 32); err == nil {
+		offset = float32(asFloat)
+	} else {
+		return err, 0, 0, 0, 0
+	}
+	if asFloat, err := strconv.ParseFloat(matches[4], 32); err == nil {
+		target = float32(asFloat)
+	} else {
+		return err, 0, 0, 0, 0
+	}
+	return nil, purgeLength, transitionLength, offset, target
 }
 
-func toolpathPreflight(inpath string) (ptpPreflight, error) {
-	minFeedrate := float32(math.Inf(1))
-	maxFeedrate := float32(math.Inf(-1))
-	minTemperature := float32(math.Inf(1))
-	maxTemperature := float32(math.Inf(-1))
-	minLayerHeight := float32(math.Inf(1))
-	maxLayerHeight := float32(math.Inf(-1))
-	currentFeedrate := float32(0)
+func (s *generatorState) startDenseTowerSegment(purgeLength, transitionLength, offset, target float32) {
+	s.transitioning = true
+	s.extrusionSoFar = 0
+	s.purgeLength = purgeLength
+	s.transitionLength = transitionLength
+	s.offset = offset
+	s.target = target / 100
+}
 
-	err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
-		if line.IsLinearMove() {
-			// feedrates
-			if f, ok := line.Params["f"]; ok {
-				currentFeedrate = f
-			}
-			if _, ok := line.Params["e"]; ok {
-				hasMovement := false
-				if _, ok := line.Params["x"]; ok {
-					hasMovement = true
-				}
-				if _, ok := line.Params["y"]; ok {
-					hasMovement = true
-				}
-				if hasMovement {
-					if currentFeedrate < minFeedrate {
-						minFeedrate = currentFeedrate
-					}
-					if currentFeedrate > maxFeedrate {
-						maxFeedrate = currentFeedrate
-					}
-				}
-			}
-		} else if line.Command == "M104" || line.Command == "M109" {
-			// temperatures
-			if temp, ok := line.Params["s"]; ok {
-				if temp < minTemperature {
-					minTemperature = temp
-				}
-				if temp > maxTemperature {
-					maxTemperature = temp
-				}
-			}
-		} else if line.Comment != "" && strings.HasPrefix(line.Comment, "HEIGHT:") {
-			// layer heights
-			height, err := strconv.ParseFloat(line.Comment[7:], 64)
-			if err != nil {
-				return err
-			}
-			height32 := roundZ(float32(height))
-			if height32 < minLayerHeight {
-				minLayerHeight = height32
-			}
-			if height32 > maxLayerHeight {
-				maxLayerHeight = height32
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return ptpPreflight{}, err
+func interpolateTowerColor(linearT, target float32) float32 {
+	minCutoff := target - 0.1
+	maxCutoff := target + 0.35
+	if linearT <= minCutoff {
+		return 0.0
 	}
-	results := ptpPreflight{
-		minFeedrate:    minFeedrate,
-		maxFeedrate:    maxFeedrate,
-		minTemperature: minTemperature,
-		maxTemperature: maxTemperature,
-		minLayerHeight: minLayerHeight,
-		maxLayerHeight: maxLayerHeight,
+	if linearT >= maxCutoff {
+		return 1.0
 	}
-	return results, err
+	return (linearT - minCutoff) * (1 / (maxCutoff - minCutoff))
+}
+
+// must be called after updating extrusionSoFar
+func (s *generatorState) getT() float32 {
+	if !s.transitioning {
+		return 0
+	}
+	return interpolateTowerColor(s.extrusionSoFar/s.purgeLength, s.target)
 }
 
 func GenerateToolpath(argv []string) {
@@ -180,15 +128,14 @@ func GenerateToolpath(argv []string) {
 		log.Fatalln(err)
 	}
 
-	currentE := float32(0)
-	relativeE := false
+	state := getStartingGeneratorState()
 	err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
 		if setExtrusionMode, relative := line.IsSetExtrusionMode(); setExtrusionMode {
-			relativeE = relative
-			currentE = 0
+			state.relativeE = relative
+			state.currentE = 0
 		} else if line.IsSetPosition() {
 			if e, ok := line.Params["e"]; ok {
-				currentE = e
+				state.currentE = e
 			}
 		} else if line.IsLinearMove() {
 			isVisibleMove := false // either print line or travel line
@@ -207,11 +154,18 @@ func GenerateToolpath(argv []string) {
 				isVisibleMove = true
 			}
 			if e, ok := line.Params["e"]; ok {
-				eIncreased := e > currentE
-				eDecreased := e < currentE
-				if relativeE {
+				eIncreased := e > state.currentE
+				eDecreased := e < state.currentE
+				if state.relativeE {
 					eIncreased = e > 0
 					eDecreased = e < 0
+				}
+				if state.transitioning {
+					deltaE := e - state.currentE
+					if state.relativeE {
+						deltaE = e
+					}
+					state.extrusionSoFar += deltaE
 				}
 				if eIncreased {
 					if isVisibleMove {
@@ -226,14 +180,19 @@ func GenerateToolpath(argv []string) {
 						writer.AddRetract()
 					}
 				}
-				currentE = e
+				state.currentE = e
 			}
 			if f, ok := line.Params["f"]; ok {
 				writer.SetFeedrate(f)
 			}
 			if isVisibleMove {
 				if isPrintMove {
-					writer.AddXYZPrintLineTo(x, y, z)
+					if state.transitioning {
+						t := state.getT()
+						writer.AddXYZTransitionLineTo(x, y, z, state.lastTool, t)
+					} else {
+						writer.AddXYZPrintLineTo(x, y, z)
+					}
 				} else {
 					writer.AddXYZTravelTo(x, y, z)
 				}
@@ -286,12 +245,22 @@ func GenerateToolpath(argv []string) {
 					return err
 				}
 				writer.SetLayerHeight(roundZ(float32(height)))
+			} else if strings.HasPrefix(line.Comment, "PTP_TYPE:") {
+				err, purgeLength, transitionLength, offset, target := parsePtpTowerComment(line.Comment)
+				if err != nil {
+					return err
+				}
+				state.startDenseTowerSegment(purgeLength, transitionLength, offset, target)
+			} else if strings.HasPrefix(line.Comment, "PTP_END") {
+				state.transitioning = false
 			} else if strings.HasPrefix(line.Comment, "Printing with input ") {
 				tool, err := strconv.ParseInt(line.Comment[20:], 10, 32)
 				if err != nil {
 					return err
 				}
-				writer.SetTool(int(tool))
+				state.lastTool = state.currentTool
+				state.currentTool = int(tool)
+				writer.SetTool(state.currentTool)
 			}
 		}
 		return nil
