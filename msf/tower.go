@@ -91,7 +91,7 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
 
 	layerThicknesses := make([]float32, totalLayers)
 	layerTopZs := make([]float32, totalLayers)
-	lastTopZ := float32(0)
+	lastTopZ := palette.ZOffset
 	for i := 0; i < totalLayers; i++ {
 		topZ := preflight.layerTopZs[i]
 		thickness := preflight.layerThicknesses[i]
