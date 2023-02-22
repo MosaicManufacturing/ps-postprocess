@@ -324,7 +324,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			return results, fmt.Errorf("invariant violation: expected %d layerTopZs, got %d", results.totalLayers, layerTopZs)
 		}
 		for i := 0; i < results.totalLayers; i++ {
-			if results.layerThicknesses[i] == 0 {
+			if results.layerThicknesses[i] <= 0 {
 				return results, fmt.Errorf("invariant violation: zero thickness at layer %d", i)
 			}
 			if results.layerTopZs[i] == 0 {
