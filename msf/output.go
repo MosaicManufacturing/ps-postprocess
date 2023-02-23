@@ -244,18 +244,25 @@ func _paletteOutput(
 						}
 						spliceOffset += preTransitionAdd
 						spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+
+						ptpPurgeLength := currentTransition.PurgeLength
+						ptpTransitionLength := currentTransition.TransitionLength
+						ptpOffset := float32(0)
+
 						if len(msfOut.SpliceList) == 0 {
 							spliceLength += state.Tower.BrimExtrusion
+							ptpOffset = state.Tower.BrimExtrusion
 						}
+
 						if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
 							return err
 						}
 						state.CurrentTool = tool
 						state.CurrentlyTransitioning = true
 						ptpComment := getPtpStartComment(
-							currentTransition.PurgeLength,
-							currentTransition.TransitionLength,
-							spliceOffset,
+							ptpPurgeLength,
+							ptpTransitionLength,
+							ptpOffset,
 							palette.TransitionTarget,
 						)
 						if err := writeLines(writer, ptpComment); err != nil {

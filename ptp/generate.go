@@ -100,7 +100,7 @@ func (s *generatorState) getT() float32 {
 	if !s.transitioning {
 		return 0
 	}
-	return interpolateTowerColor(s.extrusionSoFar/s.purgeLength, s.target)
+	return interpolateTowerColor((s.extrusionSoFar-s.offset)/s.purgeLength, s.target)
 }
 
 func parseArgvFloat32(arg string) (float32, error) {
