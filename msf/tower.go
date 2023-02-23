@@ -225,14 +225,12 @@ func GenerateTower(palette *Palette, preflight *msfPreflight) (Tower, bool) {
 		firstLayerThickness := tower.Layers[0].Thickness
 		minFirstSpliceLength := palette.GetFirstSpliceMinLength()
 		perimeterLength := (towerHalfWidth * 4) + (towerHalfHeight * 4) + (palette.TowerExtrusionWidth * 8)
-		for firstTransitionTotalE < minFirstSpliceLength {
+		for firstTransitionTotalE < minFirstSpliceLength || tower.BrimCount < palette.TowerMinBrims {
 			tower.BrimCount++
 			brimExtrusion := getExtrusionLength(extrusionWidth, firstLayerThickness, perimeterLength) * extrusionMultiplier
 			firstTransitionTotalE += brimExtrusion
 			tower.BrimExtrusion += brimExtrusion
-		}
-		if tower.BrimCount < palette.TowerMinBrims {
-			tower.BrimCount = palette.TowerMinBrims
+			perimeterLength += palette.TowerExtrusionWidth * 8
 		}
 	}
 
