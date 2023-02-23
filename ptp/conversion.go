@@ -61,11 +61,11 @@ func convertPathType(hint string) PathType {
 	case "Support material interface":
 		return PathTypeSupportInterface
 	case "Wipe tower":
-		return PathTypeTransition
+		fallthrough
 	case "Side transition":
 		return PathTypeTransition
 	case "Custom":
-		return PathTypeStartSequence
+		return PathTypeSequence
 	}
 	return PathTypeUnknown
 }

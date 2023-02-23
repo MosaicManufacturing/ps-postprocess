@@ -40,9 +40,10 @@ func getStartingGeneratorState() generatorState {
 	}
 }
 
+var rePtpTowerComment = regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
+
 func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
-	re := regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
-	matches := re.FindStringSubmatch(comment)
+	matches := rePtpTowerComment.FindStringSubmatch(comment)
 	if len(matches) < 5 {
 		return errors.New("failed to parse PTP comment"), 0, 0, 0, 0
 	}
@@ -99,33 +100,50 @@ func (s *generatorState) getT() float32 {
 	if !s.transitioning {
 		return 0
 	}
-	return interpolateTowerColor(s.extrusionSoFar/s.purgeLength, s.target)
+	return interpolateTowerColor((s.extrusionSoFar-s.offset)/s.purgeLength, s.target)
 }
 
-func GenerateToolpath(argv []string) {
+func parseArgvFloat32(arg string) (float32, error) {
+	if val, err := strconv.ParseFloat(arg, 32); err != nil {
+		return 0, err
+	} else {
+		return float32(val), nil
+	}
+}
+
+func generateToolpath(argv []string) error {
 	argc := len(argv)
 
-	if argc != 4 {
-		log.Fatalln("expected 4 command-line arguments")
+	if argc != 7 {
+		return errors.New("expected 7 command-line arguments")
 	}
 	inpath := argv[0]
 	outpath := argv[1]
-	brimIsSkirt := argv[2] == "true"
-	toolColors, err := parseToolColors(argv[3])
+	initialExtrusionWidth, err := parseArgvFloat32(argv[2])
 	if err != nil {
-		log.Fatalln(err)
+		return err
+	}
+	initialLayerHeight, err := parseArgvFloat32(argv[3])
+	zOffset, err := parseArgvFloat32(argv[4])
+	if err != nil {
+		return err
+	}
+	brimIsSkirt := argv[5] == "true"
+	toolColors, err := parseToolColors(argv[6])
+	if err != nil {
+		return err
 	}
 	preflight, err := toolpathPreflight(inpath)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
-	writer := NewWriter(outpath, brimIsSkirt, toolColors)
+	writer := NewWriter(outpath, initialExtrusionWidth, initialLayerHeight, zOffset, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
 	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
-	if err := writer.Initialize(); err != nil {
-		log.Fatalln(err)
+	if err = writer.Initialize(); err != nil {
+		return err
 	}
 
 	state := getStartingGeneratorState()
@@ -171,51 +189,77 @@ func GenerateToolpath(argv []string) {
 					if isVisibleMove {
 						isPrintMove = true
 					} else {
-						writer.AddRestart()
+						if err = writer.AddRestart(); err != nil {
+							return err
+						}
 					}
 				} else if eDecreased {
 					// don't add retract point until wipe sequence, if any, is complete
 					if !writer.state.inWipe {
 						// add retract point regardless of there being X/Y/Z movement as well
-						writer.AddRetract()
+						if err = writer.AddRetract(); err != nil {
+							return err
+						}
 					}
 				}
 				state.currentE = e
 			}
 			if f, ok := line.Params["f"]; ok {
-				writer.SetFeedrate(f)
+				if err = writer.SetFeedrate(f); err != nil {
+					return err
+				}
 			}
 			if isVisibleMove {
 				if isPrintMove {
 					if state.transitioning {
 						t := state.getT()
-						writer.AddXYZTransitionLineTo(x, y, z, state.lastTool, t)
+						if err = writer.AddXYZTransitionLineTo(x, y, z, state.lastTool, t); err != nil {
+							return err
+						}
 					} else {
-						writer.AddXYZPrintLineTo(x, y, z)
+						if err = writer.AddXYZPrintLineTo(x, y, z); err != nil {
+							return err
+						}
 					}
 				} else {
-					writer.AddXYZTravelTo(x, y, z)
+					if err = writer.AddXYZTravelTo(x, y, z); err != nil {
+						return err
+					}
 				}
 			}
 		} else if line.Command == "M106" {
 			if pwm, ok := line.Params["s"]; ok {
-				writer.SetFanSpeed(int(pwm))
+				if err = writer.SetFanSpeed(int(pwm)); err != nil {
+					return err
+				}
 			}
 		} else if line.Command == "M107" {
-			writer.SetFanSpeed(0)
+			if err = writer.SetFanSpeed(0); err != nil {
+				return err
+			}
 		} else if line.Command == "M104" || line.Command == "M109" {
 			if temp, ok := line.Params["s"]; ok {
-				writer.SetTemperature(temp)
+				if err = writer.SetTemperature(temp); err != nil {
+					return err
+				}
 			}
 		} else if len(line.Command) > 1 && line.Command[0] == 'T' {
 			tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
 			if err != nil {
 				return err
 			}
-			writer.SetTool(int(tool))
+			if err = writer.SetTool(int(tool)); err != nil {
+				return err
+			}
 		} else if line.Command == "M135" {
 			if t, ok := line.Params["t"]; ok {
-				writer.SetTool(int(t))
+				if err = writer.SetTool(int(t)); err != nil {
+					return err
+				}
+			}
+		} else if line.Command == "O31" {
+			if err = writer.AddPing(); err != nil {
+				return err
 			}
 		} else if line.Comment != "" {
 			if line.Comment == "WIPE_START" {
@@ -224,27 +268,44 @@ func GenerateToolpath(argv []string) {
 				// retract points were not added during the wipe sequence
 				if writer.state.inWipe {
 					// add retract point regardless of there being X/Y/Z movement as well
-					writer.AddRetract()
+					if err = writer.AddRetract(); err != nil {
+						return err
+					}
 				}
 				writer.state.inWipe = false
+			} else if strings.HasPrefix(line.Comment, "Z:") {
+				z, err := strconv.ParseFloat(line.Comment[2:], 32)
+				if err != nil {
+					return err
+				}
+				if err = writer.LayerChange(float32(z)); err != nil {
+					return err
+				}
+				// TODO: do we need to explicitly also trigger a layer change at end sequence?
 			} else if strings.HasPrefix(line.Comment, "TYPE:") {
 				// path type hints
 				pathType := convertPathType(line.Comment[5:])
-				writer.SetPathType(pathType)
+				if err = writer.SetPathType(pathType); err != nil {
+					return err
+				}
 			} else if strings.HasPrefix(line.Comment, "WIDTH:") {
 				// extrusion width hints
 				width, err := strconv.ParseFloat(line.Comment[6:], 32)
 				if err != nil {
 					return err
 				}
-				writer.SetExtrusionWidth(float32(width))
+				if err = writer.SetExtrusionWidth(float32(width)); err != nil {
+					return err
+				}
 			} else if strings.HasPrefix(line.Comment, "HEIGHT:") {
 				// layer height hints
 				height, err := strconv.ParseFloat(line.Comment[7:], 32)
 				if err != nil {
 					return err
 				}
-				writer.SetLayerHeight(roundZ(float32(height)))
+				if err = writer.SetLayerHeight(roundZ(float32(height))); err != nil {
+					return err
+				}
 			} else if strings.HasPrefix(line.Comment, "PTP_TYPE:") {
 				err, purgeLength, transitionLength, offset, target := parsePtpTowerComment(line.Comment)
 				if err != nil {
@@ -260,15 +321,21 @@ func GenerateToolpath(argv []string) {
 				}
 				state.lastTool = state.currentTool
 				state.currentTool = int(tool)
-				writer.SetTool(state.currentTool)
+				if err = writer.SetTool(state.currentTool); err != nil {
+					return err
+				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
-	if err := writer.Finalize(); err != nil {
+	return writer.Finalize()
+}
+
+func GenerateToolpath(argv []string) {
+	if err := generateToolpath(argv); err != nil {
 		log.Fatalln(err)
 	}
 }

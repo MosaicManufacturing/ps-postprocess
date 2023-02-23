@@ -29,8 +29,10 @@ func getSideTransitionStartPosition(state *State) (x, y float32) {
 }
 
 func moveToSideTransition(transitionLength float32, state *State, startX, startY float32) (string, error) {
+	var sequence string
 	if state.Palette.PreSideTransitionScript != nil {
 		// user script instead of built-in logic
+		sequence += ";TYPE:Custom" + EOL
 		locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
 			"layer":                   float64(state.CurrentLayer),
 			"currentPrintTemperature": float64(state.Temperature.Extruder),
@@ -46,7 +48,7 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
 		return evaluateScript(state.Palette.PreSideTransitionScript, locals, state)
 	}
 
-	sequence := getXYTravel(state, startX, startY, state.Palette.TravelSpeedXY, "move to side transition")
+	sequence += getXYTravel(state, startX, startY, state.Palette.TravelSpeedXY, "move to side transition")
 
 	if state.E.CurrentRetraction < 0 {
 		// un-retract
@@ -67,10 +69,14 @@ func checkLeaveSideTransitionAdjustZ(state *State, upcomingPosition SideTransiti
 }
 
 func leaveSideTransition(transitionLength float32, state *State, retractDistance float32) (string, error) {
+	var sequence string
+
 	transitionIdx := len(state.MSF.SpliceList) - 1
 	upcomingXYZ := state.TransitionNextPositions[transitionIdx]
+
 	if state.Palette.PostSideTransitionScript != nil {
 		// user script instead of built-in logic
+		sequence += ";TYPE:Custom" + EOL
 		locals := state.Locals.Prepare(state.CurrentTool, map[string]float64{
 			"layer":                   float64(state.CurrentLayer),
 			"currentPrintTemperature": float64(state.Temperature.Extruder),
@@ -90,8 +96,6 @@ func leaveSideTransition(transitionLength float32, state *State, retractDistance
 		checkLeaveSideTransitionAdjustZ(state, upcomingXYZ)
 		return sequence, nil
 	}
-
-	sequence := ""
 
 	if retractDistance != 0 {
 		// restore any retraction from before the side transition
@@ -144,6 +148,8 @@ func sideTransitionInPlace(transitionLength float32, state *State) (string, erro
 	if err != nil {
 		return sequence, err
 	}
+
+	sequence += ";TYPE:Side transition" + EOL
 
 	for transitionSoFar < transitionLength {
 		if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
@@ -207,6 +213,8 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
 	if err != nil {
 		return sequence, err
 	}
+
+	sequence += ";TYPE:Side transition" + EOL
 
 	dimensionOfInterest := state.Palette.PrintBedMaxX - state.Palette.PrintBedMinX
 	if state.Palette.SideTransitionEdge == gcode.West || state.Palette.SideTransitionEdge == gcode.East {
@@ -282,6 +290,8 @@ func sideTransitionCustom(transitionLength float32, state *State) (string, error
 	}
 	transitionSoFar := float32(0)
 
+	sequence += ";TYPE:Side transition" + EOL
+
 	if doPing, pingSequence, pingExtrusion := checkSideTransitionPings(state); doPing {
 		transitionSoFar += pingExtrusion
 		sequence += pingSequence
@@ -317,25 +327,11 @@ func sideTransitionCustom(transitionLength float32, state *State) (string, error
 }
 
 func sideTransition(transitionLength float32, state *State) (string, error) {
-	sequence := ";TYPE:Side transition" + EOL
 	if state.Palette.SideTransitionScript != nil {
-		result, err := sideTransitionCustom(transitionLength, state)
-		if err != nil {
-			return sequence, err
-		}
-		sequence += result
+		return sideTransitionCustom(transitionLength, state)
 	} else if state.Palette.SideTransitionJog {
-		result, err := sideTransitionOnEdge(transitionLength, state)
-		if err != nil {
-			return sequence, err
-		}
-		sequence += result
+		return sideTransitionOnEdge(transitionLength, state)
 	} else {
-		result, err := sideTransitionInPlace(transitionLength, state)
-		if err != nil {
-			return sequence, err
-		}
-		sequence += result
+		return sideTransitionInPlace(transitionLength, state)
 	}
-	return sequence, nil
 }
