@@ -15,8 +15,8 @@ const (
 )
 
 type bufferData struct {
-	Offset int `json:"offset"`
-	Size   int `json:"size"`
+	Offset uint32 `json:"offset"`
+	Size   uint32 `json:"size"`
 }
 
 type legendHeader struct {
@@ -26,7 +26,7 @@ type legendHeader struct {
 	Index            bufferData `json:"index"`
 	ExtrusionWidth   bufferData `json:"extrusionWidth"`
 	LayerHeight      bufferData `json:"layerHeight"`
-	TravelPosition   bufferData `json:"travelPosition"`
+	IsTravel         bufferData `json:"isTravel"`
 	ToolColor        bufferData `json:"toolColor"`
 	PathTypeColor    bufferData `json:"pathTypeColor"`
 	FeedrateColor    bufferData `json:"feedrateColor"`
@@ -43,7 +43,7 @@ func (w *Writer) getLegendHeader() legendHeader {
 		Index:            bufferData{Offset: 0, Size: w.bufferSizes["index"]},
 		ExtrusionWidth:   bufferData{Offset: 0, Size: w.bufferSizes["extrusionWidth"]},
 		LayerHeight:      bufferData{Offset: 0, Size: w.bufferSizes["layerHeight"]},
-		TravelPosition:   bufferData{Offset: 0, Size: w.bufferSizes["travelPosition"]},
+		IsTravel:         bufferData{Offset: 0, Size: w.bufferSizes["isTravel"]},
 		ToolColor:        bufferData{Offset: 0, Size: w.bufferSizes["toolColor"]},
 		PathTypeColor:    bufferData{Offset: 0, Size: w.bufferSizes["pathTypeColor"]},
 		FeedrateColor:    bufferData{Offset: 0, Size: w.bufferSizes["feedrateColor"]},
@@ -62,7 +62,7 @@ func (w *Writer) getLegendHeader() legendHeader {
 	offset += w.bufferSizes["extrusionWidth"]
 	header.LayerHeight.Offset = offset
 	offset += w.bufferSizes["layerHeight"]
-	header.TravelPosition.Offset = offset
+	header.IsTravel.Offset = offset
 	return header
 }
 
@@ -100,16 +100,19 @@ func (l *legendEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(arr)
 }
 
-type legend struct {
-	Header      legendHeader  `json:"header"`      // header data (version, buffer offsets and sizes)
-	Colors      legendColors  `json:"colors"`      // max/min colors for interpolated coloring
-	Tool        []legendEntry `json:"tool"`        // legend of tools seen
-	PathType    []legendEntry `json:"pathType"`    // legend of path types seen
-	Feedrate    []legendEntry `json:"feedrate"`    // legend of feedrates -- needs gradation
-	FanSpeed    []legendEntry `json:"fanSpeed"`    // legend of fan speeds -- possible gradation
-	Temperature []legendEntry `json:"temperature"` // legend of temperatures -- needs gradation
-	LayerHeight []legendEntry `json:"layerHeight"` // legend of layer heights -- needs gradation
-	ZValues     []float32     `json:"zValues"`     // Z values for UI sliders
+type ptpLegend struct {
+	Header                  legendHeader  `json:"header"`                  // header data (version, buffer offsets and sizes)
+	Colors                  legendColors  `json:"colors"`                  // max/min colors for interpolated coloring
+	Tool                    []legendEntry `json:"tool"`                    // legend of tools seen
+	PathType                []legendEntry `json:"pathType"`                // legend of path types seen
+	Feedrate                []legendEntry `json:"feedrate"`                // legend of feedrates -- needs gradation
+	FanSpeed                []legendEntry `json:"fanSpeed"`                // legend of fan speeds -- possible gradation
+	Temperature             []legendEntry `json:"temperature"`             // legend of temperatures -- needs gradation
+	LayerHeight             []legendEntry `json:"layerHeight"`             // legend of layer heights -- needs gradation
+	ZValues                 []float32     `json:"zValues"`                 // Z values for UI sliders
+	LayerStartIndices       []uint32      `json:"layerStartIndices"`       // index values for rendering layer ranges
+	LayerStartTravelIndices []uint32      `json:"layerStartTravelIndices"` // index values for rendering layer ranges
+	HasPings                bool          `json:"hasPings"`                // for UI to show the relevant option
 }
 
 func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
@@ -125,11 +128,7 @@ func removeDuplicateLegendEntries(legend []legendEntry) []legendEntry {
 }
 
 func (w *Writer) getToolLegend() []legendEntry {
-	toolsSeen := make([]int, 0, len(w.state.toolsSeen))
-	for tool := range w.state.toolsSeen {
-		toolsSeen = append(toolsSeen, tool)
-	}
-	sort.Ints(toolsSeen)
+	toolsSeen := setToSlice(w.state.toolsSeen, sort.Ints)
 	legend := make([]legendEntry, 0, len(w.state.toolsSeen))
 	for _, tool := range toolsSeen {
 		legend = append(legend, legendEntry{
@@ -162,12 +161,7 @@ func (w *Writer) getPathTypeLegend() []legendEntry {
 }
 
 func (w *Writer) getFeedrateLegend() []legendEntry {
-	feedratesSeen := make([]float32, 0, len(w.state.feedratesSeen))
-	for feedrate := range w.state.feedratesSeen {
-		feedratesSeen = append(feedratesSeen, feedrate)
-	}
-	sortFloat32Slice(feedratesSeen)
-
+	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(feedratesSeen))
 	if len(feedratesSeen) <= 6 {
 		for _, feedrate := range feedratesSeen {
@@ -203,12 +197,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 }
 
 func (w *Writer) getFanSpeedLegend() []legendEntry {
-	fanSpeedsSeen := make([]int, 0, len(w.state.fanSpeedsSeen))
-	for pwmValue := range w.state.fanSpeedsSeen {
-		fanSpeedsSeen = append(fanSpeedsSeen, pwmValue)
-	}
-	sort.Ints(fanSpeedsSeen)
-
+	fanSpeedsSeen := setToSlice(w.state.fanSpeedsSeen, sort.Ints)
 	legend := make([]legendEntry, 0, len(fanSpeedsSeen))
 	if len(fanSpeedsSeen) == 1 && fanSpeedsSeen[0] == 0 {
 		legend = append(legend, legendEntry{
@@ -266,12 +255,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 }
 
 func (w *Writer) getTemperatureLegend() []legendEntry {
-	temperaturesSeen := make([]float32, 0, len(w.state.temperaturesSeen))
-	for temperature := range w.state.temperaturesSeen {
-		temperaturesSeen = append(temperaturesSeen, temperature)
-	}
-	sortFloat32Slice(temperaturesSeen)
-
+	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(temperaturesSeen))
 	if len(temperaturesSeen) <= 6 {
 		for _, temperature := range temperaturesSeen {
@@ -314,12 +298,7 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 }
 
 func (w *Writer) getLayerHeightLegend() []legendEntry {
-	layerHeightsSeen := make([]float32, 0, len(w.state.layerHeightsSeen))
-	for layerHeight := range w.state.layerHeightsSeen {
-		layerHeightsSeen = append(layerHeightsSeen, layerHeight)
-	}
-	sortFloat32Slice(layerHeightsSeen)
-
+	layerHeightsSeen := setToSlice(w.state.layerHeightsSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(layerHeightsSeen))
 	if len(layerHeightsSeen) == 1 {
 		legend = []legendEntry{
@@ -361,26 +340,19 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
 	return removeDuplicateLegendEntries(legend)
 }
 
-func (w *Writer) getZValues() []float32 {
-	zSeen := make([]float32, 0, len(w.state.zSeen))
-	for z := range w.state.zSeen {
-		zSeen = append(zSeen, z)
-	}
-	sortFloat32Slice(zSeen)
-	return zSeen
-}
-
 func (w *Writer) getLegend() ([]byte, error) {
-	legend := legend{
-		Header:      w.getLegendHeader(),
-		Colors:      getLegendColors(),
-		Tool:        w.getToolLegend(),
-		PathType:    w.getPathTypeLegend(),
-		Feedrate:    w.getFeedrateLegend(),
-		FanSpeed:    w.getFanSpeedLegend(),
-		Temperature: w.getTemperatureLegend(),
-		LayerHeight: w.getLayerHeightLegend(),
-		ZValues:     w.getZValues(),
+	legend := ptpLegend{
+		Header:            w.getLegendHeader(),
+		Colors:            getLegendColors(),
+		Tool:              w.getToolLegend(),
+		PathType:          w.getPathTypeLegend(),
+		Feedrate:          w.getFeedrateLegend(),
+		FanSpeed:          w.getFanSpeedLegend(),
+		Temperature:       w.getTemperatureLegend(),
+		LayerHeight:       w.getLayerHeightLegend(),
+		ZValues:           w.state.layerHeights,
+		LayerStartIndices: w.state.layerStartIndices,
+		HasPings:          w.bufferSizes["pingPosition"] > 0,
 	}
 	return json.Marshal(legend)
 }

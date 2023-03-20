@@ -1,9 +1,10 @@
 package ptp
 
-const ptpVersion = uint8(5)
+const ptpVersion = uint8(6)
 
 const (
 	floatBytes  = 4
+	uint8Bytes  = 1
 	uint32Bytes = 4
 )
 
@@ -15,7 +16,7 @@ const collinearityEpsilon = 10e-5
 
 // in-file header only contains version information
 // (buffer offsets and sizes are now stored in the legend file)
-const headerSize = 4
+const headerSize = uint32(4)
 
 var (
 	colorWhite      = [3]float32{0xff / 255.0, 0xff / 255.0, 0xff / 255.0} // #ffffff
@@ -33,12 +34,20 @@ var (
 	colorLightGrey  = [3]float32{0xd1 / 255.0, 0xd1 / 255.0, 0xd1 / 255.0} // #d1d1d1
 )
 
+const (
+	travelExtrusionWidth = 0.08
+	travelLayerHeight    = 0.08
+	travelTool           = -1
+)
+
+var travelColor = [3]float32{0x99 / 255.0, 0x99 / 255.0, 0x99 / 255.0}
+
 type PathType int
 
 const (
 	PathTypeUnknown PathType = iota
-	PathTypeStartSequence
-	PathTypeEndSequence
+	PathTypeTravel
+	PathTypeSequence
 	PathTypeRaft
 	PathTypeBrim
 	PathTypeSupport
@@ -51,14 +60,13 @@ const (
 	PathTypeBridge
 	PathTypeIroning
 	PathTypeTransition
-	PathTypePing
 	pathTypeCount
 )
 
 var pathTypeNames = map[PathType]string{
 	PathTypeUnknown:          "Unknown",
-	PathTypeStartSequence:    "Start Sequence",
-	PathTypeEndSequence:      "End Sequence",
+	PathTypeTravel:           "Travel",
+	PathTypeSequence:         "User Sequence",
 	PathTypeRaft:             "Raft",
 	PathTypeBrim:             "Skirt/Brim",
 	PathTypeSupport:          "Support",
@@ -71,13 +79,12 @@ var pathTypeNames = map[PathType]string{
 	PathTypeBridge:           "Bridge",
 	PathTypeIroning:          "Ironing",
 	PathTypeTransition:       "Transition",
-	PathTypePing:             "Ping",
 }
 
 var pathTypeColors = map[PathType][3]float32{
 	PathTypeUnknown:          colorWhite,
-	PathTypeStartSequence:    colorDarkGrey,
-	PathTypeEndSequence:      colorDarkGrey,
+	PathTypeTravel:           travelColor,
+	PathTypeSequence:         colorDarkGrey,
 	PathTypeRaft:             colorLilac,
 	PathTypeBrim:             colorSky,
 	PathTypeSupport:          colorPurple,
@@ -90,13 +97,12 @@ var pathTypeColors = map[PathType][3]float32{
 	PathTypeBridge:           colorSky,
 	PathTypeIroning:          colorPink,
 	PathTypeTransition:       colorLightGrey,
-	PathTypePing:             colorLightGrey,
 }
 
 var pathTypeColorStrings = map[PathType]string{
 	PathTypeUnknown:          "#ffffff",
-	PathTypeStartSequence:    "#32292f",
-	PathTypeEndSequence:      "#32292f",
+	PathTypeTravel:           "#999999",
+	PathTypeSequence:         "#32292f",
 	PathTypeRaft:             "#9789ba",
 	PathTypeBrim:             "#d4deff",
 	PathTypeSupport:          "#3d315b",
@@ -109,7 +115,6 @@ var pathTypeColorStrings = map[PathType]string{
 	PathTypeBridge:           "#bcd4de",
 	PathTypeIroning:          "#d67a89",
 	PathTypeTransition:       "#d1d1d1",
-	PathTypePing:             "#d1d1d1",
 }
 
 var feedrateColorMin = colorRed

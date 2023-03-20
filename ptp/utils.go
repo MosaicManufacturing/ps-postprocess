@@ -123,8 +123,21 @@ func writeFloat32LE(writer *bufio.Writer, val float32) error {
 	return writeUint32LE(writer, math.Float32bits(val))
 }
 
+func writeUint8(writer *bufio.Writer, val uint8) error {
+	return writer.WriteByte(val)
+}
+
 func prepareFloatForJSON(val float32, maxDecimals int) string {
 	roundingFactor := math.Pow(10, float64(maxDecimals))
 	val64 := math.Round(float64(val)*roundingFactor) / roundingFactor
 	return strconv.FormatFloat(val64, 'f', -1, 64)
+}
+
+func setToSlice[T comparable](set map[T]bool, sortFn func([]T)) []T {
+	values := make([]T, 0, len(set))
+	for value := range set {
+		values = append(values, value)
+	}
+	sortFn(values)
+	return values
 }
