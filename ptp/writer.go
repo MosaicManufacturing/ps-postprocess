@@ -1095,7 +1095,9 @@ func (w *Writer) addXYZPrintLineTo(x, y, z float32, savePosition, isTravel bool)
 		w.state.toolsSeen[w.state.currentTool] = true
 	}
 	w.state.pathTypesSeen[w.state.currentPathType] = true
-	w.state.feedratesSeen[w.state.currentFeedrate] = true
+	if w.state.currentPathType != PathTypeTravel {
+		w.state.feedratesSeen[w.state.currentFeedrate] = true
+	}
 	w.state.fanSpeedsSeen[w.state.currentFanSpeed] = true
 	w.state.temperaturesSeen[w.state.currentTemperature] = true
 	if w.state.currentPathType != PathTypeTravel && w.state.currentLayerHeight > 0 {
