@@ -12,7 +12,13 @@ func normalizeNewlines(input string) string {
 func Normalize(input string) string {
 	// remove directive if present
 	if strings.HasPrefix(input, "@printerscript ") {
-		input = input[strings.IndexRune(input, '\n'):]
+		newlineIdx := strings.IndexRune(input, '\n')
+		if newlineIdx < 0 {
+			// empty script
+			return "\n"
+		} else {
+			input = input[newlineIdx:]
+		}
 	}
 	// trim leading and trailing whitespace
 	trimmed := strings.TrimSpace(input)
