@@ -28,6 +28,10 @@ type State struct {
 	OnWipeTower                bool
 	TowerBoundingBox           gcode.BoundingBox
 
+	// for maintaining print preview comment state after transitions
+	CurrentPathTypeLine string
+	CurrentWidthLine    string
+
 	LastPingStart    float32
 	CurrentlyPinging bool
 	CurrentPingStart float32
