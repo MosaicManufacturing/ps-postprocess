@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"mosaicmfg.com/ps-postprocess/gcode"
+	"mosaicmfg.com/ps-postprocess/ptp"
 	"mosaicmfg.com/ps-postprocess/sequences"
 	"os"
 	"strings"
@@ -90,6 +91,20 @@ func _paletteOutput(
 		return writeLines(writer, layerPaths)
 	}
 
+	restorePathType := func() error {
+		if state.CurrentPathTypeLine != "" {
+			if err := writeLine(writer, state.CurrentPathTypeLine); err != nil {
+				return err
+			}
+		}
+		if state.CurrentWidthLine != "" {
+			if err := writeLine(writer, state.CurrentWidthLine); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		if lineNumber == preflight.printSummaryStart {
 			if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
@@ -113,6 +128,10 @@ func _paletteOutput(
 		} else if line.IsLinearMove() && line.Comment == "retract" && state.E.LastExtrudeWasRetract {
 			// avoid double-retraction after toolchange
 			return nil
+		} else if ptp.IsPathTypeComment(line) {
+			state.CurrentPathTypeLine = line.Raw
+		} else if ptp.IsWidthComment(line) {
+			state.CurrentWidthLine = line.Raw
 		} else {
 			// update state
 			state.E.TrackInstruction(line)
@@ -224,7 +243,7 @@ func _paletteOutput(
 					if err := writeLine(writer, fmt.Sprintf("; Printing with input %d", state.CurrentTool)); err != nil {
 						return err
 					}
-				} else {
+				} else if tool != state.CurrentTool {
 					comment := fmt.Sprintf("; Printing with input %d", tool)
 					if err := writeLine(writer, comment); err != nil {
 						return err
@@ -306,6 +325,11 @@ func _paletteOutput(
 								return err
 							}
 							state.CurrentlyTransitioning = false
+						}
+					}
+					if palette.TransitionMethod != TransitionTower {
+						if err := restorePathType(); err != nil {
+							return err
 						}
 					}
 				}
