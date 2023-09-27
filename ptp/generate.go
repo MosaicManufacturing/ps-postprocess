@@ -282,13 +282,13 @@ func generateToolpath(argv []string) error {
 					return err
 				}
 				// TODO: do we need to explicitly also trigger a layer change at end sequence?
-			} else if strings.HasPrefix(line.Comment, "TYPE:") {
+			} else if IsPathTypeComment(line) {
 				// path type hints
 				pathType := convertPathType(line.Comment[5:])
 				if err = writer.SetPathType(pathType); err != nil {
 					return err
 				}
-			} else if strings.HasPrefix(line.Comment, "WIDTH:") {
+			} else if IsWidthComment(line) {
 				// extrusion width hints
 				width, err := strconv.ParseFloat(line.Comment[6:], 32)
 				if err != nil {
@@ -297,7 +297,7 @@ func generateToolpath(argv []string) error {
 				if err = writer.SetExtrusionWidth(float32(width)); err != nil {
 					return err
 				}
-			} else if strings.HasPrefix(line.Comment, "HEIGHT:") {
+			} else if IsHeightComment(line) {
 				// layer height hints
 				height, err := strconv.ParseFloat(line.Comment[7:], 32)
 				if err != nil {

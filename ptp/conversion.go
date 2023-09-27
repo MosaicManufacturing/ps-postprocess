@@ -2,6 +2,7 @@ package ptp
 
 import (
 	"errors"
+	"mosaicmfg.com/ps-postprocess/gcode"
 	"strconv"
 	"strings"
 )
@@ -68,4 +69,16 @@ func convertPathType(hint string) PathType {
 		return PathTypeSequence
 	}
 	return PathTypeUnknown
+}
+
+func IsPathTypeComment(line gcode.Command) bool {
+	return strings.HasPrefix(line.Comment, "TYPE:")
+}
+
+func IsWidthComment(line gcode.Command) bool {
+	return strings.HasPrefix(line.Comment, "WIDTH:")
+}
+
+func IsHeightComment(line gcode.Command) bool {
+	return strings.HasPrefix(line.Comment, "HEIGHT:")
 }
