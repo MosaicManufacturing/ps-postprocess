@@ -48,9 +48,26 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 					}
 				}
 			}
-		} else if line.Command == "M104" || line.Command == "M109" {
+		} else if line.Command == "M104" {
 			// temperatures
 			if temp, ok := line.Params["s"]; ok {
+				if temp < minTemperature {
+					minTemperature = temp
+				}
+				if temp > maxTemperature {
+					maxTemperature = temp
+				}
+			}
+		} else if line.Command == "M109" {
+			// temperatures
+			if temp, ok := line.Params["s"]; ok {
+				if temp < minTemperature {
+					minTemperature = temp
+				}
+				if temp > maxTemperature {
+					maxTemperature = temp
+				}
+			} else if temp, ok = line.Params["r"]; ok {
 				if temp < minTemperature {
 					minTemperature = temp
 				}

@@ -67,30 +67,62 @@ func preflight(inpath string) (sequencesPreflight, error) {
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, lineNum int) error {
 		position.TrackInstruction(line)
 
-		if line.Command == "M104" || line.Command == "M109" {
+		if line.Command == "M104" {
 			// - first extruder temperature in the print
 			// - max extruder temperature in the print
-			if s, ok := line.Params["s"]; ok {
+			if temp, ok := line.Params["s"]; ok {
 				if results.preheat.Extruder == 0 {
-					results.preheat.Extruder = s
+					results.preheat.Extruder = temp
 				}
-				if s > results.preheat.ExtruderMax {
-					results.preheat.ExtruderMax = s
+				if temp > results.preheat.ExtruderMax {
+					results.preheat.ExtruderMax = temp
+				}
+			}
+		} else if line.Command == "M109" {
+			// - first extruder temperature in the print
+			// - max extruder temperature in the print
+			if temp, ok := line.Params["s"]; ok {
+				if results.preheat.Extruder == 0 {
+					results.preheat.Extruder = temp
+				}
+				if temp > results.preheat.ExtruderMax {
+					results.preheat.ExtruderMax = temp
+				}
+			} else if temp, ok = line.Params["r"]; ok {
+				if results.preheat.Extruder == 0 {
+					results.preheat.Extruder = temp
+				}
+				if temp > results.preheat.ExtruderMax {
+					results.preheat.ExtruderMax = temp
 				}
 			}
 			return nil
-		} else if results.preheat.Bed == 0 &&
-			(line.Command == "M140" || line.Command == "M190") {
+		} else if results.preheat.Bed == 0 && line.Command == "M140" {
 			// - first print bed temperature in the print
-			if s, ok := line.Params["s"]; ok {
-				results.preheat.Bed = s
+			if temp, ok := line.Params["s"]; ok {
+				results.preheat.Bed = temp
 			}
 			return nil
-		} else if results.preheat.Chamber == 0 &&
-			(line.Command == "M141" || line.Command == "M191") {
+		} else if results.preheat.Bed == 0 && line.Command == "M190" {
+			// - first print bed temperature in the print
+			if temp, ok := line.Params["s"]; ok {
+				results.preheat.Bed = temp
+			} else if temp, ok = line.Params["r"]; ok {
+				results.preheat.Bed = temp
+			}
+			return nil
+		} else if results.preheat.Chamber == 0 && line.Command == "M141" {
 			// - first chamber temperature in the print
-			if s, ok := line.Params["s"]; ok {
-				results.preheat.Chamber = s
+			if temp, ok := line.Params["s"]; ok {
+				results.preheat.Chamber = temp
+			}
+			return nil
+		} else if results.preheat.Chamber == 0 && line.Command == "M191" {
+			// - first chamber temperature in the print
+			if temp, ok := line.Params["s"]; ok {
+				results.preheat.Chamber = temp
+			} else if temp, ok = line.Params["r"]; ok {
+				results.preheat.Chamber = temp
 			}
 			return nil
 		}
