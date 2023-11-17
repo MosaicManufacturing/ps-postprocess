@@ -9,6 +9,7 @@ import (
 	"mosaicmfg.com/ps-postprocess/ptp"
 	"mosaicmfg.com/ps-postprocess/sequences"
 	"mosaicmfg.com/ps-postprocess/ultimaker"
+	"mosaicmfg.com/ps-postprocess/zeros"
 	"os"
 )
 
@@ -24,6 +25,8 @@ func main() {
 		ptp.GenerateToolpath(argv[1:])
 	case "comments":
 		comments.Strip(argv[1:])
+	case "zeros":
+		zeros.RestoreLeadingZeros(argv[1:])
 	case "ultimaker":
 		ultimaker.AddHeader(argv[1:])
 	case "flashforge":
