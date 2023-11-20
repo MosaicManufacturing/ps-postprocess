@@ -2,10 +2,8 @@ package zeros
 
 import "regexp"
 
-var re = regexp.MustCompile("( [XYZEF]-?)\\.([0-9]+)")
-
 // https://gist.github.com/elliotchance/d419395aa776d632d897
-func replaceAllStringSubmatchFunc(str string, repl func([]string) string) string {
+func replaceAllStringSubmatchFunc(re *regexp.Regexp, str string, repl func([]string) string) string {
 	result := ""
 	lastIndex := 0
 

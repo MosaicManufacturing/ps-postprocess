@@ -5,7 +5,10 @@ import (
 	"log"
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"os"
+	"regexp"
 )
+
+var reParamWithNoLeadingZero = regexp.MustCompile("( [XYZEF]-?)\\.([0-9]+)")
 
 const EOL = "\r\n"
 
@@ -38,9 +41,13 @@ func RestoreLeadingZeros(argv []string) {
 		}
 
 		// transform raw command output where needed
-		result := replaceAllStringSubmatchFunc(command.Raw, func(groups []string) string {
-			return groups[1] + "0." + groups[2]
-		})
+		result := replaceAllStringSubmatchFunc(
+			reParamWithNoLeadingZero,
+			command.Raw,
+			func(groups []string) string {
+				return groups[1] + "0." + groups[2]
+			},
+		)
 		_, err := writer.WriteString(result + EOL)
 		return err
 	})
