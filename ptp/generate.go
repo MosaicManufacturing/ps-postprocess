@@ -237,8 +237,18 @@ func generateToolpath(argv []string) error {
 			if err = writer.SetFanSpeed(0); err != nil {
 				return err
 			}
-		} else if line.Command == "M104" || line.Command == "M109" {
+		} else if line.Command == "M104" {
 			if temp, ok := line.Params["s"]; ok {
+				if err = writer.SetTemperature(temp); err != nil {
+					return err
+				}
+			}
+		} else if line.Command == "M109" {
+			if temp, ok := line.Params["s"]; ok {
+				if err = writer.SetTemperature(temp); err != nil {
+					return err
+				}
+			} else if temp, ok = line.Params["r"]; ok {
 				if err = writer.SetTemperature(temp); err != nil {
 					return err
 				}
