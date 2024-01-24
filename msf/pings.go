@@ -170,7 +170,7 @@ func getSideTransitionInPlaceJogPause(durationMS int, state *State) string {
 
 func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
 	// first pause
-	sequence := fmt.Sprintf("; Ping %d pause 1", len(state.MSF.PingList)+1)
+	sequence := fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList)+1, EOL)
 	if state.Palette.JogPauses {
 		sequence += getSideTransitionInPlaceJogPause(Ping1PauseLength, state)
 	} else {
@@ -184,7 +184,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
 	sequence += getPurge(state, purgeLength, state.Palette.SideTransitionPurgeSpeed*60)
 
 	// second pause
-	sequence += fmt.Sprintf("; Ping %d pause 2", len(state.MSF.PingList)+1)
+	sequence += fmt.Sprintf("; Ping %d pause 2%s", len(state.MSF.PingList)+1, EOL)
 	if state.Palette.JogPauses {
 		sequence += getSideTransitionInPlaceJogPause(Ping2PauseLength, state)
 	} else {
@@ -220,7 +220,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 	jogPauseDirection := getSideTransitionOnEdgeJogPauseDirection(state)
 
 	// first pause
-	sequence := fmt.Sprintf("; Ping %d pause 1", len(state.MSF.PingList)+1)
+	sequence := fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList)+1, EOL)
 	if state.Palette.JogPauses {
 		sequence += getSideTransitionOnEdgeJogPause(Ping1PauseLength, jogPauseDirection, state)
 	} else {
@@ -274,7 +274,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 	}
 
 	// second pause
-	sequence += fmt.Sprintf("; Ping %d pause 2", len(state.MSF.PingList)+1)
+	sequence += fmt.Sprintf("; Ping %d pause 2%s", len(state.MSF.PingList)+1, EOL)
 	if state.Palette.JogPauses {
 		sequence += getSideTransitionOnEdgeJogPause(Ping2PauseLength, jogPauseDirection, state)
 	} else {
