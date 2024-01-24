@@ -175,7 +175,7 @@ func _paletteOutput(
 					// currentlyPinging == true implies accessory mode
 					if state.E.TotalExtrusion >= state.LastPingStart+state.PingExtrusion {
 						// finish the accessory ping sequence
-						comment := fmt.Sprintf("; Ping %d pause 2", len(msfOut.PingList)+1)
+						comment := fmt.Sprintf("; Ping %d pause 2%s", len(msfOut.PingList)+1, EOL)
 						if err := writeLine(writer, comment); err != nil {
 							return err
 						}
@@ -217,7 +217,7 @@ func _paletteOutput(
 						state.LastPingStart = state.E.TotalExtrusion
 					} else {
 						// start the accessory ping sequence
-						comment := fmt.Sprintf("; Ping %d pause 1", len(msfOut.PingList)+1)
+						comment := fmt.Sprintf("; Ping %d pause 1%s", len(msfOut.PingList)+1, EOL)
 						if err := writeLine(writer, comment); err != nil {
 							return err
 						}
