@@ -192,6 +192,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
 	}
 	state.TimeEstimate += float32(Ping2PauseLength / 1000)
 	state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
+	state.LastPingStart = pingStartExtrusion
 
 	return sequence, purgeLength
 }
@@ -282,6 +283,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 	}
 	state.TimeEstimate += float32(Ping2PauseLength / 1000)
 	state.MSF.AddPingWithExtrusion(pingStartExtrusion, purgeLength)
+	state.LastPingStart = pingStartExtrusion
 
 	return sequence, purgeLength
 }
