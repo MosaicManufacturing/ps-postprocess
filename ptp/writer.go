@@ -210,7 +210,7 @@ func (w *Writer) Initialize() error {
 	if w.maxFeedrate < w.minFeedrate || w.minFeedrate < 0 || w.maxFeedrate <= 0 {
 		return errors.New("invalid feedrate bounds for creating legend")
 	}
-	if w.maxTemperature < w.minTemperature || w.minTemperature < 0 || w.maxTemperature <= 0 {
+	if w.maxTemperature < w.minTemperature || w.minTemperature < 0 {
 		return errors.New("invalid temperature bounds for creating legend")
 	}
 	if w.maxLayerHeight < w.minLayerHeight || w.minLayerHeight < 0 || w.maxLayerHeight <= 0 {
