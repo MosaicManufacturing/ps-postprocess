@@ -746,11 +746,11 @@ func (t *Tower) getNextDenseSegmentPaths(state *State) string {
 	requiredPurge -= 5
 	totalPurge := float32(0)
 
-	printFeedrate := t.Palette.TowerSpeed[transitionInfo.To] * 60
-	if t.Palette.TowerSpeed[transitionInfo.From] < t.Palette.TowerSpeed[transitionInfo.To] {
-		// use the slower of the two material settings for this transition
-		printFeedrate = t.Palette.TowerSpeed[transitionInfo.From] * 60
-	}
+	printFeedrate := t.Palette.GetTowerPrintSpeed(
+		transitionInfo.To,
+		transitionInfo.From,
+		state.CurrentLayer,
+	)
 
 	sequence := ""
 

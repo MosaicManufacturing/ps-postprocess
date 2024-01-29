@@ -85,6 +85,7 @@ func getTestPalette(transitionLength float32) Palette {
 		TowerMaxDensity:            100,
 		TowerMinBrims:              0,
 		TowerSpeed:                 towerSpeeds,
+		FirstLayerTowerSpeed:       towerSpeeds,
 		TowerExtrusionWidth:        0.4,
 		TowerExtrusionMultiplier:   100,
 		TowerFirstLayerPerimeters:  false,
