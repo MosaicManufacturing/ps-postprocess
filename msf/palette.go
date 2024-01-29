@@ -60,6 +60,7 @@ type Palette struct {
 	TowerMaxDensity           float32    `json:"towerMaxDensity"`           // 0..100
 	TowerMinBrims             int        `json:"towerMinBrims"`
 	TowerSpeed                []float32  `json:"towerSpeed"`               // mm/s
+	FirstLayerTowerSpeed      []float32  `json:"firstLayerTowerSpeed"`     // mm/s
 	TowerExtrusionWidth       float32    `json:"towerExtrusionWidth"`      // mm
 	TowerExtrusionMultiplier  float32    `json:"towerExtrusionMultiplier"` // unitless
 	TowerFirstLayerPerimeters bool       `json:"towerFirstLayerPerimeters"`
@@ -272,4 +273,18 @@ func (p Palette) GetEffectiveLoadingOffset() float32 {
 
 func (p Palette) GetTransitionLength(toTool, fromTool int) float32 {
 	return p.TransitionLengths[toTool][fromTool]
+}
+
+func (p Palette) GetTowerPrintSpeed(toTool, fromTool, layerIndex int) float32 {
+	// use the slower of the two material settings for this transition
+	toSpeed := p.TowerSpeed[toTool]
+	fromSpeed := p.TowerSpeed[fromTool]
+	if layerIndex == 0 {
+		toSpeed = p.FirstLayerTowerSpeed[toTool]
+		fromSpeed = p.FirstLayerTowerSpeed[fromTool]
+	}
+	if toSpeed < fromSpeed {
+		return toSpeed * 60
+	}
+	return fromSpeed * 60
 }
