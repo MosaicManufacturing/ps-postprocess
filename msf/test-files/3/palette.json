@@ -264,6 +264,16 @@
     40,
     40
   ],
+  "firstLayerTowerSpeed": [
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40,
+    40
+  ],
   "towerExtrusionWidth": 0.48,
   "towerExtrusionMultiplier": 100,
   "towerFirstLayerPerimeters": true,
