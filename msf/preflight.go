@@ -2,9 +2,10 @@ package msf
 
 import (
 	"fmt"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 // round layer thicknesses and top Zs to this many decimal places
@@ -185,42 +186,52 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					state.CurrentTool = tool
 					results.drivesUsed[state.CurrentTool] = true
 				} else {
-					transitionLength := palette.GetTransitionLength(tool, state.CurrentTool)
-					spliceOffset := transitionLength * (palette.TransitionTarget / 100)
-					purgeLength := transitionLength
-					spliceLength := state.E.TotalExtrusion + spliceOffset
-					// start by subtracting usable infill from splice and purge length
-					usableInfill := float32(0)
-					if currentInfillStartE >= 0 && palette.InfillTransitioning {
-						usableInfill = state.E.TotalExtrusion - currentInfillStartE
-						if usableInfill < 0 {
-							usableInfill = 0
-						}
-						purgeLength -= usableInfill
-						spliceLength -= usableInfill
-					}
-					// safety check to ensure minimum piece lengths
-					deltaE := spliceLength - lastTransitionSpliceLength
-					// try to account for any sparse layers that will be added between the last
-					// dense layer and this one (note: sparse layer extrusion may be more than this)
-					if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer+1 {
-						sparseLayers := results.totalLayers - (lastTransitionLayer + 1)
-						sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
-						deltaE += sparseLayerExtrusionEstimate
-					}
-					if deltaE < minSpliceLength {
-						extra := minSpliceLength - deltaE
-						purgeLength += extra
-						spliceLength += extra
-						if palette.InfillTransitioning {
-							usableInfill -= extra
+					var transitionLength float32
+					var spliceOffset float32
+					var purgeLength float32
+					var spliceLength float32
+					var usableInfill float32
+
+					if palette.Type == TypeElement {
+						spliceLength = state.E.TotalExtrusion
+					} else {
+						transitionLength = palette.GetTransitionLength(tool, state.CurrentTool)
+						spliceOffset = transitionLength * (palette.TransitionTarget / 100)
+						purgeLength = transitionLength
+						spliceLength = state.E.TotalExtrusion + spliceOffset
+						// start by subtracting usable infill from splice and purge length
+						if currentInfillStartE >= 0 && palette.InfillTransitioning {
+							usableInfill = state.E.TotalExtrusion - currentInfillStartE
 							if usableInfill < 0 {
-								purgeLength -= usableInfill
-								spliceLength -= usableInfill
 								usableInfill = 0
+							}
+							purgeLength -= usableInfill
+							spliceLength -= usableInfill
+						}
+						// safety check to ensure minimum piece lengths
+						deltaE := spliceLength - lastTransitionSpliceLength
+						// try to account for any sparse layers that will be added between the last
+						// dense layer and this one (note: sparse layer extrusion may be more than this)
+						if palette.TransitionMethod == CustomTower && results.totalLayers > lastTransitionLayer+1 {
+							sparseLayers := results.totalLayers - (lastTransitionLayer + 1)
+							sparseLayerExtrusionEstimate := state.PingExtrusion * float32(sparseLayers)
+							deltaE += sparseLayerExtrusionEstimate
+						}
+						if deltaE < minSpliceLength {
+							extra := minSpliceLength - deltaE
+							purgeLength += extra
+							spliceLength += extra
+							if palette.InfillTransitioning {
+								usableInfill -= extra
+								if usableInfill < 0 {
+									purgeLength -= usableInfill
+									spliceLength -= usableInfill
+									usableInfill = 0
+								}
 							}
 						}
 					}
+
 					tInfo := Transition{
 						Layer:            results.totalLayers,
 						From:             state.CurrentTool,

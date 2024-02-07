@@ -3,8 +3,9 @@ package msf
 import (
 	"fmt"
 	"log"
-	"mosaicmfg.com/ps-postprocess/sequences"
 	"os"
+
+	"mosaicmfg.com/ps-postprocess/sequences"
 )
 
 // explaining outpath and msfpath:
@@ -13,6 +14,7 @@ import (
 // - P2 connected:  outpath == *.mcf.gcode,  [no msfpath]
 // - P3 accessory:  outpath == *.gcode,      msfpath == *.json
 // - P3 connected:  outpath == *.gcode,      msfpath == *.json
+// - Element:       outpath == *.gcode,      msfpath == *.json
 
 func ConvertForPalette(argv []string) {
 	argc := len(argv)

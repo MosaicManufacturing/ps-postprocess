@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math"
+
+	"strings"
+
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"mosaicmfg.com/ps-postprocess/printerscript"
-	"strings"
 )
 
 type Material struct {
@@ -98,6 +100,9 @@ type Palette struct {
 	// pings
 	PingOffTowerDistance float32 `json:"pingOffTowerDistance"` // mm
 	JogPauses            bool    `json:"jogPauses"`
+
+	// Element
+	FilamentIds []int `json:"filamentIds"`
 
 	// P2/P3
 	ClearBufferCommand string `json:"clearBufferCommand"`

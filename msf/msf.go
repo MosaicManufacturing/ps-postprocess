@@ -65,31 +65,33 @@ func (msf *MSF) GetRequiredExtraSpliceLength(spliceLength float32) float32 {
 }
 
 func (msf *MSF) addSplice(splice Splice) error {
-	// splice length validation first
-	if len(msf.SpliceList) == 0 {
-		// first splice
-		minLength := msf.Palette.GetFirstSpliceMinLength()
-		if splice.Length < minLength-5 {
-			message := "First Piece Too Short\n"
-			message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
-			if enforcePieceLengths {
-				return errors.New(message)
-			} else {
-				fmt.Println(message)
+	if msf.Palette.Type != TypeElement {
+		// splice length validation first
+		if len(msf.SpliceList) == 0 {
+			// first splice
+			minLength := msf.Palette.GetFirstSpliceMinLength()
+			if splice.Length < minLength-5 {
+				message := "First Piece Too Short\n"
+				message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
+				if enforcePieceLengths {
+					return errors.New(message)
+				} else {
+					fmt.Println(message)
+				}
 			}
-		}
-	} else {
-		// all others
-		spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
-		minSpliceLength := msf.Palette.GetSpliceMinLength()
-		if spliceDelta < minSpliceLength-5 {
-			fmt.Printf("piece too short on splice %d\n", len(msf.SpliceList)+1)
-			message := "Piece Too Short\n"
-			message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
-			if enforcePieceLengths {
-				return errors.New(message)
-			} else {
-				fmt.Printf("splice %d: %s\n", len(msf.SpliceList)+1, message)
+		} else {
+			// all others
+			spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
+			minSpliceLength := msf.Palette.GetSpliceMinLength()
+			if spliceDelta < minSpliceLength-5 {
+				fmt.Printf("piece too short on splice %d\n", len(msf.SpliceList)+1)
+				message := "Piece Too Short\n"
+				message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
+				if enforcePieceLengths {
+					return errors.New(message)
+				} else {
+					fmt.Printf("splice %d: %s\n", len(msf.SpliceList)+1, message)
+				}
 			}
 		}
 	}
@@ -106,6 +108,12 @@ func (msf *MSF) AddSplice(drive int, length float32) error {
 }
 
 func (msf *MSF) AddLastSplice(drive int, finalLength float32) error {
+	if msf.Palette.Type == TypeElement {
+		return msf.addSplice(Splice{
+			Drive:  drive,
+			Length: finalLength,
+		})
+	}
 	prevSpliceLength := float32(0)
 	requiredLength := msf.Palette.GetFirstSpliceMinLength()
 	if len(msf.SpliceList) > 0 {
@@ -454,13 +462,18 @@ func (msf *MSF) createMSF3() (string, error) {
 	}
 
 	// splice data
+	var lastSpliceLength float32
 	for _, splice := range msf.SpliceList {
 		material := msf.Palette.MaterialMeta[splice.Drive]
 		jsonSplice := palette3Splice{
 			ID:     material.FilamentID,
-			Length: splice.Length,
+			Length: splice.Length - lastSpliceLength,
 		}
 		json.Splices = append(json.Splices, jsonSplice)
+		// Element piece lengths are relative not cumulative
+		if msf.Palette.Type == TypeElement {
+			lastSpliceLength = splice.Length
+		}
 	}
 
 	// ping data
