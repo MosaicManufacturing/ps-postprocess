@@ -38,7 +38,6 @@ type palette3JsonConnected struct {
 
 type elementJsonConnected struct {
 	Version string           `json:"version"`
-	Drives  []int            `json:"drives"`
 	Splices []palette3Splice `json:"splices"`
 }
 
@@ -47,7 +46,6 @@ func (p *palette3Json) marshal(connected, element bool) (string, error) {
 		// Element MCFX files do not contain pings or splice algorithms
 		pc := elementJsonConnected{
 			Version: p.Version,
-			Drives:  p.Drives,
 			Splices: p.Splices,
 		}
 		bytes, err := json.MarshalIndent(pc, "", "  ")
