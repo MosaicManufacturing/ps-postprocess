@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math"
-
 	"strings"
 
 	"mosaicmfg.com/ps-postprocess/gcode"
@@ -100,9 +99,6 @@ type Palette struct {
 	// pings
 	PingOffTowerDistance float32 `json:"pingOffTowerDistance"` // mm
 	JogPauses            bool    `json:"jogPauses"`
-
-	// Element
-	FilamentIds []int `json:"filamentIds"`
 
 	// P2/P3
 	ClearBufferCommand string `json:"clearBufferCommand"`

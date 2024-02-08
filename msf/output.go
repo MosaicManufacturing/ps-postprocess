@@ -238,13 +238,9 @@ func _paletteOutput(
 				if state.FirstToolChange {
 					state.FirstToolChange = false
 					var toolChangeLine string
-					// for element replace extruder index with filament id
+					// for Element retain the tool change command
 					if palette.Type == TypeElement {
-						filamentId := palette.FilamentIds[tool] - 1
-						toolChangeLine = fmt.Sprintf("; Printing with input %d", filamentId)
-						fmt.Printf(" palette.FilamentIds: %d\n", palette.FilamentIds)
-						fmt.Printf("tool: %d\n", tool)
-						fmt.Printf("filamentId: %d\n", filamentId)
+						toolChangeLine = line.Raw
 					} else {
 						toolChangeLine = fmt.Sprintf("; Printing with input %d", palette.PrintExtruder)
 					}
@@ -260,10 +256,9 @@ func _paletteOutput(
 					if err := writeLine(writer, comment); err != nil {
 						return err
 					}
+					// for Element retain the tool change command
 					if palette.Type == TypeElement {
-						filamentId := palette.FilamentIds[tool] - 1
-						// output a tool change
-						toolChangeLine := fmt.Sprintf("; Printing with input %d", filamentId)
+						toolChangeLine := line.Raw
 						if err := writeLine(writer, toolChangeLine); err != nil {
 							return err
 						}
