@@ -462,18 +462,13 @@ func (msf *MSF) createMSF3() (string, error) {
 	}
 
 	// splice data
-	var lastSpliceLength float32
 	for _, splice := range msf.SpliceList {
 		material := msf.Palette.MaterialMeta[splice.Drive]
 		jsonSplice := palette3Splice{
 			ID:     material.FilamentID,
-			Length: splice.Length - lastSpliceLength,
+			Length: splice.Length,
 		}
 		json.Splices = append(json.Splices, jsonSplice)
-		// Element piece lengths are relative not cumulative
-		if msf.Palette.Type == TypeElement {
-			lastSpliceLength = splice.Length
-		}
 	}
 
 	// ping data
@@ -505,7 +500,33 @@ func (msf *MSF) createMSF3() (string, error) {
 		json.Algorithms = append(json.Algorithms, jsonAlgorithm)
 	}
 
-	return json.marshal(msf.Palette.ConnectedMode, msf.Palette.Type == TypeElement)
+	return json.marshal(msf.Palette.ConnectedMode)
+}
+
+func (msf *MSF) createElementMSF() (string, error) {
+	const Version = "1.0"
+
+	numSplices := len(msf.SpliceList)
+
+	json := elementJson{
+		Version: Version,
+		Splices: make([]elementSplice, 0, numSplices),
+	}
+
+	// splice data
+	// (Element piece lengths are relative, not cumulative)
+	var lastSpliceLength float32
+	for _, splice := range msf.SpliceList {
+		material := msf.Palette.MaterialMeta[splice.Drive]
+		jsonSplice := elementSplice{
+			ID:     material.FilamentID,
+			Length: splice.Length - lastSpliceLength,
+		}
+		json.Splices = append(json.Splices, jsonSplice)
+		lastSpliceLength = splice.Length
+	}
+
+	return json.marshal()
 }
 
 func (msf *MSF) CreateMSF() (string, error) {
@@ -515,5 +536,8 @@ func (msf *MSF) CreateMSF() (string, error) {
 	if msf.Palette.Type == TypeP2 {
 		return msf.createMSF2(), nil
 	}
-	return msf.createMSF3()
+	if msf.Palette.Type == TypeP3 {
+		return msf.createMSF3()
+	}
+	return msf.createElementMSF()
 }
