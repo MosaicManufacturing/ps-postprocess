@@ -65,31 +65,33 @@ func (msf *MSF) GetRequiredExtraSpliceLength(spliceLength float32) float32 {
 }
 
 func (msf *MSF) addSplice(splice Splice) error {
-	// splice length validation first
-	if len(msf.SpliceList) == 0 {
-		// first splice
-		minLength := msf.Palette.GetFirstSpliceMinLength()
-		if splice.Length < minLength-5 {
-			message := "First Piece Too Short\n"
-			message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
-			if enforcePieceLengths {
-				return errors.New(message)
-			} else {
-				fmt.Println(message)
+	if msf.Palette.Type != TypeElement {
+		// splice length validation first
+		if len(msf.SpliceList) == 0 {
+			// first splice
+			minLength := msf.Palette.GetFirstSpliceMinLength()
+			if splice.Length < minLength-5 {
+				message := "First Piece Too Short\n"
+				message += fmt.Sprintf("The first piece created by %s would be %.2f mm long, but must be at least %.2f mm.", msf.Palette.ProductName(), splice.Length, minLength)
+				if enforcePieceLengths {
+					return errors.New(message)
+				} else {
+					fmt.Println(message)
+				}
 			}
-		}
-	} else {
-		// all others
-		spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
-		minSpliceLength := msf.Palette.GetSpliceMinLength()
-		if spliceDelta < minSpliceLength-5 {
-			fmt.Printf("piece too short on splice %d\n", len(msf.SpliceList)+1)
-			message := "Piece Too Short\n"
-			message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
-			if enforcePieceLengths {
-				return errors.New(message)
-			} else {
-				fmt.Printf("splice %d: %s\n", len(msf.SpliceList)+1, message)
+		} else {
+			// all others
+			spliceDelta := splice.Length - msf.SpliceList[len(msf.SpliceList)-1].Length
+			minSpliceLength := msf.Palette.GetSpliceMinLength()
+			if spliceDelta < minSpliceLength-5 {
+				fmt.Printf("piece too short on splice %d\n", len(msf.SpliceList)+1)
+				message := "Piece Too Short\n"
+				message += fmt.Sprintf("Canvas attempted to create a splice that was %.2f mm long, but %s's minimum splice length is %.2f mm.", spliceDelta, msf.Palette.ProductName(), minSpliceLength)
+				if enforcePieceLengths {
+					return errors.New(message)
+				} else {
+					fmt.Printf("splice %d: %s\n", len(msf.SpliceList)+1, message)
+				}
 			}
 		}
 	}
@@ -106,6 +108,12 @@ func (msf *MSF) AddSplice(drive int, length float32) error {
 }
 
 func (msf *MSF) AddLastSplice(drive int, finalLength float32) error {
+	if msf.Palette.Type == TypeElement {
+		return msf.addSplice(Splice{
+			Drive:  drive,
+			Length: finalLength,
+		})
+	}
 	prevSpliceLength := float32(0)
 	requiredLength := msf.Palette.GetFirstSpliceMinLength()
 	if len(msf.SpliceList) > 0 {
@@ -492,7 +500,33 @@ func (msf *MSF) createMSF3() (string, error) {
 		json.Algorithms = append(json.Algorithms, jsonAlgorithm)
 	}
 
-	return json.marshal(msf.Palette.ConnectedMode, msf.Palette.Type == TypeElement)
+	return json.marshal(msf.Palette.ConnectedMode)
+}
+
+func (msf *MSF) createElementMSF() (string, error) {
+	const Version = "1.0"
+
+	numSplices := len(msf.SpliceList)
+
+	json := elementJson{
+		Version: Version,
+		Splices: make([]elementSplice, 0, numSplices),
+	}
+
+	// splice data
+	// (Element piece lengths are relative, not cumulative)
+	var lastSpliceLength float32
+	for _, splice := range msf.SpliceList {
+		material := msf.Palette.MaterialMeta[splice.Drive]
+		jsonSplice := elementSplice{
+			ID:     material.FilamentID,
+			Length: splice.Length - lastSpliceLength,
+		}
+		json.Splices = append(json.Splices, jsonSplice)
+		lastSpliceLength = splice.Length
+	}
+
+	return json.marshal()
 }
 
 func (msf *MSF) CreateMSF() (string, error) {
@@ -502,5 +536,8 @@ func (msf *MSF) CreateMSF() (string, error) {
 	if msf.Palette.Type == TypeP2 {
 		return msf.createMSF2(), nil
 	}
-	return msf.createMSF3()
+	if msf.Palette.Type == TypeP3 {
+		return msf.createMSF3()
+	}
+	return msf.createElementMSF()
 }

@@ -84,7 +84,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				if err != nil {
 					return err
 				}
-				output = result.Output
+				output = filterToolchangeCommands(result.Output)
 			}
 		} else if line.Raw == endPlaceholder && scripts.End != nil {
 			opts := printerscript.InterpreterOptions{
@@ -104,7 +104,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			if err != nil {
 				return err
 			}
-			output = result.Output
+			output = filterToolchangeCommands(result.Output)
 		} else if strings.HasPrefix(line.Raw, layerChangePrefix) {
 			layer, layerZ, err := parseLayerChangePlaceholder(line.Raw)
 			if err != nil {
@@ -132,7 +132,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				if err != nil {
 					return err
 				}
-				output = result.Output
+				output = filterToolchangeCommands(result.Output)
 			}
 			nextLayerChangeIdx++
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
@@ -164,7 +164,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				if err != nil {
 					return err
 				}
-				output = result.Output
+				output = filterToolchangeCommands(result.Output)
 			}
 			nextMaterialChangeIdx++
 		}

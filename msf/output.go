@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"strings"
+
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"mosaicmfg.com/ps-postprocess/ptp"
 	"mosaicmfg.com/ps-postprocess/sequences"
-	"os"
-	"strings"
 )
 
 func _paletteOutput(
@@ -236,7 +237,14 @@ func _paletteOutput(
 			if state.PastStartSequence {
 				if state.FirstToolChange {
 					state.FirstToolChange = false
-					if err := writeLine(writer, fmt.Sprintf("T%d ; change extruder", palette.PrintExtruder)); err != nil {
+					var toolChangeLine string
+					// for Element retain the tool change command
+					if palette.Type == TypeElement {
+						toolChangeLine = line.Raw
+					} else {
+						toolChangeLine = fmt.Sprintf("; Printing with input %d", palette.PrintExtruder)
+					}
+					if err := writeLine(writer, toolChangeLine); err != nil {
 						return err
 					}
 					state.CurrentTool = tool
@@ -248,76 +256,59 @@ func _paletteOutput(
 					if err := writeLine(writer, comment); err != nil {
 						return err
 					}
-					if palette.TransitionMethod == CustomTower {
-						if err := writeLine(writer, "; Dense tower segment"); err != nil {
+					// for Element retain the tool change command
+					if palette.Type == TypeElement {
+						toolChangeLine := line.Raw
+						if err := writeLine(writer, toolChangeLine); err != nil {
 							return err
 						}
-						currentTransition := state.Tower.GetCurrentTransitionInfo()
-						spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
-						// if purge length is more than transition length, the extra purge is there
-						// to ensure minimum piece lengths are maintained, so the difference between
-						// the two should be included on the end of the previous tool's splice
-						preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
-						if preTransitionAdd < 0 {
-							preTransitionAdd = 0
-						}
-						spliceOffset += preTransitionAdd
-						spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
-
-						ptpPurgeLength := currentTransition.PurgeLength
-						ptpTransitionLength := currentTransition.TransitionLength
-						ptpOffset := float32(0)
-
-						if len(msfOut.SpliceList) == 0 {
-							spliceLength += state.Tower.BrimExtrusion
-							ptpOffset = state.Tower.BrimExtrusion
-						}
-
+						spliceLength := state.E.TotalExtrusion
 						if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
 							return err
 						}
 						state.CurrentTool = tool
-						state.CurrentlyTransitioning = true
-						ptpComment := getPtpStartComment(
-							ptpPurgeLength,
-							ptpTransitionLength,
-							ptpOffset,
-							palette.TransitionTarget,
-						)
-						if err := writeLines(writer, ptpComment); err != nil {
-							return err
-						}
-						transition, err := state.Tower.GetNextSegment(&state, true)
-						upcomingDoubledSparseLayer = false
-						if err != nil {
-							return err
-						}
-						if err := writeLines(writer, transition); err != nil {
-							return err
-						}
-						state.CurrentlyTransitioning = false
-						if err := writeLines(writer, getPtpEndComment()); err != nil {
-							return err
-						}
 					} else {
-						currentTransition := preflight.transitions[len(msfOut.SpliceList)]
-						currentPurgeLength := currentTransition.PurgeLength
-						spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
-						spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
-						if palette.TransitionMethod == SideTransitions {
-							extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
-							if extra > 0 {
-								currentPurgeLength += extra
-								spliceLength += extra
+						if palette.TransitionMethod == CustomTower {
+							if err := writeLine(writer, "; Dense tower segment"); err != nil {
+								return err
 							}
-						}
-						if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
-							return err
-						}
-						state.CurrentTool = tool
-						state.CurrentlyTransitioning = true
-						if palette.TransitionMethod == SideTransitions {
-							transition, err := sideTransition(currentPurgeLength, &state)
+							currentTransition := state.Tower.GetCurrentTransitionInfo()
+							spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+							// if purge length is more than transition length, the extra purge is there
+							// to ensure minimum piece lengths are maintained, so the difference between
+							// the two should be included on the end of the previous tool's splice
+							preTransitionAdd := currentTransition.PurgeLength - currentTransition.TransitionLength
+							if preTransitionAdd < 0 {
+								preTransitionAdd = 0
+							}
+							spliceOffset += preTransitionAdd
+							spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+
+							ptpPurgeLength := currentTransition.PurgeLength
+							ptpTransitionLength := currentTransition.TransitionLength
+							ptpOffset := float32(0)
+
+							if len(msfOut.SpliceList) == 0 {
+								spliceLength += state.Tower.BrimExtrusion
+								ptpOffset = state.Tower.BrimExtrusion
+							}
+
+							if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
+								return err
+							}
+							state.CurrentTool = tool
+							state.CurrentlyTransitioning = true
+							ptpComment := getPtpStartComment(
+								ptpPurgeLength,
+								ptpTransitionLength,
+								ptpOffset,
+								palette.TransitionTarget,
+							)
+							if err := writeLines(writer, ptpComment); err != nil {
+								return err
+							}
+							transition, err := state.Tower.GetNextSegment(&state, true)
+							upcomingDoubledSparseLayer = false
 							if err != nil {
 								return err
 							}
@@ -325,11 +316,41 @@ func _paletteOutput(
 								return err
 							}
 							state.CurrentlyTransitioning = false
+							if err := writeLines(writer, getPtpEndComment()); err != nil {
+								return err
+							}
+						} else {
+							currentTransition := preflight.transitions[len(msfOut.SpliceList)]
+							currentPurgeLength := currentTransition.PurgeLength
+							spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
+							spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+							if palette.TransitionMethod == SideTransitions {
+								extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
+								if extra > 0 {
+									currentPurgeLength += extra
+									spliceLength += extra
+								}
+							}
+							if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
+								return err
+							}
+							state.CurrentTool = tool
+							state.CurrentlyTransitioning = true
+							if palette.TransitionMethod == SideTransitions {
+								transition, err := sideTransition(currentPurgeLength, &state)
+								if err != nil {
+									return err
+								}
+								if err := writeLines(writer, transition); err != nil {
+									return err
+								}
+								state.CurrentlyTransitioning = false
+							}
 						}
-					}
-					if palette.TransitionMethod != TransitionTower {
-						if err := restorePathType(); err != nil {
-							return err
+						if palette.TransitionMethod != TransitionTower {
+							if err := restorePathType(); err != nil {
+								return err
+							}
 						}
 					}
 				}

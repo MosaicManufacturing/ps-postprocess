@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math"
+	"strings"
+
 	"mosaicmfg.com/ps-postprocess/gcode"
 	"mosaicmfg.com/ps-postprocess/printerscript"
-	"strings"
 )
 
 type Material struct {
