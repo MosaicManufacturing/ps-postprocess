@@ -253,12 +253,8 @@ func generateToolpath(argv []string) error {
 					return err
 				}
 			}
-		} else if len(line.Command) > 1 && line.Command[0] == 'T' {
-			tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
-			if err != nil {
-				return err
-			}
-			if err = writer.SetTool(int(tool)); err != nil {
+		} else if isToolChange, tool := line.IsToolChange(); isToolChange {
+			if err = writer.SetTool(tool); err != nil {
 				return err
 			}
 		} else if line.Command == "M135" {
