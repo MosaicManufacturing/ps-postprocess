@@ -27,6 +27,6 @@ runs:
       with:
         name: ps-postprocess${{inputs.build-suffix}}
         path: |
-          ps-postprocess${{input.build-suffix}}
-          ps-postprocess${{input.build-suffix}}.exe
+          ps-postprocess${{inputs.build-suffix}}
+          ps-postprocess${{inputs.build-suffix}}.exe
         retention-days: 1
