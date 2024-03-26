@@ -228,14 +228,18 @@ func generateToolpath(argv []string) error {
 				}
 			}
 		} else if line.Command == "M106" {
-			if pwm, ok := line.Params["s"]; ok {
-				if err = writer.SetFanSpeed(int(pwm)); err != nil {
-					return err
+			if _, okP10 := line.Params["P10"]; !okP10 {
+				if pwm, ok := line.Params["s"]; ok {
+					if err = writer.SetFanSpeed(int(pwm)); err != nil {
+						return err
+					}
 				}
 			}
 		} else if line.Command == "M107" {
-			if err = writer.SetFanSpeed(0); err != nil {
-				return err
+			if _, okP10 := line.Params["P10"]; !okP10 {
+				if err = writer.SetFanSpeed(0); err != nil {
+					return err
+				}
 			}
 		} else if line.Command == "M104" {
 			if temp, ok := line.Params["s"]; ok {
