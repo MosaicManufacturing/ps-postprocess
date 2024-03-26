@@ -29,6 +29,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/build
+      - uses: ./.github/actions/build
+        with:
+          os: windows
+      - uses: ./.github/actions/build
+        with:
+          os: darwin
+          build-suffix: -darwin
 
   deploy:
     name: Upload binary
@@ -44,13 +51,36 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ps-postprocess
+      - uses: actions/download-artifact@v3
+        with:
+          name: ps-postprocess.exe
+      - uses: actions/download-artifact@v3
+        with:
+          name: ps-postprocess-darwin
       - uses: ./.github/actions/s3-upload
+        name: Upload Linux Artifact
         with:
           aws-role: ${{secrets.AWS_ROLE}}
           aws-region: ${{secrets.AWS_REGION}}
           s3-bucket: ${{secrets.S3_BUCKET}}
           s3-key: go-utils/ps-postprocess-${{env.DEPLOY_ENV}}
           binary-name: ps-postprocess
+      - uses: ./.github/actions/s3-upload
+        name: Upload Windows Artifact
+        with:
+          aws-role: ${{secrets.AWS_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+          s3-bucket: ${{secrets.S3_BUCKET}}
+          s3-key: go-utils/ps-postprocess-windows-${{env.DEPLOY_ENV}}
+          binary-name: ps-postprocess.exe
+      - uses: ./.github/actions/s3-upload
+        name: Upload MacOS Artifact
+        with:
+          aws-role: ${{secrets.AWS_ROLE}}
+          aws-region: ${{secrets.AWS_REGION}}
+          s3-bucket: ${{secrets.S3_BUCKET}}
+          s3-key: go-utils/ps-postprocess-darwin-${{env.DEPLOY_ENV}}
+          binary-name: ps-postprocess-darwin
 
   licensebot_trigger:
     name: Trigger Licensebot
