@@ -12,7 +12,7 @@ inputs:
     required: false
     default: amd64
   build-suffix:
-    description: The suffic to add to the built binary and its artifact upload
+    description: The suffix to add to the built binary and its artifact upload
     type: string
     required: false
     default: ''
@@ -26,7 +26,5 @@ runs:
     - uses: actions/upload-artifact@v3
       with:
         name: ps-postprocess${{inputs.build-suffix}}
-        path: |
-          ps-postprocess${{inputs.build-suffix}}
-          ps-postprocess${{inputs.build-suffix}}.exe
+        path: ps-postprocess${{inputs.build-suffix}}
         retention-days: 1
