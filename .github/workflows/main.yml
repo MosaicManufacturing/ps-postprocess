@@ -42,7 +42,7 @@ jobs:
   deploy:
     name: Upload binary
     environment: development
-    concurrency: deploy_prod
+    concurrency: deploy_dev
     permissions:
       id-token: write
       contents: read
