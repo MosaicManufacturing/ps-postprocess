@@ -79,5 +79,4 @@ jobs:
           aws s3 cp ./ps-postprocess s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}/linux/amd64/ps-postprocess
           aws s3 cp ./ps-postprocess.exe s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/windows/amd64/ps-postprocess.exe
           aws s3 cp ./ps-postprocess-darwin s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/darwin/amd64/ps-postprocess
-          aws s3 cp ./ps-postprocess-darwin s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/darwin/amd64/ps-postprocess
           aws s3 cp ./licenses.json s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/licenses.json
