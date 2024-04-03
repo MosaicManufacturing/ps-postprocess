@@ -42,7 +42,7 @@ jobs:
 
   deploy:
     name: Upload binary
-    environment: production
+    environment: development
     concurrency: deploy_prod
     permissions:
       id-token: write
@@ -80,24 +80,5 @@ jobs:
           aws s3 cp ./ps-postprocess s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}/linux/amd64/ps-postprocess
           aws s3 cp ./ps-postprocess.exe s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/windows/amd64/ps-postprocess.exe
           aws s3 cp ./ps-postprocess-darwin s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/darwin/amd64/ps-postprocess
-
-  licensebot_trigger:
-    name: Trigger Licensebot
-    environment: production
-    permissions:
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
-    concurrency: licensebot_trigger_prod
-    needs: ['deploy']
-    steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/license-publish
-        with:
-          deploy-env: ${{env.DEPLOY_ENV}}
-          aws-role: ${{secrets.AWS_ROLE}}
-          aws-region: ${{secrets.AWS_REGION}}
-          function-name: ${{secrets.LICENSEBOT_ARN}}
-          s3-source-bucket: ${{secrets.LICENSEBOT_S3_SOURCE_BUCKET}}
-          s3-source-key: ${{env.DEPLOY_ENV}}/ps-postprocess.json
-          s3-output-bucket: ${{secrets.LICENSEBOT_S3_OUTPUT_BUCKET}}
+          aws s3 cp ./ps-postprocess-darwin s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/darwin/amd64/ps-postprocess
+          aws s3 cp ./licenses.json s3://${{env.BUCKET_NAME}}/ps-postprocess/${{steps.get-version.outputs.version}}}/licenses.json
