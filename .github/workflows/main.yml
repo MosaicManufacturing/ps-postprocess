@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  DEPLOY_ENV: production
   BUCKET_NAME: opal-tide
 
 jobs:
