@@ -4,7 +4,7 @@ A Go Library that is used by Opal-Tide for processing of files.
 
 ## Versioning
 
-`version.txt` is used for versioning of the library. When opening a PR make sure to properly bump the version in this file. Using [Semantic Versioning](https://semver.org/) `MAJOR.MINOR.PATH` (X.Y.Z).
+`version.txt` is used for versioning of the library. When opening a PR make sure to properly bump the version in this file. Using [Semantic Versioning](https://semver.org/) `MAJOR.MINOR.PATCH` (X.Y.Z).
 
 **TLDR**
 
