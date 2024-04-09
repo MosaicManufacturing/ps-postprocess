@@ -263,6 +263,7 @@ func ConvertSequences(argv []string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	err = convert(inPath, outPath, parsedScripts, locals)
 	if err != nil {
 		log.Fatalln(err)
