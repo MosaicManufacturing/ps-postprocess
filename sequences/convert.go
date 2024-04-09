@@ -42,8 +42,6 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	}
 	locals.Global["totalLayers"] = float64(preflightResults.totalLayers)
 	locals.Global["totalTime"] = float64(preflightResults.totalTime)
-	coolingModuleSpeedPercentage := locals.PerExtruder["coolingModuleSpeedPercentage"]
-	enableCoolingModuleAtLayer := locals.PerExtruder["enableCoolingModuleAtLayer"]
 
 	// keep track of current state
 	inStartSequence := false
@@ -149,13 +147,13 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				}
 				output = filterToolchangeCommands(result.Output)
 			}
-			materialCoolingModulePercentage := int(coolingModuleSpeedPercentage[currentTool])
-			if layer == int(enableCoolingModuleAtLayer[currentTool]) {
+			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
+			if layer == scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
 					output += handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
 					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
 				}
-			} else if layer < int(enableCoolingModuleAtLayer[currentTool]) {
+			} else if layer < scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != 0 {
 					output += handleCoolingModuleGCodeInsert(0)
 					currentCoolingModuleDutyPercent = 0
@@ -194,8 +192,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				output = filterToolchangeCommands(result.Output)
 			}
 
-			materialCoolingModulePercentage := int(coolingModuleSpeedPercentage[currentTool])
-			if currentLayer >= enableCoolingModuleAtLayer[currentTool] {
+			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
+			if int(currentLayer) >= scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
 					output += handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
 					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
@@ -251,18 +249,18 @@ func ConvertSequences(argv []string) {
 		log.Fatalln(err)
 	}
 
-	// lex and parse scripts just once now, and re-use the parse trees when evaluating
-	parsedScripts, err := scripts.Parse()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	// load locals that are available in all scripts
 	locals := NewLocals()
 	if err := locals.LoadGlobal(localsPath); err != nil {
 		log.Fatalln(err)
 	}
 	if err := locals.LoadPerExtruder(perExtruderLocalsPath); err != nil {
+		log.Fatalln(err)
+	}
+
+	// lex and parse scripts just once now, and re-use the parse trees when evaluating
+	parsedScripts, err := scripts.Parse(locals)
+	if err != nil {
 		log.Fatalln(err)
 	}
 	err = convert(inPath, outPath, parsedScripts, locals)

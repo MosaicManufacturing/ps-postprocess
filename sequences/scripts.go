@@ -15,10 +15,12 @@ type Scripts struct {
 }
 
 type ParsedScripts struct {
-	Start          printerscript.Tree
-	End            printerscript.Tree
-	LayerChange    printerscript.Tree
-	MaterialChange []printerscript.Tree
+	Start                        printerscript.Tree
+	End                          printerscript.Tree
+	LayerChange                  printerscript.Tree
+	MaterialChange               []printerscript.Tree
+	CoolingModuleSpeedPercentage []int
+	EnableCoolingModuleAtLayer   []int
 }
 
 func LoadScripts(jsonPath string) (Scripts, error) {
@@ -33,13 +35,31 @@ func LoadScripts(jsonPath string) (Scripts, error) {
 	return scripts, err
 }
 
-func (s *Scripts) Parse() (ParsedScripts, error) {
+func (s *Scripts) Parse(locals Locals) (ParsedScripts, error) {
 	parsed := ParsedScripts{
-		Start:          nil,
-		End:            nil,
-		LayerChange:    nil,
-		MaterialChange: make([]printerscript.Tree, len(s.MaterialChange)),
+		Start:                        nil,
+		End:                          nil,
+		LayerChange:                  nil,
+		MaterialChange:               make([]printerscript.Tree, len(s.MaterialChange)),
+		CoolingModuleSpeedPercentage: make([]int, 0),
+		EnableCoolingModuleAtLayer:   make([]int, 0),
 	}
+
+	coolingModuleSpeedPercentage := locals.PerExtruder["coolingModuleSpeedPercentage"]
+	intValuesSpeedPercentage := make([]int, len(coolingModuleSpeedPercentage))
+	for i, value := range coolingModuleSpeedPercentage {
+		intValuesSpeedPercentage[i] = int(value)
+	}
+
+	enableCoolingModuleAtLayer := locals.PerExtruder["enableCoolingModuleAtLayer"]
+	intValuesEnableAtLayer := make([]int, len(enableCoolingModuleAtLayer))
+	for i, value := range enableCoolingModuleAtLayer {
+		intValuesEnableAtLayer[i] = int(value)
+	}
+
+	parsed.CoolingModuleSpeedPercentage = intValuesSpeedPercentage
+	parsed.EnableCoolingModuleAtLayer = intValuesEnableAtLayer
+
 	s.Start = printerscript.Normalize(s.Start)
 	if len(strings.TrimSpace(s.Start)) > 0 {
 		tree, err := printerscript.LexAndParse(s.Start)
