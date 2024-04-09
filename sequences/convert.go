@@ -47,7 +47,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	positionTracker := gcode.PositionTracker{}
 	temperatureTracker := gcode.TemperatureTracker{}
 	currentTool := 0
-	currentLayer := float64(0)
+	currentLayer := 0
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
 	currentCoolingModuleDutyPercent := 0
@@ -122,12 +122,12 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				return err
 			}
 			if scripts.LayerChange != nil {
-				currentLayer = float64(layer)
+				currentLayer = layer
 				opts := printerscript.InterpreterOptions{
 					EOL:             EOL,
 					TrailingNewline: false,
 					Locals: locals.Prepare(currentTool, map[string]float64{
-						"layer":                     currentLayer,
+						"layer":                     float64(currentLayer),
 						"currentX":                  float64(positionTracker.CurrentX),
 						"currentY":                  float64(positionTracker.CurrentY),
 						"currentZ":                  float64(positionTracker.CurrentZ),
@@ -171,7 +171,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 					EOL:             EOL,
 					TrailingNewline: false,
 					Locals: locals.Prepare(currentTool, map[string]float64{
-						"layer":                     currentLayer,
+						"layer":                     float64(currentLayer),
 						"currentX":                  float64(positionTracker.CurrentX),
 						"currentY":                  float64(positionTracker.CurrentY),
 						"currentZ":                  float64(positionTracker.CurrentZ),
@@ -191,7 +191,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			}
 
 			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
-			if int(currentLayer) >= scripts.EnableCoolingModuleAtLayer[currentTool] {
+			if currentLayer >= scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
 					output += handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
 					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
