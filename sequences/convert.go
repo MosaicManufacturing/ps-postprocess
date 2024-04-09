@@ -148,12 +148,12 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
 			if layer == scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
-					output += handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
+					output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
 					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
 				}
 			} else if layer < scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != 0 {
-					output += handleCoolingModuleGCodeInsert(0)
+					output += EOL + handleCoolingModuleGCodeInsert(0)
 					currentCoolingModuleDutyPercent = 0
 				}
 			}
@@ -193,12 +193,12 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
 			if currentLayer >= scripts.EnableCoolingModuleAtLayer[currentTool] {
 				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
-					output += handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
+					output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
 					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
 				}
 			} else {
 				if currentCoolingModuleDutyPercent != 0 {
-					output += handleCoolingModuleGCodeInsert(0)
+					output += EOL + handleCoolingModuleGCodeInsert(0)
 					currentCoolingModuleDutyPercent = 0
 				}
 			}
