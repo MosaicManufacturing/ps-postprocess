@@ -247,18 +247,18 @@ func ConvertSequences(argv []string) {
 		log.Fatalln(err)
 	}
 
+	// lex and parse scripts just once now, and re-use the parse trees when evaluating
+	parsedScripts, err := scripts.Parse()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	// load locals that are available in all scripts
 	locals := NewLocals()
 	if err := locals.LoadGlobal(localsPath); err != nil {
 		log.Fatalln(err)
 	}
 	if err := locals.LoadPerExtruder(perExtruderLocalsPath); err != nil {
-		log.Fatalln(err)
-	}
-
-	// lex and parse scripts just once now, and re-use the parse trees when evaluating
-	parsedScripts, err := scripts.Parse(locals)
-	if err != nil {
 		log.Fatalln(err)
 	}
 
