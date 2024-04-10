@@ -14,6 +14,7 @@ type Scripts struct {
 	MaterialChange               []string `json:"materialChange"`
 	CoolingModuleSpeedPercentage []int    `json:"coolingModuleSpeedPercentage"`
 	EnableCoolingModuleAtLayer   []int    `json:"enableCoolingModuleAtLayer"`
+	Extension                    string   `json:"extension"`
 }
 
 type ParsedScripts struct {
@@ -23,6 +24,7 @@ type ParsedScripts struct {
 	MaterialChange               []printerscript.Tree
 	CoolingModuleSpeedPercentage []int
 	EnableCoolingModuleAtLayer   []int
+	Extension                    string
 }
 
 func LoadScripts(jsonPath string) (Scripts, error) {

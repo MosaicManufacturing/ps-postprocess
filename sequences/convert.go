@@ -145,16 +145,18 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				}
 				output = filterToolchangeCommands(result.Output)
 			}
-			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
-			if layer == scripts.EnableCoolingModuleAtLayer[currentTool] {
-				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
-					output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
-					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
-				}
-			} else if layer < scripts.EnableCoolingModuleAtLayer[currentTool] {
-				if currentCoolingModuleDutyPercent != 0 {
-					output += EOL + handleCoolingModuleGCodeInsert(0)
-					currentCoolingModuleDutyPercent = 0
+			if scripts.Extension == "daf" {
+				materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
+				if layer == scripts.EnableCoolingModuleAtLayer[currentTool] {
+					if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
+						output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
+						currentCoolingModuleDutyPercent = materialCoolingModulePercentage
+					}
+				} else if layer < scripts.EnableCoolingModuleAtLayer[currentTool] {
+					if currentCoolingModuleDutyPercent != 0 {
+						output += EOL + handleCoolingModuleGCodeInsert(0)
+						currentCoolingModuleDutyPercent = 0
+					}
 				}
 			}
 			nextLayerChangeIdx++
@@ -190,16 +192,18 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				output = filterToolchangeCommands(result.Output)
 			}
 
-			materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
-			if currentLayer >= scripts.EnableCoolingModuleAtLayer[currentTool] {
-				if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
-					output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
-					currentCoolingModuleDutyPercent = materialCoolingModulePercentage
-				}
-			} else {
-				if currentCoolingModuleDutyPercent != 0 {
-					output += EOL + handleCoolingModuleGCodeInsert(0)
-					currentCoolingModuleDutyPercent = 0
+			if scripts.Extension == "daf" {
+				materialCoolingModulePercentage := scripts.CoolingModuleSpeedPercentage[currentTool]
+				if currentLayer >= scripts.EnableCoolingModuleAtLayer[currentTool] {
+					if currentCoolingModuleDutyPercent != materialCoolingModulePercentage {
+						output += EOL + handleCoolingModuleGCodeInsert(materialCoolingModulePercentage)
+						currentCoolingModuleDutyPercent = materialCoolingModulePercentage
+					}
+				} else {
+					if currentCoolingModuleDutyPercent != 0 {
+						output += EOL + handleCoolingModuleGCodeInsert(0)
+						currentCoolingModuleDutyPercent = 0
+					}
 				}
 			}
 			nextMaterialChangeIdx++
