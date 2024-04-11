@@ -41,8 +41,8 @@ jobs:
 
   deploy:
     name: Upload binary
-    environment: development
-    concurrency: deploy_dev
+    environment: production
+    concurrency: deploy_main
     permissions:
       id-token: write
       contents: read
