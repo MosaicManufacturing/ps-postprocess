@@ -8,17 +8,23 @@ import (
 )
 
 type Scripts struct {
-	Start          string   `json:"start"`
-	End            string   `json:"end"`
-	LayerChange    string   `json:"layerChange"`
-	MaterialChange []string `json:"materialChange"`
+	Start                        string   `json:"start"`
+	End                          string   `json:"end"`
+	LayerChange                  string   `json:"layerChange"`
+	MaterialChange               []string `json:"materialChange"`
+	CoolingModuleSpeedPercentage []int    `json:"coolingModuleSpeedPercentage"`
+	EnableCoolingModuleAtLayer   []int    `json:"enableCoolingModuleAtLayer"`
+	Extension                    string   `json:"extension"`
 }
 
 type ParsedScripts struct {
-	Start          printerscript.Tree
-	End            printerscript.Tree
-	LayerChange    printerscript.Tree
-	MaterialChange []printerscript.Tree
+	Start                        printerscript.Tree
+	End                          printerscript.Tree
+	LayerChange                  printerscript.Tree
+	MaterialChange               []printerscript.Tree
+	CoolingModuleSpeedPercentage []int
+	EnableCoolingModuleAtLayer   []int
+	Extension                    string
 }
 
 func LoadScripts(jsonPath string) (Scripts, error) {
@@ -35,10 +41,12 @@ func LoadScripts(jsonPath string) (Scripts, error) {
 
 func (s *Scripts) Parse() (ParsedScripts, error) {
 	parsed := ParsedScripts{
-		Start:          nil,
-		End:            nil,
-		LayerChange:    nil,
-		MaterialChange: make([]printerscript.Tree, len(s.MaterialChange)),
+		Start:                        nil,
+		End:                          nil,
+		LayerChange:                  nil,
+		MaterialChange:               make([]printerscript.Tree, len(s.MaterialChange)),
+		CoolingModuleSpeedPercentage: s.CoolingModuleSpeedPercentage,
+		EnableCoolingModuleAtLayer:   s.EnableCoolingModuleAtLayer,
 	}
 	s.Start = printerscript.Normalize(s.Start)
 	if len(strings.TrimSpace(s.Start)) > 0 {
