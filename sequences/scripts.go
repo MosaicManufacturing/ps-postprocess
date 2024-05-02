@@ -47,6 +47,7 @@ func (s *Scripts) Parse() (ParsedScripts, error) {
 		MaterialChange:               make([]printerscript.Tree, len(s.MaterialChange)),
 		CoolingModuleSpeedPercentage: s.CoolingModuleSpeedPercentage,
 		EnableCoolingModuleAtLayer:   s.EnableCoolingModuleAtLayer,
+		Extension:                    s.Extension,
 	}
 	s.Start = printerscript.Normalize(s.Start)
 	if len(strings.TrimSpace(s.Start)) > 0 {
