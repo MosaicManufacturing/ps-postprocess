@@ -46,7 +46,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	replacedSlicedByLine := false
 	positionTracker := gcode.PositionTracker{}
 	temperatureTracker := gcode.TemperatureTracker{}
-	currentTool := 0
+	currentTool := preflightResults.firstToolIndex
 	currentLayer := 0
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
