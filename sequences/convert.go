@@ -46,6 +46,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	replacedSlicedByLine := false
 	positionTracker := gcode.PositionTracker{}
 	temperatureTracker := gcode.TemperatureTracker{}
+	// refer to locals for the first used tool in the print during
+	// the start sequence, rather than always tool 0
 	currentTool := preflightResults.firstToolIndex
 	currentLayer := 0
 	nextLayerChangeIdx := 0
