@@ -58,12 +58,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 		// update current position and/or temperature
 		positionTracker.TrackInstruction(line)
 		temperatureTracker.TrackInstruction(line)
-		if len(line.Command) > 1 && line.Command[0] == 'T' {
-			tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
-			if err != nil {
-				return err
-			}
-			currentTool = int(tool)
+		if isToolChange, tool := line.IsToolChange(); isToolChange {
+			currentTool = tool
 		}
 
 		output := line.Raw
