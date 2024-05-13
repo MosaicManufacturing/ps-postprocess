@@ -46,7 +46,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	replacedSlicedByLine := false
 	positionTracker := gcode.PositionTracker{}
 	temperatureTracker := gcode.TemperatureTracker{}
-	currentTool := 0
+	// refer to locals for the first used tool in the print during
+	// the start sequence, rather than always tool 0
+	currentTool := preflightResults.firstToolIndex
 	currentLayer := 0
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
@@ -58,12 +60,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 		// update current position and/or temperature
 		positionTracker.TrackInstruction(line)
 		temperatureTracker.TrackInstruction(line)
-		if len(line.Command) > 1 && line.Command[0] == 'T' {
-			tool, err := strconv.ParseInt(line.Command[1:], 10, 32)
-			if err != nil {
-				return err
-			}
-			currentTool = int(tool)
+		if isToolChange, tool := line.IsToolChange(); isToolChange {
+			currentTool = tool
 		}
 
 		output := line.Raw

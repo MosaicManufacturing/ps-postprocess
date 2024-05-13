@@ -21,6 +21,7 @@ type lookahead struct {
 }
 
 type sequencesPreflight struct {
+	firstToolIndex        int
 	preheat               PreheatHints
 	totalLayers           int
 	totalTime             int
@@ -31,6 +32,7 @@ type sequencesPreflight struct {
 
 func preflight(inpath string) (sequencesPreflight, error) {
 	results := sequencesPreflight{
+		firstToolIndex:        -1,
 		layerChangeNextPos:    make([]lookahead, 0),
 		materialChangeNextPos: make([]lookahead, 0),
 	}
@@ -125,6 +127,8 @@ func preflight(inpath string) (sequencesPreflight, error) {
 				results.preheat.Chamber = temp
 			}
 			return nil
+		} else if isToolChange, tool := line.IsToolChange(); isToolChange && results.firstToolIndex < 0 {
+			results.firstToolIndex = tool
 		}
 
 		if len(currentLookaheads) > 0 {
@@ -177,5 +181,11 @@ func preflight(inpath string) (sequencesPreflight, error) {
 		return nil
 	})
 	commitCurrentLookaheads()
+
+	if results.firstToolIndex < 0 {
+		// single-material print
+		results.firstToolIndex = 0
+	}
+
 	return results, err
 }
