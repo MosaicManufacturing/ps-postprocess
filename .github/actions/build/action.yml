@@ -23,7 +23,7 @@ runs:
     - uses: actions/setup-go@v4
     - run: GOOS=${{inputs.os}} GOARCH=${{inputs.arch}}  CGO_ENABLED=0 go build -o ps-postprocess${{inputs.build-suffix}}
       shell: bash
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: ps-postprocess${{inputs.build-suffix}}
         path: ps-postprocess${{inputs.build-suffix}}
