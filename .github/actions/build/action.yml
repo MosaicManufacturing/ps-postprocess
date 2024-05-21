@@ -20,7 +20,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-go@v3
+    - uses: actions/setup-go@v4
     - run: GOOS=${{inputs.os}} GOARCH=${{inputs.arch}}  CGO_ENABLED=0 go build -o ps-postprocess${{inputs.build-suffix}}
       shell: bash
     - uses: actions/upload-artifact@v3
