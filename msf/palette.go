@@ -33,6 +33,7 @@ type Palette struct {
 	Model          Model            `json:"model"`
 	MaterialMeta   []Material       `json:"materialMeta"`
 	SpliceSettings []SpliceSettings `json:"spliceSettings"`
+	TreatAsSingleMaterial bool      `json:"treatAsSingleMaterial"`
 
 	// physical
 	PrintExtruder    int     `json:"printExtruder"`
