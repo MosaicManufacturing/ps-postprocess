@@ -101,6 +101,6 @@ func UseFirstLayerSettings(argv []string) error {
 		return err
 	}
 
-	usedFirstLayerValues.Save(outPath + ".firstLayer")
+	usedFirstLayerValues.Save(outPath + ".firstLayerResults")
 	return nil
 }
