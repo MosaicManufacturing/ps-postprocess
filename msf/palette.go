@@ -29,11 +29,11 @@ type SpliceSettings struct {
 
 type Palette struct {
 	// general
-	Type           Type             `json:"type"`
-	Model          Model            `json:"model"`
-	MaterialMeta   []Material       `json:"materialMeta"`
-	SpliceSettings []SpliceSettings `json:"spliceSettings"`
-	TreatAsSingleMaterial bool      `json:"treatAsSingleMaterial"`
+	Type                  Type             `json:"type"`
+	Model                 Model            `json:"model"`
+	MaterialMeta          []Material       `json:"materialMeta"`
+	SpliceSettings        []SpliceSettings `json:"spliceSettings"`
+	TreatAsSingleMaterial bool             `json:"treatAsSingleMaterial"`
 
 	// physical
 	PrintExtruder    int     `json:"printExtruder"`
