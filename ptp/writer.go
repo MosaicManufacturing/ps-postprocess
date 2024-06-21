@@ -2,12 +2,29 @@ package ptp
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
 )
+
+type BoundingBox struct {
+	Min [3]float32 `json:"min"`
+	Max [3]float32 `json:"max"`
+}
+type Summary struct {
+	BoundingBox BoundingBox `json:"boundingBox"`
+}
+
+func (p *Summary) Save(path string) error {
+	asJson, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(path, asJson, 0644)
+}
 
 type writerState struct {
 	lastLineWasPrint       bool    // if true, corner triangles will be created to join the lines
@@ -57,9 +74,18 @@ type writerState struct {
 	fanSpeedsSeen    map[int]bool
 	temperaturesSeen map[float32]bool
 	layerHeightsSeen map[float32]bool
+
+	// calculate bounding box while writing g-code
+	boundingBox BoundingBox
 }
 
 func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset float32) writerState {
+	negInf := float32(math.Inf(-1))
+	posInf := float32(math.Inf(1))
+	boundingBox := BoundingBox{
+		Min: [3]float32{posInf, posInf, posInf},
+		Max: [3]float32{negInf, negInf, negInf},
+	}
 	return writerState{
 		currentExtrusionWidth: initialExtrusionWidth,
 		currentLayerHeight:    initialLayerHeight,
@@ -72,6 +98,7 @@ func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset f
 		fanSpeedsSeen:         make(map[int]bool),
 		temperaturesSeen:      make(map[float32]bool),
 		layerHeightsSeen:      make(map[float32]bool),
+		boundingBox:           boundingBox,
 	}
 }
 

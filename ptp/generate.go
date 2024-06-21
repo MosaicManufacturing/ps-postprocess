@@ -3,10 +3,11 @@ package ptp
 import (
 	"errors"
 	"log"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type generatorState struct {
@@ -338,11 +339,37 @@ func generateToolpath(argv []string) error {
 				}
 			}
 		}
+
+		// update bounding box min & max
+		if writer.state.currentPathType != PathTypeTravel &&
+			writer.state.currentPathType != PathTypeSequence &&
+			writer.state.currentPathType != PathTypeUnknown {
+			x, y, z := writer.GetCurrentPosition()
+			positionList := []float32{x, y, z}
+			for i := range positionList {
+				if positionList[i] > writer.state.boundingBox.Max[i] {
+					writer.state.boundingBox.Max[i] = positionList[i]
+				}
+				if positionList[i] < writer.state.boundingBox.Min[i] {
+					writer.state.boundingBox.Min[i] = positionList[i]
+				}
+			}
+		}
+
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}
+
+	// write bounding box info as a JSON to outPath.summary
+	summaryPath := outpath + ".summary"
+	summary := Summary{
+		BoundingBox: writer.state.boundingBox,
+	}
+	summary.Save(summaryPath)
+
 	return writer.Finalize()
 }
 
