@@ -347,11 +347,21 @@ func generateToolpath(argv []string) error {
 			x, y, z := writer.GetCurrentPosition()
 			positionList := []float32{x, y, z}
 			for i := range positionList {
+				// compute new max
 				if positionList[i] > writer.state.boundingBox.Max[i] {
 					writer.state.boundingBox.Max[i] = positionList[i]
 				}
-				if positionList[i] < writer.state.boundingBox.Min[i] {
-					writer.state.boundingBox.Min[i] = positionList[i]
+				// compute new min
+				minBoundingBoxSoFar := writer.state.boundingBox.Min[i]
+				currPosition := positionList[i]
+				// for Z axis, we need to find the bottom on the layer
+				// (Z - layer height)
+				if i == 2 {
+					minBoundingBoxSoFar = minBoundingBoxSoFar - writer.state.currentLayerHeight
+					currPosition = currPosition - writer.state.currentLayerHeight
+				}
+				if currPosition < minBoundingBoxSoFar {
+					writer.state.boundingBox.Min[i] = currPosition
 				}
 			}
 		}
