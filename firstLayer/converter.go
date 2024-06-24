@@ -23,7 +23,7 @@ func UseFirstLayerSettings(argv []string) error {
 	firstLayerStyleSettingsPath := argv[2] // style settings that are effected by the first tool
 
 	// load style settings effected by first tool from JSON
-	firstLayerStyleSettings, err := LoadFirstLayerStyleFromFile(firstLayerStyleSettingsPath)
+	firstLayerStyleSettings, err := LoadFirstLayerStylesFromFile(firstLayerStyleSettingsPath)
 	if err != nil {
 		log.Fatalln(err)
 	}

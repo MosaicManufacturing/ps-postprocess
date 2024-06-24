@@ -10,7 +10,7 @@ type FirstLayerStyleSettings struct {
 	BedTemperature []float32 `json:"bedTemperature"`
 }
 
-func LoadFirstLayerStyleFromFile(path string) (FirstLayerStyleSettings, error) {
+func LoadFirstLayerStylesFromFile(path string) (FirstLayerStyleSettings, error) {
 	firstLayerStyleSettings := FirstLayerStyleSettings{}
 	bytes, err := ioutil.ReadFile(path)
 
