@@ -354,9 +354,9 @@ func generateToolpath(argv []string) error {
 				// compute new min
 				minBoundingBoxSoFar := writer.state.boundingBox.Min[i]
 				currPosition := positionList[i]
-				// for Z axis min, we need to start at the bottom of the layer
-				// (Z - layer height)
 				if i == 2 {
+					// for Z axis min, we need to start at the bottom of the layer
+					// adjust the currPosition to (Z - layer height)
 					minBoundingBoxSoFar = minBoundingBoxSoFar - writer.state.currentLayerHeight
 					currPosition = currPosition - writer.state.currentLayerHeight
 				}
