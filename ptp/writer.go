@@ -75,7 +75,7 @@ type writerState struct {
 	temperaturesSeen map[float32]bool
 	layerHeightsSeen map[float32]bool
 
-	// calculate bounding box while writing g-code
+	// keep track of seen max/min coordinates of print
 	boundingBox BoundingBox
 }
 
