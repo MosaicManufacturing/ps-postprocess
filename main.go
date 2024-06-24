@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+
 	"mosaicmfg.com/ps-postprocess/comments"
+	"mosaicmfg.com/ps-postprocess/firstLayer"
 	"mosaicmfg.com/ps-postprocess/flashforge"
 	"mosaicmfg.com/ps-postprocess/msf"
 	"mosaicmfg.com/ps-postprocess/ptp"
@@ -33,6 +35,8 @@ func main() {
 		flashforge.ConvertCommands(argv[1:])
 	case "printerscript":
 		sequences.ConvertSequences(argv[1:])
+	case "firstLayer":
+		firstLayer.UseFirstLayerSettings(argv[1:])
 	default:
 		log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
 	}
