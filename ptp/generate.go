@@ -340,30 +340,22 @@ func generateToolpath(argv []string) error {
 			}
 		}
 
-		// update bounding box min & max
+		// calculate bounding box
 		if writer.state.currentPathType != PathTypeTravel &&
 			writer.state.currentPathType != PathTypeSequence &&
 			writer.state.currentPathType != PathTypeUnknown {
 			x, y, z := writer.GetCurrentPosition()
-			positionList := []float32{x, y, z}
-			for i := range positionList {
-				// compute new max
-				if positionList[i] > writer.state.boundingBox.Max[i] {
-					writer.state.boundingBox.Max[i] = positionList[i]
-				}
-				// compute new min
-				minBoundingBoxSoFar := writer.state.boundingBox.Min[i]
-				currPosition := positionList[i]
-				if i == 2 {
-					// for Z axis min, we need to start at the bottom of the layer
-					// adjust the currPosition to (Z - layer height)
-					minBoundingBoxSoFar = minBoundingBoxSoFar - writer.state.currentLayerHeight
-					currPosition = currPosition - writer.state.currentLayerHeight
-				}
-				if currPosition < minBoundingBoxSoFar {
-					writer.state.boundingBox.Min[i] = currPosition
-				}
-			}
+			currentExtrusionRadius := (writer.state.currentExtrusionWidth) / 2
+			// x: account for the extrusion radius
+			writer.state.boundingBox.Min.X = MinFloat32(writer.state.boundingBox.Min.X, x-currentExtrusionRadius)
+			writer.state.boundingBox.Max.X = MaxFloat32(writer.state.boundingBox.Max.X, x+currentExtrusionRadius)
+			// y: account for the extrusion radius
+			writer.state.boundingBox.Min.Y = MinFloat32(writer.state.boundingBox.Min.Y, y-currentExtrusionRadius)
+			writer.state.boundingBox.Max.Y = MaxFloat32(writer.state.boundingBox.Max.Y, y+currentExtrusionRadius)
+			// z
+			// min: calculate min from the bottom of each path
+			writer.state.boundingBox.Min.Z = MinFloat32(writer.state.boundingBox.Min.Z, z-writer.state.currentLayerHeight)
+			writer.state.boundingBox.Max.Z = MaxFloat32(writer.state.boundingBox.Max.Z, z)
 		}
 
 		return nil

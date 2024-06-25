@@ -10,19 +10,44 @@ import (
 	"os"
 )
 
+type Point struct {
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+	Z float32 `json:"z"`
+}
 type BoundingBox struct {
-	Min [3]float32 `json:"min"`
-	Max [3]float32 `json:"max"`
+	Min Point `json:"min"`
+	Max Point `json:"max"`
 }
 type Summary struct {
 	BoundingBox BoundingBox `json:"boundingBox"`
 }
 
 func (p *Summary) Save(path string) error {
-	asJson, err := json.Marshal(p)
+	// create a temporary structure for JSON marshaling
+	type TempBoundingBox struct {
+		Min []float32 `json:"min"`
+		Max []float32 `json:"max"`
+	}
+	type TempSummary struct {
+		BoundingBox TempBoundingBox `json:"boundingBox"`
+	}
+
+	// convert Points to slices
+	tempSummary := TempSummary{
+		BoundingBox: TempBoundingBox{
+			Min: []float32{p.BoundingBox.Min.X, p.BoundingBox.Min.Y, p.BoundingBox.Min.Z},
+			Max: []float32{p.BoundingBox.Max.X, p.BoundingBox.Max.Y, p.BoundingBox.Max.Z},
+		},
+	}
+
+	// marshal the temporary structure to JSON
+	asJson, err := json.Marshal(tempSummary)
 	if err != nil {
 		return err
 	}
+
+	// write the JSON to a file
 	return ioutil.WriteFile(path, asJson, 0644)
 }
 
@@ -83,8 +108,8 @@ func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset f
 	negInf := float32(math.Inf(-1))
 	posInf := float32(math.Inf(1))
 	boundingBox := BoundingBox{
-		Min: [3]float32{posInf, posInf, posInf},
-		Max: [3]float32{negInf, negInf, negInf},
+		Min: Point{X: posInf, Y: posInf, Z: posInf},
+		Max: Point{X: negInf, Y: negInf, Z: negInf},
 	}
 	return writerState{
 		currentExtrusionWidth: initialExtrusionWidth,
