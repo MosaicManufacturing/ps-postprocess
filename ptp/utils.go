@@ -141,3 +141,11 @@ func setToSlice[T comparable](set map[T]bool, sortFn func([]T)) []T {
 	sortFn(values)
 	return values
 }
+
+func MinFloat32(a, b float32) float32 {
+	return float32(math.Min(float64(a), float64(b)))
+}
+
+func MaxFloat32(a, b float32) float32 {
+	return float32(math.Max(float64(a), float64(b)))
+}
