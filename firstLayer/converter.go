@@ -94,13 +94,23 @@ func UseFirstLayerSettings(argv []string) error {
 	err = gcode.ReadByLine(inPath, func(line gcode.Command, linenNum int) error {
 		output := ""
 		if line.Command == "M140" {
-			// bed temp
 			if _, ok := line.Params["s"]; ok {
 				line.Params["s"] = usedFirstLayerValues.BedTemperature
 				line.Raw = ""
 				output += line.String() + EOL
 				return nil
 			}
+		} else if line.Command == "M190" {
+			if _, ok := line.Params["s"]; ok {
+				line.Params["s"] = usedFirstLayerValues.BedTemperature
+				line.Raw = ""
+				output += line.String() + EOL
+			} else if _, ok = line.Params["r"]; ok {
+				line.Params["r"] = usedFirstLayerValues.BedTemperature
+				line.Raw = ""
+				output += line.String() + EOL
+			}
+			return nil
 		} else if value, ok := line.Params["z"]; ok {
 			// Check if the command is one of the specified commands
 			switch line.Command {
