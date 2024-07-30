@@ -2,6 +2,7 @@ package firstlayer
 
 import (
 	"bufio"
+	"fmt"
 	"log"
 	"math"
 	"os"
@@ -50,6 +51,11 @@ func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPat
 		if usedFirstLayerValues.ZOffset < firstLayerStyleSettings.ZOffsetPerExt[key] {
 			usedFirstLayerValues.ZOffset = firstLayerStyleSettings.ZOffsetPerExt[key]
 		}
+	}
+
+	// Check if the final values are valid
+	if usedFirstLayerValues.ZOffset == negInf {
+		return fmt.Errorf("invalid ZOffset: %v", usedFirstLayerValues.ZOffset), FirstLayer{}
 	}
 
 	return nil, usedFirstLayerValues
