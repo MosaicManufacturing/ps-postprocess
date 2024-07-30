@@ -1,4 +1,4 @@
-package firstLayer
+package firstlayer
 
 import (
 	"encoding/json"
@@ -18,5 +18,5 @@ func LoadFirstLayerStylesFromFile(path string) (FirstLayerStyleSettings, error) 
 		return firstLayerStyleSettings, err
 	}
 	err = json.Unmarshal(bytes, &firstLayerStyleSettings)
-		return firstLayerStyleSettings, err
+	return firstLayerStyleSettings, err
 }
