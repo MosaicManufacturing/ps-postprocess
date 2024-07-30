@@ -7,7 +7,8 @@ import (
 	"os"
 )
 
-var ErrEarlyExit = errors.New("Early Exit")
+var ErrEarlyExit = errors.New("early exit")
+
 type LineCallback func(Command, int) error
 
 // if callback returns an error, reading will stop before EOF
