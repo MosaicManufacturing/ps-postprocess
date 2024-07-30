@@ -141,7 +141,7 @@ func getPrintSummary(msf *MSF, timeEstimate float32) string {
 	// filament lengths by drive
 	for drive, length := range filamentByDrive {
 		if length > 0 {
-			summary += fmt.Sprintf(";    T%d filament = %.5f%s", drive+1, length, EOL)
+			summary += fmt.Sprintf(";    Ext %d filament = %.5f%s", drive+1, length, EOL)
 		}
 	}
 

@@ -251,7 +251,7 @@ func _paletteOutput(
 					if err := writeLine(writer, fmt.Sprintf("; Printing with input %d", state.CurrentTool)); err != nil {
 						return err
 					}
-				} else if tool != state.CurrentTool {
+				} else if tool != state.CurrentTool && !palette.TreatAsSingleMaterial {
 					comment := fmt.Sprintf("; Printing with input %d", tool)
 					if err := writeLine(writer, comment); err != nil {
 						return err
