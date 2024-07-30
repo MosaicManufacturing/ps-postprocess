@@ -17,8 +17,6 @@ func LoadFirstLayerStylesFromFile(path string) (FirstLayerStyleSettings, error) 
 	if err != nil {
 		return firstLayerStyleSettings, err
 	}
-	if err := json.Unmarshal(bytes, &firstLayerStyleSettings); err != nil {
+	err = json.Unmarshal(bytes, &firstLayerStyleSettings)
 		return firstLayerStyleSettings, err
-	}
-	return firstLayerStyleSettings, nil
 }
