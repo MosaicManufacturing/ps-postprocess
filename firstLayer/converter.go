@@ -1,4 +1,4 @@
-package firstLayer
+package firstlayer
 
 import (
 	"bufio"
@@ -99,11 +99,11 @@ func UseFirstLayerSettings(argv []string) error {
 			// Check if the command is one of the specified commands
 			switch line.Command {
 			case "G0", "G1", "G2", "G3", "G92":
-			// z-offset
-			line.Params["z"] = value + usedFirstLayerValues.ZOffset
-			line.Raw = ""
-			output += line.String() + EOL
-			return nil
+				// z-offset
+				line.Params["z"] = value + usedFirstLayerValues.ZOffset
+				line.Raw = ""
+				output += line.String() + EOL
+				return nil
 			}
 		}
 		output += line.Raw + EOL

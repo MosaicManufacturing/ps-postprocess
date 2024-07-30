@@ -1,4 +1,4 @@
-package firstLayer
+package firstlayer
 
 import (
 	"encoding/json"

@@ -51,8 +51,8 @@ func ReadByLine(path string, callback LineCallback) (err error) {
 		}
 		gcode := ParseLine(string(line))
 		cbErr := callback(gcode, lineNumber)
-		if(cbErr == ErrEarlyExit ){
-			break; 
+		if cbErr == ErrEarlyExit {
+			break
 		} else if cbErr != nil {
 			err = cbErr
 			return
