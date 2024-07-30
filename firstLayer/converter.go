@@ -3,26 +3,15 @@ package firstLayer
 import (
 	"bufio"
 	"log"
+	"math"
 	"os"
 	"strings"
 
 	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
-func UseFirstLayerSettings(argv []string) error {
-	argc := len(argv)
-
-	if argc < 3 {
-		log.Fatalln("expected 3 command-line arguments")
-	}
-
-	const EOL = "\r\n"
-
-	inPath := argv[0]                      // unmodified G-code file
-	outPath := argv[1]                     // modified G-code file
-	firstLayerStyleSettingsPath := argv[2] // style settings that are effected by the first tool
-
-	// load style settings effected by first tool from JSON
+func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPath string) (error, FirstLayer) {
+	// load style settings affected by first tool from JSON
 	firstLayerStyleSettings, err := LoadFirstLayerStylesFromFile(firstLayerStyleSettingsPath)
 	if err != nil {
 		log.Fatalln(err)
@@ -43,14 +32,16 @@ func UseFirstLayerSettings(argv []string) error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
+
+	if err != nil && err != gcode.ErrEarlyExit {
+		return err, FirstLayer{}
 	}
 
-	// computer the style settings values to be used in first layer
+	// compute the style settings values to be used in first layer
+	var negInf = float32(math.Inf(-1))
 	usedFirstLayerValues := FirstLayer{
 		BedTemperature: 0,
-		ZOffset:        0,
+		ZOffset:        negInf,
 	}
 	for key := range toolUsedInFirstLayer {
 		if usedFirstLayerValues.BedTemperature < firstLayerStyleSettings.BedTemperature[key] {
@@ -59,6 +50,29 @@ func UseFirstLayerSettings(argv []string) error {
 		if usedFirstLayerValues.ZOffset < firstLayerStyleSettings.ZOffsetPerExt[key] {
 			usedFirstLayerValues.ZOffset = firstLayerStyleSettings.ZOffsetPerExt[key]
 		}
+	}
+
+	return nil, usedFirstLayerValues
+
+}
+
+func UseFirstLayerSettings(argv []string) error {
+	argc := len(argv)
+
+	if argc < 3 {
+		log.Fatalln("expected 3 command-line arguments")
+	}
+
+	const EOL = "\r\n"
+
+	inPath := argv[0]                      // unmodified G-code file
+	outPath := argv[1]                     // modified G-code file
+	firstLayerStyleSettingsPath := argv[2] // style settings that are affected by the first tool
+
+	// determine the tools used in the first layer
+	err, usedFirstLayerValues := DetermineToolsUsedInTheFirstLayer(inPath, firstLayerStyleSettingsPath)
+	if err != nil {
+		return err
 	}
 
 	// create out file
@@ -71,8 +85,8 @@ func UseFirstLayerSettings(argv []string) error {
 	writer := bufio.NewWriter(outfile)
 	defer writer.Flush()
 
-	output := ""
 	err = gcode.ReadByLine(inPath, func(line gcode.Command, linenNum int) error {
+		output := ""
 		if line.Command == "M140" {
 			// bed temp
 			if _, ok := line.Params["s"]; ok {
@@ -82,22 +96,25 @@ func UseFirstLayerSettings(argv []string) error {
 				return nil
 			}
 		} else if value, ok := line.Params["z"]; ok {
+			// Check if the command is one of the specified commands
+			switch line.Command {
+			case "G0", "G1", "G2", "G3", "G92":
 			// z-offset
 			line.Params["z"] = value + usedFirstLayerValues.ZOffset
 			line.Raw = ""
 			output += line.String() + EOL
 			return nil
+			}
 		}
 		output += line.Raw + EOL
+		// write g-code to outPath file
+		if _, err := writer.WriteString(output); err != nil {
+			return err
+		}
 		return nil
 	})
 
 	if err != nil {
-		return err
-	}
-
-	// write g-code to outPath file
-	if _, err := writer.WriteString(output + EOL); err != nil {
 		return err
 	}
 
