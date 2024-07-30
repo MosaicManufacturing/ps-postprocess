@@ -86,29 +86,25 @@ func UseFirstLayerSettings(argv []string) error {
 	if createErr != nil {
 		return createErr
 	}
-	defer outfile.Close()
-
 	writer := bufio.NewWriter(outfile)
-	defer writer.Flush()
-
-	err = gcode.ReadByLine(inPath, func(line gcode.Command, linenNum int) error {
-		output := ""
+	writeGCodeError := gcode.ReadByLine(inPath, func(line gcode.Command, linenNum int) error {
+		newLine := ""
 		if line.Command == "M140" {
 			if _, ok := line.Params["s"]; ok {
 				line.Params["s"] = usedFirstLayerValues.BedTemperature
 				line.Raw = ""
-				output += line.String() + EOL
+				newLine += line.String() + EOL
 				return nil
 			}
 		} else if line.Command == "M190" {
 			if _, ok := line.Params["s"]; ok {
 				line.Params["s"] = usedFirstLayerValues.BedTemperature
 				line.Raw = ""
-				output += line.String() + EOL
+				newLine += line.String() + EOL
 			} else if _, ok = line.Params["r"]; ok {
 				line.Params["r"] = usedFirstLayerValues.BedTemperature
 				line.Raw = ""
-				output += line.String() + EOL
+				newLine += line.String() + EOL
 			}
 			return nil
 		} else if value, ok := line.Params["z"]; ok {
@@ -118,19 +114,25 @@ func UseFirstLayerSettings(argv []string) error {
 				// z-offset
 				line.Params["z"] = value + usedFirstLayerValues.ZOffset
 				line.Raw = ""
-				output += line.String() + EOL
+				newLine += line.String() + EOL
 				return nil
 			}
 		}
-		output += line.Raw + EOL
+		newLine += line.Raw + EOL
 		// write g-code to outPath file
-		if _, err := writer.WriteString(output); err != nil {
+		if _, err := writer.WriteString(newLine); err != nil {
 			return err
 		}
 		return nil
 	})
 
-	if err != nil {
+	if writeGCodeError != nil {
+		return err
+	}
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+	if err := outfile.Close(); err != nil {
 		return err
 	}
 
