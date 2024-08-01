@@ -34,7 +34,7 @@ func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPat
 		return nil
 	})
 
-	if err != nil && err != gcode.ErrEarlyExit {
+	if err != nil {
 		return err, FirstLayer{}
 	}
 
