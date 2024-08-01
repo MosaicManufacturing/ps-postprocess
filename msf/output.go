@@ -238,9 +238,15 @@ func _paletteOutput(
 				if state.FirstToolChange {
 					state.FirstToolChange = false
 					var toolChangeLine string
-					// for Element retain the tool change command
+					// Element has different first tool handling
 					if palette.Type == TypeElement {
-						toolChangeLine = line.Raw
+						if palette.TreatAsSingleMaterial {
+							// for single-material, set to T0
+							toolChangeLine = fmt.Sprintf("T%d", palette.PrintExtruder)
+						} else {
+							// for multi-material, retain the tool change command
+							toolChangeLine = line.Raw
+						}
 					} else {
 						toolChangeLine = fmt.Sprintf("; Printing with input %d", palette.PrintExtruder)
 					}
@@ -431,7 +437,11 @@ func _paletteOutput(
 		return err
 	}
 	if !didFinalSplice {
-		if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
+		lastSpliceTool := state.CurrentTool
+		if palette.TreatAsSingleMaterial {
+			lastSpliceTool = palette.PrintExtruder
+		}
+		if err := msfOut.AddLastSplice(lastSpliceTool, state.E.TotalExtrusion); err != nil {
 			return err
 		}
 		didFinalSplice = true
