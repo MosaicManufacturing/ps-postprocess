@@ -38,6 +38,14 @@ func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPat
 		return err, FirstLayer{}
 	}
 
+	if len(toolUsedInFirstLayer) == 0 {
+		// no toolchange commands means single-tool print so use input 0
+		return nil, FirstLayer{
+			ZOffset:        firstLayerStyleSettings.ZOffsetPerExt[0],
+			BedTemperature: firstLayerStyleSettings.BedTemperature[0],
+		}
+	}
+
 	// compute the style settings values to be used in first layer
 	var negInf = float32(math.Inf(-1))
 	usedFirstLayerValues := FirstLayer{
