@@ -15,7 +15,7 @@ func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPat
 	// load style settings affected by first tool from JSON
 	firstLayerStyleSettings, err := LoadFirstLayerStylesFromFile(firstLayerStyleSettingsPath)
 	if err != nil {
-		log.Fatalln(err)
+		return err, FirstLayer{}
 	}
 
 	// all the tools used in first layer
@@ -62,7 +62,7 @@ func DetermineToolsUsedInTheFirstLayer(inPath string, firstLayerStyleSettingsPat
 
 }
 
-func UseFirstLayerSettings(argv []string) error {
+func UseFirstLayerSettings(argv []string) {
 	argc := len(argv)
 
 	if argc < 3 {
@@ -78,13 +78,13 @@ func UseFirstLayerSettings(argv []string) error {
 	// determine the tools used in the first layer
 	err, usedFirstLayerValues := DetermineToolsUsedInTheFirstLayer(inPath, firstLayerStyleSettingsPath)
 	if err != nil {
-		return err
+		log.Fatalln(err)
 	}
 
 	// create out file
 	outfile, createErr := os.Create(outPath)
 	if createErr != nil {
-		return createErr
+		log.Fatalln(err)
 	}
 	writer := bufio.NewWriter(outfile)
 	writeGCodeError := gcode.ReadByLine(inPath, func(line gcode.Command, linenNum int) error {
@@ -120,14 +120,16 @@ func UseFirstLayerSettings(argv []string) error {
 	})
 
 	if writeGCodeError != nil {
-		return err
+		log.Fatalln(err)
 	}
-	if err := writer.Flush(); err != nil {
-		return err
+	if err = writer.Flush(); err != nil {
+		log.Fatalln(err)
 	}
-	if err := outfile.Close(); err != nil {
-		return err
+	if err = outfile.Close(); err != nil {
+		log.Fatalln(err)
 	}
 
-	return usedFirstLayerValues.Save(outPath + ".firstLayerResults")
+	if err = usedFirstLayerValues.Save(outPath + ".firstLayerResults"); err != nil {
+		log.Fatalln(err)
+	}
 }
