@@ -2,54 +2,12 @@ package ptp
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"os"
 )
-
-type Point struct {
-	X float32 `json:"x"`
-	Y float32 `json:"y"`
-	Z float32 `json:"z"`
-}
-type BoundingBox struct {
-	Min Point `json:"min"`
-	Max Point `json:"max"`
-}
-type Summary struct {
-	BoundingBox BoundingBox `json:"boundingBox"`
-}
-
-func (p *Summary) Save(path string) error {
-	// create a temporary structure for JSON marshaling
-	type TempBoundingBox struct {
-		Min []float32 `json:"min"`
-		Max []float32 `json:"max"`
-	}
-	type TempSummary struct {
-		BoundingBox TempBoundingBox `json:"boundingBox"`
-	}
-
-	// convert Points to slices
-	tempSummary := TempSummary{
-		BoundingBox: TempBoundingBox{
-			Min: []float32{p.BoundingBox.Min.X, p.BoundingBox.Min.Y, p.BoundingBox.Min.Z},
-			Max: []float32{p.BoundingBox.Max.X, p.BoundingBox.Max.Y, p.BoundingBox.Max.Z},
-		},
-	}
-
-	// marshal the temporary structure to JSON
-	asJson, err := json.Marshal(tempSummary)
-	if err != nil {
-		return err
-	}
-
-	// write the JSON to a file
-	return ioutil.WriteFile(path, asJson, 0644)
-}
 
 type writerState struct {
 	lastLineWasPrint       bool    // if true, corner triangles will be created to join the lines
