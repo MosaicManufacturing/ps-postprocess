@@ -63,12 +63,7 @@ type writerState struct {
 }
 
 func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset float32) writerState {
-	negInf := float32(math.Inf(-1))
-	posInf := float32(math.Inf(1))
-	boundingBox := BoundingBox{
-		Min: Point{X: posInf, Y: posInf, Z: posInf},
-		Max: Point{X: negInf, Y: negInf, Z: negInf},
-	}
+	boundingBox := MakeBoundingBox()
 	return writerState{
 		currentExtrusionWidth: initialExtrusionWidth,
 		currentLayerHeight:    initialLayerHeight,

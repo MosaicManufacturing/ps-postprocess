@@ -3,6 +3,7 @@ package ptp
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math"
 )
 
 type Point struct {
@@ -16,6 +17,15 @@ type BoundingBox struct {
 }
 type Summary struct {
 	BoundingBox BoundingBox
+}
+
+func MakeBoundingBox() BoundingBox {
+	negInf := float32(math.Inf(-1))
+	posInf := float32(math.Inf(1))
+	return BoundingBox{
+		Min: Point{X: posInf, Y: posInf, Z: posInf},
+		Max: Point{X: negInf, Y: negInf, Z: negInf},
+	}
 }
 
 func (p *Summary) Save(path string) error {
