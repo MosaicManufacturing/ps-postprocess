@@ -2,9 +2,12 @@ package gcode
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"os"
 )
+
+var ErrEarlyExit = errors.New("early exit")
 
 type LineCallback func(Command, int) error
 
@@ -48,7 +51,9 @@ func ReadByLine(path string, callback LineCallback) (err error) {
 		}
 		gcode := ParseLine(string(line))
 		cbErr := callback(gcode, lineNumber)
-		if cbErr != nil {
+		if cbErr == ErrEarlyExit {
+			break
+		} else if cbErr != nil {
 			err = cbErr
 			return
 		}

@@ -141,7 +141,11 @@ func getPrintSummary(msf *MSF, timeEstimate float32) string {
 	// filament lengths by drive
 	for drive, length := range filamentByDrive {
 		if length > 0 {
-			summary += fmt.Sprintf(";    T%d filament = %.5f%s", drive+1, length, EOL)
+			if msf.Palette.TreatAsSingleMaterial {
+				summary += fmt.Sprintf(";    Ext %d filament = %.5f%s", msf.Palette.PrintExtruder+1, length, EOL)
+				break
+			}
+			summary += fmt.Sprintf(";    Ext %d filament = %.5f%s", drive+1, length, EOL)
 		}
 	}
 

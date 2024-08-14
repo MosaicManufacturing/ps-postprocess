@@ -53,7 +53,7 @@ func ConvertForPalette(argv []string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if preflightResults.totalDrivesUsed() <= 1 {
+	if preflightResults.totalDrivesUsed() <= 1 && !palette.TreatAsSingleMaterial {
 		fmt.Println("NO_PALETTE")
 		os.Exit(0)
 	}
