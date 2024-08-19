@@ -370,7 +370,10 @@ func generateToolpath(argv []string) error {
 	summary := Summary{
 		BoundingBox: writer.state.boundingBox,
 	}
-	summary.Save(summaryPath)
+
+	if err = summary.Save(summaryPath); err != nil {
+		return err
+	}
 
 	return writer.Finalize()
 }
