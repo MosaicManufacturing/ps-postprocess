@@ -366,7 +366,7 @@ func generateToolpath(argv []string) error {
 	}
 
 	// write bounding box info as a JSON to outPath.summary
-	summaryPath := outpath + ".summary"
+	summaryPath := inpath + ".summary"
 	summary := Summary{
 		BoundingBox: writer.state.boundingBox,
 	}
