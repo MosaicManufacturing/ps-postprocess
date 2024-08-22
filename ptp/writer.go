@@ -57,9 +57,13 @@ type writerState struct {
 	fanSpeedsSeen    map[int]bool
 	temperaturesSeen map[float32]bool
 	layerHeightsSeen map[float32]bool
+
+	// keep track of seen max/min coordinates of print
+	boundingBox BoundingBox
 }
 
 func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset float32) writerState {
+	boundingBox := MakeBoundingBox()
 	return writerState{
 		currentExtrusionWidth: initialExtrusionWidth,
 		currentLayerHeight:    initialLayerHeight,
@@ -72,6 +76,7 @@ func getStartingWriterState(initialExtrusionWidth, initialLayerHeight, zOffset f
 		fanSpeedsSeen:         make(map[int]bool),
 		temperaturesSeen:      make(map[float32]bool),
 		layerHeightsSeen:      make(map[float32]bool),
+		boundingBox:           boundingBox,
 	}
 }
 

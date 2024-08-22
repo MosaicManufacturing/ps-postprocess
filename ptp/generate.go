@@ -3,10 +3,11 @@ package ptp
 import (
 	"errors"
 	"log"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type generatorState struct {
@@ -338,11 +339,42 @@ func generateToolpath(argv []string) error {
 				}
 			}
 		}
+
+		// calculate bounding box
+		if writer.state.currentPathType != PathTypeTravel &&
+			writer.state.currentPathType != PathTypeSequence &&
+			writer.state.currentPathType != PathTypeUnknown {
+			x, y, z := writer.GetCurrentPosition()
+			currentExtrusionRadius := (writer.state.currentExtrusionWidth) / 2
+			// x: account for the extrusion radius
+			writer.state.boundingBox.Min.X = MinFloat32(writer.state.boundingBox.Min.X, x-currentExtrusionRadius)
+			writer.state.boundingBox.Max.X = MaxFloat32(writer.state.boundingBox.Max.X, x+currentExtrusionRadius)
+			// y: account for the extrusion radius
+			writer.state.boundingBox.Min.Y = MinFloat32(writer.state.boundingBox.Min.Y, y-currentExtrusionRadius)
+			writer.state.boundingBox.Max.Y = MaxFloat32(writer.state.boundingBox.Max.Y, y+currentExtrusionRadius)
+			// z
+			// min: calculate min from the bottom of each path
+			writer.state.boundingBox.Min.Z = MinFloat32(writer.state.boundingBox.Min.Z, z-writer.state.currentLayerHeight)
+			writer.state.boundingBox.Max.Z = MaxFloat32(writer.state.boundingBox.Max.Z, z)
+		}
+
 		return nil
 	})
+
 	if err != nil {
 		return err
 	}
+
+	// write bounding box info as a JSON to outPath.summary
+	summaryPath := inpath + ".summary"
+	summary := Summary{
+		BoundingBox: writer.state.boundingBox,
+	}
+
+	if err = summary.Save(summaryPath); err != nil {
+		return err
+	}
+
 	return writer.Finalize()
 }
 
