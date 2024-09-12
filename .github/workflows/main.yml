@@ -64,13 +64,13 @@ jobs:
         with:
           role-to-assume: ${{secrets.AWS_ROLE}}
           aws-region: ${{secrets.AWS_REGION}}
-      - name: Upload binaries to S3 if does not exist
+      - name: Upload binaries to S3 if they do not exist
         env:
             S3_PATH: s3://${{secrets.S3_BUCKET}}/ps-postprocess/${{steps.get-version.outputs.version}}
         run: |
           EXISTS=true
           aws s3 ls ${{env.S3_PATH}}/linux/amd64/ps-postprocess || aws s3 ls ${{env.S3_PATH}}/windows/amd64/ps-postprocess.exe || aws s3 ls ${{env.S3_PATH}}/darwin/amd64/ps-postprocess || EXISTS=false
-          if [ $EXISTS == true ]; then
+          if [ $EXISTS == true ]; then  
             echo "Library version already exists."
             exit 1
           fi
