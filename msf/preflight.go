@@ -316,7 +316,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 		} else if strings.HasPrefix(line.Comment, "stop printing object ") && len(results.layerObjectStarts) > 0 {
 			results.layerObjectEnds[results.totalLayers]++
 		} else if strings.HasPrefix(line.Comment, "printing object ") && len(results.layerObjectStarts) > 0 {
-			fmt.Println(`results.layerObjectStarts`, results.totalLayers)
 			results.layerObjectStarts[results.totalLayers]++
 		}
 
