@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"mosaicmfg.com/ps-postprocess/gcode"
@@ -52,6 +53,11 @@ func _paletteOutput(
 	didFinalSplice := false             // used to prevent calling msfOut.AddLastSplice multiple times
 	upcomingSparseLayer := false        // used for special-case wipe sequence handling
 	upcomingDoubledSparseLayer := false // used for special-case layer change handling
+
+	commentRegexMatched := func(regex string, str string) bool {
+		matched, _ := regexp.MatchString(regex, str)
+		return matched
+	}
 
 	insertNonDoubledSparseLayer := func() error {
 		if err := writeLine(writer, "; Sparse tower layer"); err != nil {
@@ -366,23 +372,10 @@ func _paletteOutput(
 			return writeLine(writer, line.Raw)
 		} else if line.Raw == ";LAYER_CHANGE" {
 			state.CurrentLayer++
-			state.CurrentLayerObject = 0
-			state.CurrentLayerTotalObjects = preflight.layerObjectStarts[state.CurrentLayer]
-			return writeLine(writer, line.Raw)
-		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
-			upcomingSparseLayer = false
-			// insert deferred sparse layer now
-			return insertNonDoubledSparseLayer()
-		} else if palette.TransitionMethod == CustomTower &&
-			strings.HasPrefix(line.Comment, "stop printing object") {
-			// sparse tower layer
-			if err := writeLine(writer, line.Raw); err != nil {
-				return err
-			}
-			state.CurrentLayerObject++
-			if state.CurrentLayerObject == state.CurrentLayerTotalObjects {
+			// After the first layer change, insert tower g-code for the last layer before writing layer change line to file.
+			if palette.TransitionMethod == CustomTower {
 				if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
-					state.CurrentLayer == state.Tower.CurrentLayerIndex {
+					(state.CurrentLayer-1) == state.Tower.CurrentLayerIndex {
 					if palette.Wipe[state.CurrentTool] {
 						// need to look for ;WIPE_END
 						upcomingSparseLayer = true
@@ -393,8 +386,14 @@ func _paletteOutput(
 					}
 				}
 			}
+			return writeLine(writer, line.Raw)
+
+		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
+			upcomingSparseLayer = false
+			// insert deferred sparse layer now
+			return insertNonDoubledSparseLayer()
 		} else if palette.TransitionMethod == CustomTower &&
-			strings.HasPrefix(line.Comment, "printing object") {
+			commentRegexMatched(`layer (\d+), Z = ([\d.]+)\s*$`, line.Comment) {
 			// doubled sparse tower layer
 			if !state.Tower.IsComplete() &&
 				upcomingDoubledSparseLayer &&

@@ -335,23 +335,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 		if layerTopZs := len(results.layerTopZs); layerTopZs != results.totalLayers {
 			return results, fmt.Errorf("invariant violation: expected %d layerTopZs, got %d", results.totalLayers, layerTopZs)
 		}
-		for i := 0; i < results.totalLayers; i++ {
-			if results.layerThicknesses[i] <= 0 {
-				return results, fmt.Errorf("invariant violation: zero thickness at layer %d", i)
-			}
-			if results.layerTopZs[i] == 0 {
-				return results, fmt.Errorf("invariant violation: zero height at layer %d", i)
-			}
-			if results.layerObjectStarts[i] == 0 {
-				return results, fmt.Errorf("invariant violation: zero layer object starts at layer %d", i)
-			}
-			if results.layerObjectEnds[i] == 0 {
-				return results, fmt.Errorf("invariant violation: zero layer object ends at layer %d", i)
-			}
-			if results.layerObjectStarts[i] != results.layerObjectEnds[i] {
-				return results, fmt.Errorf("invariant violation: layer object count mismatch at layer %d", i)
-			}
-		}
 	}
 	if palette.ZOffset != 0 {
 		for i := range results.layerTopZs {
