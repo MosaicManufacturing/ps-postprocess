@@ -379,10 +379,9 @@ func _paletteOutput(
 					if palette.Wipe[state.CurrentTool] {
 						// need to look for ;WIPE_END
 						upcomingSparseLayer = true
-						return nil
 					} else {
 						// can start sparse layer immediately
-						return insertNonDoubledSparseLayer()
+						insertNonDoubledSparseLayer()
 					}
 				}
 			}
