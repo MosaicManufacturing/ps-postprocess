@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"regexp"
 	"strings"
 
 	"mosaicmfg.com/ps-postprocess/gcode"
@@ -53,11 +52,7 @@ func _paletteOutput(
 	didFinalSplice := false             // used to prevent calling msfOut.AddLastSplice multiple times
 	upcomingSparseLayer := false        // used for special-case wipe sequence handling
 	upcomingDoubledSparseLayer := false // used for special-case layer change handling
-
-	commentRegexMatched := func(regex string, str string) bool {
-		matched, _ := regexp.MatchString(regex, str)
-		return matched
-	}
+	movedAfterLayerChange := true
 
 	insertNonDoubledSparseLayer := func() error {
 		if err := writeLine(writer, "; Sparse tower layer"); err != nil {
@@ -172,7 +167,31 @@ func _paletteOutput(
 				}
 			}
 		}
+
 		if line.IsLinearMove() {
+			// handle doubled sparse layer by inserting it after layer change sequence,
+			// and when print settings have been restored but before the first linear move
+			if upcomingDoubledSparseLayer &&
+				palette.TransitionMethod == CustomTower &&
+				!movedAfterLayerChange {
+				if !state.Tower.IsComplete() &&
+					state.CurrentLayer == state.Tower.CurrentLayerIndex &&
+					!state.Tower.CurrentLayerIsDense() {
+					if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
+						return err
+					}
+					layerPaths, err := state.Tower.GetNextSegment(&state, false)
+					if err != nil {
+						return err
+					}
+					upcomingDoubledSparseLayer = false
+					if err := writeLines(writer, layerPaths); err != nil {
+						return err
+					}
+				}
+				movedAfterLayerChange = true
+			}
+
 			if err := writeLine(writer, line.Raw); err != nil {
 				return err
 			}
@@ -391,26 +410,9 @@ func _paletteOutput(
 			upcomingSparseLayer = false
 			// insert deferred sparse layer now
 			return insertNonDoubledSparseLayer()
-		} else if palette.TransitionMethod == CustomTower &&
-			commentRegexMatched(`layer (\d+), Z = ([\d.]+)\s*$`, line.Comment) {
-			// doubled sparse tower layer
-			if !state.Tower.IsComplete() &&
-				upcomingDoubledSparseLayer &&
-				state.CurrentLayer == state.Tower.CurrentLayerIndex &&
-				!state.Tower.CurrentLayerIsDense() {
-				if err := writeLine(writer, "; Doubled sparse tower layer"); err != nil {
-					return err
-				}
-				layerPaths, err := state.Tower.GetNextSegment(&state, false)
-				if err != nil {
-					return err
-				}
-				upcomingDoubledSparseLayer = false
-				if err := writeLines(writer, layerPaths); err != nil {
-					return err
-				}
-			}
-			return writeLine(writer, line.Raw)
+		} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
+			movedAfterLayerChange = false
+			return nil
 		} else if palette.TransitionMethod == TransitionTower &&
 			strings.HasPrefix(line.Comment, "TYPE:") {
 			if err := writeLine(writer, line.Raw); err != nil {

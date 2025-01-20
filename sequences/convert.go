@@ -157,6 +157,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 					}
 				}
 			}
+			output += EOL + ";END OF LAYER CHANGE SEQUENCE"
 			nextLayerChangeIdx++
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
 			toTool, err := parseMaterialChangePlaceholder(line.Raw)
