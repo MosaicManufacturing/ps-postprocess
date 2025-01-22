@@ -58,7 +58,7 @@ func (gcc Command) IsEnableFanCommand() bool {
 
 func (gcc Command) IsLiftCommand() bool {
 	// G1 Z.3 F240 ; lift
-	return gcc.Command == "G1" && gcc.Comment == "lisft"
+	return gcc.Command == "G1" && gcc.Comment == "lift"
 }
 
 func (gcc Command) IsToolChange() (bool, int) {
