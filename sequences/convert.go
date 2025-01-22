@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"mosaicmfg.com/ps-postprocess/gcode"
-	"mosaicmfg.com/ps-postprocess/printerscript"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
+	"mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 const EOL = "\r\n"
@@ -53,6 +54,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
 	currentCoolingModuleDutyPercent := 0
+	firstLayerHeight := 0.0
 
 	// todo: any way to cheaply calculate timeElapsed?
 
@@ -114,10 +116,19 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				return err
 			}
 			output = filterToolchangeCommands(result.Output)
-		} else if strings.HasPrefix(line.Raw, layerChangePrefix) {
-			layer, layerZ, err := parseLayerChangePlaceholder(line.Raw)
-			if err != nil {
-				return err
+		} else if strings.HasPrefix(line.Raw, layerChangePrefix) ||
+			(currentLayer == 0 && line.IsLiftCommand()) {
+			var layer int
+			var layerZ float64
+			var err error
+			if currentLayer == 0 && line.IsLiftCommand() {
+				layer = 0
+				layerZ = firstLayerHeight
+			} else {
+				layer, layerZ, err = parseLayerChangePlaceholder(line.Raw)
+				if err != nil {
+					return err
+				}
 			}
 			if scripts.LayerChange != nil {
 				currentLayer = layer
@@ -158,7 +169,9 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				}
 			}
 			output += EOL + ";END OF LAYER CHANGE SEQUENCE"
-			nextLayerChangeIdx++
+			if currentLayer != 0 {
+				nextLayerChangeIdx++
+			}
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
 			toTool, err := parseMaterialChangePlaceholder(line.Raw)
 			if err != nil {
@@ -209,6 +222,10 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 		}
 		if inStartSequence {
 			return nil
+		}
+		if strings.HasPrefix(line.Comment, "HEIGHT:") && currentLayer == 0 {
+			firstLayerHeight, err = strconv.ParseFloat(strings.TrimPrefix(line.Comment, "HEIGHT:"), 64)
+
 		}
 		if _, err := writer.WriteString(output + EOL); err != nil {
 			return err
