@@ -389,6 +389,21 @@ func _paletteOutput(
 		} else if line.Raw == ";START_OF_PRINT" {
 			state.PastStartSequence = true
 			return writeLine(writer, line.Raw)
+		} else if line.IsEnableFanCommand() && state.CurrentLayer == 0 {
+			// ensure the fan command is applied to the first layer of the tower
+			if palette.TransitionMethod == CustomTower {
+				if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
+					(state.CurrentLayer) == state.Tower.CurrentLayerIndex {
+					if palette.Wipe[state.CurrentTool] {
+						// need to look for ;WIPE_END
+						upcomingSparseLayer = true
+					} else {
+						// can start sparse layer immediately
+						insertNonDoubledSparseLayer()
+					}
+				}
+			}
+			return writeLine(writer, line.Raw)
 		} else if line.Raw == ";LAYER_CHANGE" {
 			state.CurrentLayer++
 			// After the first layer change, insert tower g-code for the last layer before writing layer change line to file.

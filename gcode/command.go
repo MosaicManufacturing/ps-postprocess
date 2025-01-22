@@ -52,6 +52,10 @@ func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
 }
 
+func (gcc Command) IsEnableFanCommand() bool {
+	return gcc.Command == "M106"
+}
+
 func (gcc Command) IsToolChange() (bool, int) {
 	if gcc.Command == "M135" {
 		// Makerbot/Sailfish (e.g. M135 T0)
