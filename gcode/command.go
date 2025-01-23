@@ -56,11 +56,6 @@ func (gcc Command) IsEnableFanCommand() bool {
 	return gcc.Command == "M106"
 }
 
-func (gcc Command) IsLiftCommand() bool {
-	// G1 Z.3 F240 ; lift
-	return gcc.Command == "G1" && gcc.Comment == "lift"
-}
-
 func (gcc Command) IsToolChange() (bool, int) {
 	if gcc.Command == "M135" {
 		// Makerbot/Sailfish (e.g. M135 T0)
@@ -80,6 +75,10 @@ func (gcc Command) IsToolChange() (bool, int) {
 		return true, int(tool)
 	}
 	return false, -1
+}
+
+func (gcc Command) IsMoveToFirstLayerPoint() bool {
+	return gcc.Comment == "move to first layer point"
 }
 
 func FormatFloat(value float64) string {

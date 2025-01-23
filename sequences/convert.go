@@ -54,7 +54,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
 	currentCoolingModuleDutyPercent := 0
-	firstLayerHeight := 0.0
+	moveToFirstLayerPointSeen := false
 
 	// todo: any way to cheaply calculate timeElapsed?
 
@@ -117,13 +117,13 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			}
 			output = filterToolchangeCommands(result.Output)
 		} else if strings.HasPrefix(line.Raw, layerChangePrefix) ||
-			(currentLayer == 0 && line.IsLiftCommand()) {
+			(!moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint()) {
 			var layer int
 			var layerZ float64
 			var err error
-			if currentLayer == 0 && line.IsLiftCommand() {
+			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
 				layer = 0
-				layerZ = firstLayerHeight
+				layerZ = preflightResults.firstLayerZ
 			} else {
 				layer, layerZ, err = parseLayerChangePlaceholder(line.Raw)
 				if err != nil {
@@ -169,7 +169,10 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				}
 			}
 			output += EOL + ";END OF LAYER CHANGE SEQUENCE"
-			if currentLayer != 0 {
+			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
+				moveToFirstLayerPointSeen = true
+				output += EOL + line.Raw
+			} else {
 				nextLayerChangeIdx++
 			}
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
@@ -222,10 +225,6 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 		}
 		if inStartSequence {
 			return nil
-		}
-		if strings.HasPrefix(line.Comment, "HEIGHT:") && currentLayer == 0 {
-			firstLayerHeight, err = strconv.ParseFloat(strings.TrimPrefix(line.Comment, "HEIGHT:"), 64)
-
 		}
 		if _, err := writer.WriteString(output + EOL); err != nil {
 			return err
