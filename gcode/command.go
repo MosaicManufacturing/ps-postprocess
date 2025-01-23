@@ -52,6 +52,10 @@ func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
 }
 
+func (gcc Command) IsFanCommand() bool {
+	return gcc.Command == "M106" || gcc.Command == "M107"
+}
+
 func (gcc Command) IsEnableFanCommand() bool {
 	return gcc.Command == "M106"
 }
@@ -79,10 +83,6 @@ func (gcc Command) IsToolChange() (bool, int) {
 
 func (gcc Command) IsMoveToFirstLayerPoint() bool {
 	return gcc.Comment == "move to first layer point"
-}
-
-func (gcc Command) IsTurnOnFanCommand() bool {
-	return gcc.Command == "M106" && gcc.Comment == "enable fan"
 }
 
 func FormatFloat(value float64) string {

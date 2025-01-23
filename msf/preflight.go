@@ -325,7 +325,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.layerObjectEnds[results.totalLayers]++
 		} else if strings.HasPrefix(line.Comment, "printing object ") && len(results.layerObjectStarts) > 0 {
 			results.layerObjectStarts[results.totalLayers]++
-		} else if line.IsTurnOnFanCommand() {
+		} else if line.IsFanCommand() {
 			lastTurnOnFanCommand = lineNumber
 		}
 
