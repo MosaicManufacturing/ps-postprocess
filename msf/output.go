@@ -389,8 +389,9 @@ func _paletteOutput(
 		} else if line.Raw == ";START_OF_PRINT" {
 			state.PastStartSequence = true
 			return writeLine(writer, line.Raw)
-		} else if line.IsEnableFanCommand() && state.CurrentLayer == 0 {
-			// ensure the fan command is applied to the first layer of the tower
+		} else if lineNumber == preflight.lastTurnOnFanCommandBeforeLayerChange &&
+			preflight.lastTurnOnFanCommandBeforeLayerChange > 0 {
+			//  ensure fan activation for the next layer does not affect the current sparse tower layer
 			if palette.TransitionMethod == CustomTower {
 				if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
 					(state.CurrentLayer) == state.Tower.CurrentLayerIndex {

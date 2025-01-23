@@ -53,9 +53,10 @@ type msfPreflight struct {
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
 	// used for side transition custom scripts
-	transitionNextPositions []SideTransitionLookahead
-	timeEstimate            float32 // seconds
-	totalLayers             int
+	transitionNextPositions               []SideTransitionLookahead
+	timeEstimate                          float32 // seconds
+	totalLayers                           int
+	lastTurnOnFanCommandBeforeLayerChange int
 }
 
 func (mp *msfPreflight) totalDrivesUsed() int {
@@ -78,14 +79,15 @@ type SideTransitionLookahead struct {
 
 func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
 	results := msfPreflight{
-		drivesUsed:         make([]bool, palette.GetInputCount()),
-		pingStarts:         make([]float32, 0),
-		boundingBox:        gcode.NewBoundingBox(),
-		towerBoundingBox:   gcode.NewBoundingBox(),
-		printSummaryStart:  -1,
-		totalLayers:        -1,
-		transitionsByLayer: make(map[int][]Transition),
-		transitions:        make([]Transition, 0),
+		drivesUsed:                            make([]bool, palette.GetInputCount()),
+		pingStarts:                            make([]float32, 0),
+		boundingBox:                           gcode.NewBoundingBox(),
+		towerBoundingBox:                      gcode.NewBoundingBox(),
+		printSummaryStart:                     -1,
+		totalLayers:                           -1,
+		transitionsByLayer:                    make(map[int][]Transition),
+		transitions:                           make([]Transition, 0),
+		lastTurnOnFanCommandBeforeLayerChange: -1,
 	}
 
 	// initialize state
@@ -103,6 +105,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 
 	// calculate available infill per transition
 	currentInfillStartE := float32(-1) // < 0 indicates not to use this value
+
+	lastTurnOnFanCommand := -1
 
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		state.E.TrackInstruction(line)
@@ -271,6 +275,10 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.layerThicknesses = append(results.layerThicknesses, 0)
 			results.layerObjectStarts = append(results.layerObjectStarts, 0)
 			results.layerObjectEnds = append(results.layerObjectEnds, 0)
+			if lastTurnOnFanCommand > 0 && lastTurnOnFanCommand == lineNumber-1 {
+				results.lastTurnOnFanCommandBeforeLayerChange = lastTurnOnFanCommand
+
+			}
 		} else if palette.TransitionMethod == CustomTower &&
 			strings.HasPrefix(line.Raw, ";Z:") {
 			if topZ, err := strconv.ParseFloat(line.Raw[3:], 64); err == nil {
@@ -317,6 +325,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.layerObjectEnds[results.totalLayers]++
 		} else if strings.HasPrefix(line.Comment, "printing object ") && len(results.layerObjectStarts) > 0 {
 			results.layerObjectStarts[results.totalLayers]++
+		} else if line.IsTurnOnFanCommand() {
+			lastTurnOnFanCommand = lineNumber
 		}
 
 		return nil
