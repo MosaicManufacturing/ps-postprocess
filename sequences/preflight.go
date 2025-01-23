@@ -133,10 +133,12 @@ func preflight(inpath string) (sequencesPreflight, error) {
 		} else if isToolChange, tool := line.IsToolChange(); isToolChange && results.firstToolIndex < 0 {
 			results.firstToolIndex = tool
 		} else if line.IsMoveToFirstLayerPoint() &&
-			line.Command == "G1" && line.Params["z"] > 0 &&
+			line.IsLinearMove() &&
 			!moveToFirstLayerPointSeen {
-			results.firstLayerZ = float64(line.Params["z"])
-			moveToFirstLayerPointSeen = true
+			if z, ok := line.Params["z"]; ok {
+				results.firstLayerZ = float64(z)
+				moveToFirstLayerPointSeen = true
+			}
 		}
 
 		if len(currentLookaheads) > 0 {
