@@ -389,8 +389,8 @@ func _paletteOutput(
 		} else if line.Raw == ";START_OF_PRINT" {
 			state.PastStartSequence = true
 			return writeLine(writer, line.Raw)
-		} else if lineNumber == preflight.lastTurnOnFanCommandBeforeLayerChange &&
-			preflight.lastTurnOnFanCommandBeforeLayerChange > 0 {
+		} else if lineNumber == preflight.lastFanOnLineBeforeLayerChange &&
+			preflight.lastFanOnLineBeforeLayerChange >= 0 {
 			//  ensure that fan activation happens after the sparse layer is inserted
 			if palette.TransitionMethod == CustomTower {
 				if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
@@ -421,7 +421,6 @@ func _paletteOutput(
 				}
 			}
 			return writeLine(writer, line.Raw)
-
 		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
 			upcomingSparseLayer = false
 			// insert deferred sparse layer now
