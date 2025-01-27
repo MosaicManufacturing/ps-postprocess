@@ -430,7 +430,7 @@ func _paletteOutput(
 			return insertNonDoubledSparseLayer()
 		} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
 			travelToFirstLayerPointSeen = false
-			return nil
+			return writeLine(writer, line.Raw)
 		} else if palette.TransitionMethod == TransitionTower &&
 			strings.HasPrefix(line.Comment, "TYPE:") {
 			if err := writeLine(writer, line.Raw); err != nil {

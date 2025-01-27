@@ -168,7 +168,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 					}
 				}
 			}
-			output += EOL + ";END OF LAYER CHANGE SEQUENCE"
+			output += EOL + endOfLayerChange
 			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
 				moveToFirstLayerPointSeen = true
 				output += EOL + line.Raw
