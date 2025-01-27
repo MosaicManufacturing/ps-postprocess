@@ -104,7 +104,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	// calculate available infill per transition
 	currentInfillStartE := float32(-1) // < 0 indicates not to use this value
 
-	lastTurnOnFanCommand := -1
+	lastFanCommandLine := -1
 
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		state.E.TrackInstruction(line)
@@ -271,8 +271,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.totalLayers++
 			results.layerTopZs = append(results.layerTopZs, 0)
 			results.layerThicknesses = append(results.layerThicknesses, 0)
-			if lastTurnOnFanCommand >= 0 && lastTurnOnFanCommand == lineNumber-1 {
-				results.lastFanOnLineBeforeLayerChange = lastTurnOnFanCommand
+			if lastFanCommandLine >= 0 && lastFanCommandLine == lineNumber-1 {
+				results.lastFanOnLineBeforeLayerChange = lastFanCommandLine
 			}
 		} else if palette.TransitionMethod == CustomTower &&
 			strings.HasPrefix(line.Raw, ";Z:") {
@@ -317,7 +317,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.timeEstimate = timeEstimate
 			results.printSummaryStart = lineNumber + 2
 		} else if line.IsFanCommand() {
-			lastTurnOnFanCommand = lineNumber
+			lastFanCommandLine = lineNumber
 		}
 
 		return nil
