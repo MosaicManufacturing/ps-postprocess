@@ -52,7 +52,7 @@ func _paletteOutput(
 	didFinalSplice := false             // used to prevent calling msfOut.AddLastSplice multiple times
 	upcomingSparseLayer := false        // used for special-case wipe sequence handling
 	upcomingDoubledSparseLayer := false // used for special-case layer change handling
-	movedAfterLayerChange := true
+	travelToFirstLayerPointSeen := false
 
 	insertNonDoubledSparseLayer := func() error {
 		if err := writeLine(writer, "; Sparse tower layer"); err != nil {
@@ -173,7 +173,7 @@ func _paletteOutput(
 			// and when print settings have been restored but before the first linear move
 			if upcomingDoubledSparseLayer &&
 				palette.TransitionMethod == CustomTower &&
-				!movedAfterLayerChange {
+				line.IsTravelToFirstLayerPoint() && !travelToFirstLayerPointSeen {
 				if !state.Tower.IsComplete() &&
 					state.CurrentLayer == state.Tower.CurrentLayerIndex &&
 					!state.Tower.CurrentLayerIsDense() {
@@ -189,7 +189,7 @@ func _paletteOutput(
 						return err
 					}
 				}
-				movedAfterLayerChange = true
+				travelToFirstLayerPointSeen = true
 			}
 
 			if err := writeLine(writer, line.Raw); err != nil {
@@ -426,7 +426,7 @@ func _paletteOutput(
 			// insert deferred sparse layer now
 			return insertNonDoubledSparseLayer()
 		} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
-			movedAfterLayerChange = false
+			travelToFirstLayerPointSeen = false
 			return nil
 		} else if palette.TransitionMethod == TransitionTower &&
 			strings.HasPrefix(line.Comment, "TYPE:") {

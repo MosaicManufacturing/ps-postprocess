@@ -4,9 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"os"
 	"strconv"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 const EOL = "\r\n"

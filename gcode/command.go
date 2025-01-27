@@ -85,6 +85,10 @@ func (gcc Command) IsMoveToFirstLayerPoint() bool {
 	return gcc.Comment == "move to first layer point"
 }
 
+func (gcc Command) IsTravelToFirstLayerPoint() bool {
+	return gcc.Comment == "travel to first layer point"
+}
+
 func FormatFloat(value float64) string {
 	// round to 5 decimal places first
 	value = math.Round(value*10e5) / 10e5
