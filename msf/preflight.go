@@ -51,10 +51,10 @@ type msfPreflight struct {
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
 	// used for side transition custom scripts
-	transitionNextPositions        []SideTransitionLookahead
-	timeEstimate                   float32 // seconds
-	totalLayers                    int
-	lastFanOnLineBeforeLayerChange int
+	transitionNextPositions             []SideTransitionLookahead
+	timeEstimate                        float32 // seconds
+	totalLayers                         int
+	lastFanCommandLineBeforeLayerChange int
 }
 
 func (mp *msfPreflight) totalDrivesUsed() int {
@@ -77,15 +77,15 @@ type SideTransitionLookahead struct {
 
 func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
 	results := msfPreflight{
-		drivesUsed:                     make([]bool, palette.GetInputCount()),
-		pingStarts:                     make([]float32, 0),
-		boundingBox:                    gcode.NewBoundingBox(),
-		towerBoundingBox:               gcode.NewBoundingBox(),
-		printSummaryStart:              -1,
-		totalLayers:                    -1,
-		transitionsByLayer:             make(map[int][]Transition),
-		transitions:                    make([]Transition, 0),
-		lastFanOnLineBeforeLayerChange: -1,
+		drivesUsed:                          make([]bool, palette.GetInputCount()),
+		pingStarts:                          make([]float32, 0),
+		boundingBox:                         gcode.NewBoundingBox(),
+		towerBoundingBox:                    gcode.NewBoundingBox(),
+		printSummaryStart:                   -1,
+		totalLayers:                         -1,
+		transitionsByLayer:                  make(map[int][]Transition),
+		transitions:                         make([]Transition, 0),
+		lastFanCommandLineBeforeLayerChange: -1,
 	}
 
 	// initialize state
@@ -272,7 +272,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.layerTopZs = append(results.layerTopZs, 0)
 			results.layerThicknesses = append(results.layerThicknesses, 0)
 			if lastFanCommandLine >= 0 && lastFanCommandLine == lineNumber-1 {
-				results.lastFanOnLineBeforeLayerChange = lastFanCommandLine
+				results.lastFanCommandLineBeforeLayerChange = lastFanCommandLine
 			}
 		} else if palette.TransitionMethod == CustomTower &&
 			strings.HasPrefix(line.Raw, ";Z:") {

@@ -389,8 +389,8 @@ func _paletteOutput(
 		} else if line.Raw == ";START_OF_PRINT" {
 			state.PastStartSequence = true
 			return writeLine(writer, line.Raw)
-		} else if lineNumber == preflight.lastFanOnLineBeforeLayerChange &&
-			preflight.lastFanOnLineBeforeLayerChange >= 0 {
+		} else if lineNumber == preflight.lastFanCommandLineBeforeLayerChange &&
+			preflight.lastFanCommandLineBeforeLayerChange >= 0 {
 			//  ensure that fan activation happens after the sparse layer is inserted
 			if palette.TransitionMethod == CustomTower {
 				if !state.Tower.IsComplete() && !state.Tower.CurrentLayerIsDense() &&
