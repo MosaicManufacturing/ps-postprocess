@@ -172,9 +172,8 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
 				moveToFirstLayerPointSeen = true
 				output += EOL + line.Raw
-			} else {
-				nextLayerChangeIdx++
 			}
+			nextLayerChangeIdx++
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
 			toTool, err := parseMaterialChangePlaceholder(line.Raw)
 			if err != nil {

@@ -138,6 +138,9 @@ func preflight(inpath string) (sequencesPreflight, error) {
 			if z, ok := line.Params["z"]; ok {
 				results.firstLayerZ = float64(z)
 				moveToFirstLayerPointSeen = true
+				// consider first seen "line.IsMoveToFirstLayerPoint()" as a layer change because
+				// we will insert a layer command before it
+				addLookahead(lookaheadLayerChange)
 			}
 		}
 
