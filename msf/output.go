@@ -422,6 +422,9 @@ func _paletteOutput(
 			}
 			return writeLine(writer, line.Raw)
 		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
+			if err := writeLine(writer, line.Raw); err != nil {
+				return err
+			}
 			upcomingSparseLayer = false
 			// insert deferred sparse layer now
 			return insertNonDoubledSparseLayer()
