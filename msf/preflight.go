@@ -47,8 +47,6 @@ type msfPreflight struct {
 	// used for postprocess-generated towers
 	layerTopZs         []float32            // printing height of each layer (i.e. the Z value of the top of these paths)
 	layerThicknesses   []float32            // thickness of each layer in mm (i.e. layerTopZs[n] - layerTopZs[n-1])
-	layerObjectStarts  []int                // number of "printing object" comments per layer
-	layerObjectEnds    []int                // number of "stop printing object" comments per layer
 	transitionsByLayer map[int][]Transition // array of Transition per layer
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
@@ -273,8 +271,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.totalLayers++
 			results.layerTopZs = append(results.layerTopZs, 0)
 			results.layerThicknesses = append(results.layerThicknesses, 0)
-			results.layerObjectStarts = append(results.layerObjectStarts, 0)
-			results.layerObjectEnds = append(results.layerObjectEnds, 0)
 			if lastTurnOnFanCommand >= 0 && lastTurnOnFanCommand == lineNumber-1 {
 				results.lastFanOnLineBeforeLayerChange = lastTurnOnFanCommand
 			}
@@ -320,10 +316,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			}
 			results.timeEstimate = timeEstimate
 			results.printSummaryStart = lineNumber + 2
-		} else if strings.HasPrefix(line.Comment, "stop printing object ") && len(results.layerObjectStarts) > 0 {
-			results.layerObjectEnds[results.totalLayers]++
-		} else if strings.HasPrefix(line.Comment, "printing object ") && len(results.layerObjectStarts) > 0 {
-			results.layerObjectStarts[results.totalLayers]++
 		} else if line.IsFanCommand() {
 			lastTurnOnFanCommand = lineNumber
 		}
