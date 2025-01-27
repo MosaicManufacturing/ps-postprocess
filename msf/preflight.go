@@ -277,7 +277,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.layerObjectEnds = append(results.layerObjectEnds, 0)
 			if lastTurnOnFanCommand >= 0 && lastTurnOnFanCommand == lineNumber-1 {
 				results.lastFanOnLineBeforeLayerChange = lastTurnOnFanCommand
-
 			}
 		} else if palette.TransitionMethod == CustomTower &&
 			strings.HasPrefix(line.Raw, ";Z:") {
