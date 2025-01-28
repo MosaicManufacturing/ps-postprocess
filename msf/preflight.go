@@ -47,15 +47,14 @@ type msfPreflight struct {
 	// used for postprocess-generated towers
 	layerTopZs         []float32            // printing height of each layer (i.e. the Z value of the top of these paths)
 	layerThicknesses   []float32            // thickness of each layer in mm (i.e. layerTopZs[n] - layerTopZs[n-1])
-	layerObjectStarts  []int                // number of "printing object" comments per layer
-	layerObjectEnds    []int                // number of "stop printing object" comments per layer
 	transitionsByLayer map[int][]Transition // array of Transition per layer
 	transitions        []Transition         // same data as transitionsByLayer but flattened into 1D
 
 	// used for side transition custom scripts
-	transitionNextPositions []SideTransitionLookahead
-	timeEstimate            float32 // seconds
-	totalLayers             int
+	transitionNextPositions             []SideTransitionLookahead
+	timeEstimate                        float32 // seconds
+	totalLayers                         int
+	lastFanCommandLineBeforeLayerChange int
 }
 
 func (mp *msfPreflight) totalDrivesUsed() int {
@@ -78,14 +77,15 @@ type SideTransitionLookahead struct {
 
 func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palette) (msfPreflight, error) {
 	results := msfPreflight{
-		drivesUsed:         make([]bool, palette.GetInputCount()),
-		pingStarts:         make([]float32, 0),
-		boundingBox:        gcode.NewBoundingBox(),
-		towerBoundingBox:   gcode.NewBoundingBox(),
-		printSummaryStart:  -1,
-		totalLayers:        -1,
-		transitionsByLayer: make(map[int][]Transition),
-		transitions:        make([]Transition, 0),
+		drivesUsed:                          make([]bool, palette.GetInputCount()),
+		pingStarts:                          make([]float32, 0),
+		boundingBox:                         gcode.NewBoundingBox(),
+		towerBoundingBox:                    gcode.NewBoundingBox(),
+		printSummaryStart:                   -1,
+		totalLayers:                         -1,
+		transitionsByLayer:                  make(map[int][]Transition),
+		transitions:                         make([]Transition, 0),
+		lastFanCommandLineBeforeLayerChange: -1,
 	}
 
 	// initialize state
@@ -103,6 +103,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 
 	// calculate available infill per transition
 	currentInfillStartE := float32(-1) // < 0 indicates not to use this value
+
+	lastFanCommandLine := -1
 
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		state.E.TrackInstruction(line)
@@ -269,8 +271,9 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			results.totalLayers++
 			results.layerTopZs = append(results.layerTopZs, 0)
 			results.layerThicknesses = append(results.layerThicknesses, 0)
-			results.layerObjectStarts = append(results.layerObjectStarts, 0)
-			results.layerObjectEnds = append(results.layerObjectEnds, 0)
+			if lastFanCommandLine >= 0 && lastFanCommandLine == lineNumber-1 {
+				results.lastFanCommandLineBeforeLayerChange = lastFanCommandLine
+			}
 		} else if palette.TransitionMethod == CustomTower &&
 			strings.HasPrefix(line.Raw, ";Z:") {
 			if topZ, err := strconv.ParseFloat(line.Raw[3:], 64); err == nil {
@@ -313,10 +316,8 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			}
 			results.timeEstimate = timeEstimate
 			results.printSummaryStart = lineNumber + 2
-		} else if strings.HasPrefix(line.Comment, "stop printing object ") {
-			results.layerObjectEnds[results.totalLayers]++
-		} else if strings.HasPrefix(line.Comment, "printing object ") {
-			results.layerObjectStarts[results.totalLayers]++
+		} else if line.IsFanCommand() {
+			lastFanCommandLine = lineNumber
 		}
 
 		return nil
@@ -340,15 +341,6 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			}
 			if results.layerTopZs[i] == 0 {
 				return results, fmt.Errorf("invariant violation: zero height at layer %d", i)
-			}
-			if results.layerObjectStarts[i] == 0 {
-				return results, fmt.Errorf("invariant violation: zero layer object starts at layer %d", i)
-			}
-			if results.layerObjectEnds[i] == 0 {
-				return results, fmt.Errorf("invariant violation: zero layer object ends at layer %d", i)
-			}
-			if results.layerObjectStarts[i] != results.layerObjectEnds[i] {
-				return results, fmt.Errorf("invariant violation: layer object count mismatch at layer %d", i)
 			}
 		}
 	}

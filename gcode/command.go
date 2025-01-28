@@ -52,6 +52,14 @@ func (gcc Command) IsSetPosition() bool {
 	return gcc.Command == "G92"
 }
 
+func (gcc Command) IsFanCommand() bool {
+	return gcc.Command == "M106" || gcc.Command == "M107"
+}
+
+func (gcc Command) IsEnableFanCommand() bool {
+	return gcc.Command == "M106"
+}
+
 func (gcc Command) IsToolChange() (bool, int) {
 	if gcc.Command == "M135" {
 		// Makerbot/Sailfish (e.g. M135 T0)
@@ -71,6 +79,14 @@ func (gcc Command) IsToolChange() (bool, int) {
 		return true, int(tool)
 	}
 	return false, -1
+}
+
+func (gcc Command) IsMoveToFirstLayerPoint() bool {
+	return gcc.Comment == "move to first layer point"
+}
+
+func (gcc Command) IsTravelToFirstLayerPoint() bool {
+	return gcc.Comment == "travel to first layer point"
 }
 
 func FormatFloat(value float64) string {

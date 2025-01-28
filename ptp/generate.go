@@ -12,9 +12,10 @@ import (
 
 type generatorState struct {
 	// used for all generation
-	currentTool int
-	currentE    float32
-	relativeE   bool
+	currentTool   int
+	currentLayerZ float32
+	currentE      float32
+	relativeE     bool
 
 	// only used for transition tower gradients
 	extrusionSoFar   float32 // cumulative over the transition
@@ -24,11 +25,13 @@ type generatorState struct {
 	transitionLength float32 // constant for entire transition
 	offset           float32 // constant for entire transition
 	target           float32 // constant for entire transition
+
 }
 
 func getStartingGeneratorState() generatorState {
 	return generatorState{
 		currentTool:      0,
+		currentLayerZ:    0,
 		currentE:         0,
 		relativeE:        false,
 		transitioning:    false,
@@ -291,9 +294,7 @@ func generateToolpath(argv []string) error {
 				if err != nil {
 					return err
 				}
-				if err = writer.LayerChange(float32(z)); err != nil {
-					return err
-				}
+				state.currentLayerZ = float32(z)
 				// TODO: do we need to explicitly also trigger a layer change at end sequence?
 			} else if IsPathTypeComment(line) {
 				// path type hints
@@ -335,6 +336,10 @@ func generateToolpath(argv []string) error {
 				state.lastTool = state.currentTool
 				state.currentTool = int(tool)
 				if err = writer.SetTool(state.currentTool); err != nil {
+					return err
+				}
+			} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
+				if err = writer.LayerChange(state.currentLayerZ); err != nil {
 					return err
 				}
 			}

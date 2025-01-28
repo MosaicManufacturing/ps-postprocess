@@ -1,8 +1,9 @@
 package sequences
 
 import (
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type lookaheadType int
@@ -28,6 +29,7 @@ type sequencesPreflight struct {
 	startSequenceNextPos  lookahead
 	layerChangeNextPos    []lookahead
 	materialChangeNextPos []lookahead
+	firstLayerZ           float64
 }
 
 func preflight(inpath string) (sequencesPreflight, error) {
@@ -39,6 +41,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
 	position := gcode.PositionTracker{}
 
 	currentLookaheads := make([]lookahead, 0)
+	moveToFirstLayerPointSeen := false
 
 	commitCurrentLookaheads := func() {
 		if len(currentLookaheads) == 0 {
@@ -129,6 +132,16 @@ func preflight(inpath string) (sequencesPreflight, error) {
 			return nil
 		} else if isToolChange, tool := line.IsToolChange(); isToolChange && results.firstToolIndex < 0 {
 			results.firstToolIndex = tool
+		} else if line.IsMoveToFirstLayerPoint() &&
+			line.IsLinearMove() &&
+			!moveToFirstLayerPointSeen {
+			if z, ok := line.Params["z"]; ok {
+				results.firstLayerZ = float64(z)
+				moveToFirstLayerPointSeen = true
+				// consider first seen "line.IsMoveToFirstLayerPoint()" as a layer change because
+				// we will insert a layer command before it
+				addLookahead(lookaheadLayerChange)
+			}
 		}
 
 		if len(currentLookaheads) > 0 {

@@ -11,13 +11,11 @@ type State struct {
 	Tower         *Tower
 	PingExtrusion float32 // stored to avoid re-calculating every time
 
-	CurrentLayer             int
-	CurrentLayerObject       int
-	CurrentLayerTotalObjects int
-	E                        gcode.ExtrusionTracker
-	XYZF                     gcode.PositionTracker
-	Temperature              gcode.TemperatureTracker
-	TimeEstimate             float32
+	CurrentLayer int
+	E            gcode.ExtrusionTracker
+	XYZF         gcode.PositionTracker
+	Temperature  gcode.TemperatureTracker
+	TimeEstimate float32
 
 	PastStartSequence          bool
 	FirstToolChange            bool // don't treat the first T command as a toolchange

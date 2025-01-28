@@ -10,6 +10,7 @@ const endOfStartPlaceholder = ";*/*/*/*/* ENDSTART SEQUENCE */*/*/*/*"
 const endPlaceholder = ";*/*/*/*/* END SEQUENCE */*/*/*/*"
 const layerChangePrefix = ";*/*/*/*/* LAYER CHANGE SEQUENCE ("
 const materialChangePrefix = ";*/*/*/*/* MATERIAL CHANGE SEQUENCE ("
+const endOfLayerChange = ";END OF LAYER CHANGE SEQUENCE"
 
 var layerChangeRegexp = regexp.MustCompile(";\\*/\\*/\\*/\\*/\\* LAYER CHANGE SEQUENCE \\((\\d+), (\\d+(?:\\.\\d+)?)\\) \\*/\\*/\\*/\\*/\\*")
 var materialChangeRegexp = regexp.MustCompile(";\\*/\\*/\\*/\\*/\\* MATERIAL CHANGE SEQUENCE \\((\\d+)\\) \\*/\\*/\\*/\\*/\\*")

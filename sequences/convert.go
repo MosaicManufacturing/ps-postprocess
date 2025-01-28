@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"mosaicmfg.com/ps-postprocess/gcode"
-	"mosaicmfg.com/ps-postprocess/printerscript"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
+	"mosaicmfg.com/ps-postprocess/printerscript"
 )
 
 const EOL = "\r\n"
@@ -53,6 +54,7 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 	nextLayerChangeIdx := 0
 	nextMaterialChangeIdx := 0
 	currentCoolingModuleDutyPercent := 0
+	moveToFirstLayerPointSeen := false
 
 	// todo: any way to cheaply calculate timeElapsed?
 
@@ -114,10 +116,19 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 				return err
 			}
 			output = filterToolchangeCommands(result.Output)
-		} else if strings.HasPrefix(line.Raw, layerChangePrefix) {
-			layer, layerZ, err := parseLayerChangePlaceholder(line.Raw)
-			if err != nil {
-				return err
+		} else if strings.HasPrefix(line.Raw, layerChangePrefix) ||
+			(!moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint()) {
+			var layer int
+			var layerZ float64
+			var err error
+			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
+				layer = 0
+				layerZ = preflightResults.firstLayerZ
+			} else {
+				layer, layerZ, err = parseLayerChangePlaceholder(line.Raw)
+				if err != nil {
+					return err
+				}
 			}
 			if scripts.LayerChange != nil {
 				currentLayer = layer
@@ -156,6 +167,11 @@ func convert(inpath, outpath string, scripts ParsedScripts, locals Locals) error
 						currentCoolingModuleDutyPercent = 0
 					}
 				}
+			}
+			output += EOL + endOfLayerChange
+			if !moveToFirstLayerPointSeen && line.IsMoveToFirstLayerPoint() {
+				moveToFirstLayerPointSeen = true
+				output += EOL + line.Raw
 			}
 			nextLayerChangeIdx++
 		} else if strings.HasPrefix(line.Raw, materialChangePrefix) {
