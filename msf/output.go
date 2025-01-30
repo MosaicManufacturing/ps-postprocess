@@ -53,6 +53,7 @@ func _paletteOutput(
 	upcomingSparseLayer := false        // used for special-case wipe sequence handling
 	upcomingDoubledSparseLayer := false // used for special-case layer change handling
 	travelToFirstLayerPointSeen := false
+	deferredFanCommandLineRaw := ""
 
 	insertNonDoubledSparseLayer := func() error {
 		if err := writeLine(writer, "; Sparse tower layer"); err != nil {
@@ -398,6 +399,11 @@ func _paletteOutput(
 					if palette.Wipe[state.CurrentTool] {
 						// need to look for ;WIPE_END
 						upcomingSparseLayer = true
+						// the wipe command for the current layer is added after the layer
+						// change by PrusaSlicer, so we need to delay the fan command
+						// until the wipe command and the sparse layer are inserted
+						deferredFanCommandLineRaw = line.Raw
+						return nil
 					} else {
 						// can start sparse layer immediately
 						insertNonDoubledSparseLayer()
@@ -422,12 +428,23 @@ func _paletteOutput(
 			}
 			return writeLine(writer, line.Raw)
 		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
+			// insert ;WIPE_END before the sparse layer
 			if err := writeLine(writer, line.Raw); err != nil {
 				return err
 			}
 			upcomingSparseLayer = false
 			// insert deferred sparse layer now
-			return insertNonDoubledSparseLayer()
+			if err := insertNonDoubledSparseLayer(); err != nil {
+				return err
+			}
+			// insert deferred fan command now
+			if deferredFanCommandLineRaw != "" {
+				if err := writeLine(writer, deferredFanCommandLineRaw); err != nil {
+					return err
+				}
+				deferredFanCommandLineRaw = ""
+			}
+			return nil
 		} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
 			travelToFirstLayerPointSeen = false
 			return writeLine(writer, line.Raw)
