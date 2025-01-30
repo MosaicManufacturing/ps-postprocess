@@ -428,6 +428,7 @@ func _paletteOutput(
 			}
 			return writeLine(writer, line.Raw)
 		} else if upcomingSparseLayer && line.Raw == ";WIPE_END" {
+			// insert ;WIPE_END before the sparse layer
 			if err := writeLine(writer, line.Raw); err != nil {
 				return err
 			}
@@ -443,6 +444,7 @@ func _paletteOutput(
 				}
 				deferredFanCommandLineRaw = ""
 			}
+			return nil
 		} else if line.Raw == ";END OF LAYER CHANGE SEQUENCE" {
 			travelToFirstLayerPointSeen = false
 			return writeLine(writer, line.Raw)
