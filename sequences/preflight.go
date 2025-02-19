@@ -133,7 +133,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
 		} else if isToolChange, tool := line.IsToolChange(); isToolChange && results.firstToolIndex < 0 {
 			results.firstToolIndex = tool
 		} else if line.IsMoveToFirstLayerPoint() &&
-			line.IsLinearMove() &&
+			line.IsLinearOrArcMove() &&
 			!moveToFirstLayerPointSeen {
 			if z, ok := line.Params["z"]; ok {
 				results.firstLayerZ = float64(z)
@@ -146,7 +146,7 @@ func preflight(inpath string) (sequencesPreflight, error) {
 
 		if len(currentLookaheads) > 0 {
 			// logic: keep applying Z changes, and commit when we see X and/or Y change
-			if line.IsLinearMove() {
+			if line.IsLinearOrArcMove() {
 				needsCommit := false
 				if z, ok := line.Params["z"]; ok {
 					for i := 0; i < len(currentLookaheads); i++ {

@@ -159,7 +159,7 @@ func generateToolpath(argv []string) error {
 			if e, ok := line.Params["e"]; ok {
 				state.currentE = e
 			}
-		} else if line.IsLinearMove() {
+		} else if line.IsLinearOrArcMove() {
 			isVisibleMove := false // either print line or travel line
 			isPrintMove := false   // specifically print line
 			x, y, z := writer.GetCurrentPosition()

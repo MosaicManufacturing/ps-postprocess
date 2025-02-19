@@ -6,7 +6,7 @@ import (
 )
 
 func getTimeEstimate(command gcode.Command, state *State) float32 {
-	if command.IsLinearMove() {
+	if command.IsLinearOrArcMove() {
 		feedrate := state.XYZF.CurrentFeedrate
 		if f, ok := command.Params["f"]; ok {
 			feedrate = f

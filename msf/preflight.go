@@ -109,7 +109,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		state.E.TrackInstruction(line)
 		state.XYZF.TrackInstruction(line)
-		if line.IsLinearMove() {
+		if line.IsLinearOrArcMove() {
 			if x, ok := line.Params["x"]; ok {
 				results.boundingBox.ExpandX(x)
 			}
