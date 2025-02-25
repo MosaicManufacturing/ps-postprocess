@@ -166,9 +166,10 @@ func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z floa
 		totalAngle = 2 * float32(math.Pi)
 	}
 
-	// use a fixed angular step
-	step := deg2rad(5)
-	numSegments := int(math.Ceil(float64(totalAngle / step)))
+	// Use dynamic segment count based on physical arc length
+	const targetSegmentLength = 1.0
+	arcLength := radius * totalAngle
+	numSegments := int(math.Ceil(float64(arcLength / targetSegmentLength)))
 	if numSegments < 1 {
 		numSegments = 1
 	}
