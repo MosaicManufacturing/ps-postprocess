@@ -3,6 +3,7 @@ package ptp
 import (
 	"errors"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -115,6 +116,91 @@ func parseArgvFloat32(arg string) (float32, error) {
 	}
 }
 
+func deg2rad(deg float32) float32 {
+	return deg * (math.Pi / 180.0)
+}
+
+func getLineLength(x1, y1, x2, y2 float32) float32 {
+	return float32(math.Sqrt(float64(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2))))
+}
+
+// normalize angles to [0, 2π)
+func normalizeAngle(angle float32) float32 {
+	twoPi := 2 * float32(math.Pi)
+	for angle < 0 {
+		angle += twoPi
+	}
+	for angle >= twoPi {
+		angle -= twoPi
+	}
+	return angle
+}
+
+// get a series of line segments approximating an arc move
+func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][2][3]float32 {
+	center := struct{ x, y float32 }{startX + i, startY + j}
+	radius := getLineLength(startX, startY, center.x, center.y)
+	startAngle := float32(math.Atan2(float64(startY-center.y), float64(startX-center.x)))
+	endAngle := float32(math.Atan2(float64(endY-center.y), float64(endX-center.x)))
+
+	startAngleNorm := normalizeAngle(startAngle)
+	endAngleNorm := normalizeAngle(endAngle)
+
+	var totalAngle float32
+	if clockwise {
+		// for clockwise (decreasing angle): ensure start > end
+		if startAngleNorm <= endAngleNorm {
+			startAngleNorm += 2 * float32(math.Pi)
+		}
+		totalAngle = startAngleNorm - endAngleNorm
+	} else {
+		// for counter-clockwise (increasing angle): ensure end > start
+		if endAngleNorm <= startAngleNorm {
+			endAngleNorm += 2 * float32(math.Pi)
+		}
+		totalAngle = endAngleNorm - startAngleNorm
+	}
+
+	// if angles are equal, interpret as a complete circle
+	if totalAngle == 0 {
+		totalAngle = 2 * float32(math.Pi)
+	}
+
+	// use a fixed angular step
+	step := deg2rad(5)
+	numSegments := int(math.Ceil(float64(totalAngle / step)))
+	if numSegments < 1 {
+		numSegments = 1
+	}
+
+	segments := make([][2][3]float32, 0, numSegments)
+
+	for seg := 1; seg <= numSegments; seg++ {
+		var currentAngle float32
+		if clockwise {
+			currentAngle = startAngleNorm - (totalAngle * float32(seg) / float32(numSegments))
+		} else {
+			currentAngle = startAngleNorm + (totalAngle * float32(seg) / float32(numSegments))
+		}
+		nextX := radius*float32(math.Cos(float64(currentAngle))) + center.x
+		nextY := radius*float32(math.Sin(float64(currentAngle))) + center.y
+
+		var prevX, prevY float32
+		if seg == 1 {
+			prevX, prevY = startX, startY
+		} else {
+			prevSegment := segments[seg-2]
+			prevX = prevSegment[1][0]
+			prevY = prevSegment[1][1]
+		}
+
+		segment := [2][3]float32{{prevX, prevY, z}, {nextX, nextY, z}}
+		segments = append(segments, segment)
+	}
+
+	return segments
+}
+
 func generateToolpath(argv []string) error {
 	argc := len(argv)
 
@@ -149,7 +235,7 @@ func generateToolpath(argv []string) error {
 	if err = writer.Initialize(); err != nil {
 		return err
 	}
-
+	seen := false
 	state := getStartingGeneratorState()
 	err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
 		if setExtrusionMode, relative := line.IsSetExtrusionMode(); setExtrusionMode {
@@ -159,7 +245,7 @@ func generateToolpath(argv []string) error {
 			if e, ok := line.Params["e"]; ok {
 				state.currentE = e
 			}
-		} else if line.IsLinearOrArcMove() {
+		} else if line.IsLinearMove() {
 			isVisibleMove := false // either print line or travel line
 			isPrintMove := false   // specifically print line
 			x, y, z := writer.GetCurrentPosition()
@@ -227,6 +313,48 @@ func generateToolpath(argv []string) error {
 					}
 				} else {
 					if err = writer.AddXYZTravelTo(x, y, z); err != nil {
+						return err
+					}
+				}
+			}
+		} else if line.IsArcMove() {
+			x, y, z := writer.GetCurrentPosition()
+			if lineX, ok := line.Params["x"]; ok {
+				x = lineX
+			}
+			if lineY, ok := line.Params["y"]; ok {
+				y = lineY
+			}
+			if lineZ, ok := line.Params["z"]; ok {
+				z = lineZ
+			}
+
+			i := float32(0)
+			j := float32(0)
+			if lineI, ok := line.Params["i"]; ok {
+				i = lineI
+			}
+			if lineJ, ok := line.Params["j"]; ok {
+				j = lineJ
+			}
+
+			currentX, currentY, _ := writer.GetCurrentPosition()
+			clockwise := line.Command == "G2"
+			segments := getArcMoveSegments(clockwise, currentX, currentY, x, y, i, j, z)
+			if !seen {
+				seen = true
+			}
+			if state.transitioning {
+				// TODO: Is this needed? transitions should never be arcs?
+				for _, segment := range segments {
+					t := state.getT()
+					if err = writer.AddXYZTransitionLineTo(segment[1][0], segment[1][1], segment[1][2], state.lastTool, t); err != nil {
+						return err
+					}
+				}
+			} else {
+				for _, segment := range segments {
+					if err = writer.AddXYZPrintLineTo(segment[1][0], segment[1][1], segment[1][2]); err != nil {
 						return err
 					}
 				}
