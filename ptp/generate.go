@@ -117,7 +117,7 @@ func parseArgvFloat32(arg string) (float32, error) {
 }
 
 func getLineLength(x1, y1, x2, y2 float32) float32 {
-	return float32(math.Sqrt(float64(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2))))
+	return float32(math.Sqrt(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2)))
 }
 
 // normalize angles to [0, 2π)
