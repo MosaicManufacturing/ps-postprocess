@@ -295,7 +295,6 @@ func generateToolpath(argv []string) error {
 			clockwise := line.Command == "G2"
 			segments := getArcMoveSegments(clockwise, currentX, currentY, x, y, i, j, z)
 			if state.transitioning {
-				// TODO: Is this needed? transitions should never be arcs?
 				for _, segment := range segments {
 					t := state.getT()
 					if err = writer.AddXYZTransitionLineTo(segment[0], segment[1], segment[2], state.lastTool, t); err != nil {
