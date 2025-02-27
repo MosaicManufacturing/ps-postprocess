@@ -123,7 +123,7 @@ func getLineLength(x1, y1, x2, y2 float32) float64 {
 }
 
 // get a series of line segments approximating an arc move
-func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][2][3]float32 {
+func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][3]float32 {
 	arc := ArcHelper(clockwise, startX, startY, endX, endY, i, j)
 	startAngleNorm := arc.startAngleNorm
 	radius := arc.Radius
@@ -137,7 +137,7 @@ func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z floa
 		numSegments = 1
 	}
 
-	segments := make([][2][3]float32, 0, numSegments)
+	segments := make([][3]float32, 0, numSegments)
 
 	for seg := 1; seg <= numSegments; seg++ {
 		var currentAngle float32
@@ -148,17 +148,7 @@ func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z floa
 		}
 		nextX := float32(radius*math.Cos(float64(currentAngle))) + center.x
 		nextY := float32(radius*math.Sin(float64(currentAngle))) + center.y
-
-		var prevX, prevY float32
-		if seg == 1 {
-			prevX, prevY = startX, startY
-		} else {
-			prevSegment := segments[seg-2]
-			prevX = prevSegment[1][0]
-			prevY = prevSegment[1][1]
-		}
-
-		segment := [2][3]float32{{prevX, prevY, z}, {nextX, nextY, z}}
+		segment := [3]float32{nextX, nextY, z}
 		segments = append(segments, segment)
 	}
 
@@ -308,13 +298,13 @@ func generateToolpath(argv []string) error {
 				// TODO: Is this needed? transitions should never be arcs?
 				for _, segment := range segments {
 					t := state.getT()
-					if err = writer.AddXYZTransitionLineTo(segment[1][0], segment[1][1], segment[1][2], state.lastTool, t); err != nil {
+					if err = writer.AddXYZTransitionLineTo(segment[0], segment[1], segment[2], state.lastTool, t); err != nil {
 						return err
 					}
 				}
 			} else {
 				for _, segment := range segments {
-					if err = writer.AddXYZPrintLineTo(segment[1][0], segment[1][1], segment[1][2]); err != nil {
+					if err = writer.AddXYZPrintLineTo(segment[0], segment[1], segment[2]); err != nil {
 						return err
 					}
 				}
