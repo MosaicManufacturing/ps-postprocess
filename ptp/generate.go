@@ -124,33 +124,11 @@ func getLineLength(x1, y1, x2, y2 float32) float64 {
 
 // get a series of line segments approximating an arc move
 func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][2][3]float32 {
-	center := struct{ x, y float32 }{startX + i, startY + j}
-	radius := getLineLength(startX, startY, center.x, center.y)
-	startAngle := math.Atan2(float64(startY-center.y), float64(startX-center.x))
-	endAngle := math.Atan2(float64(endY-center.y), float64(endX-center.x))
-
-	startAngleNorm := normalizeAngle(startAngle)
-	endAngleNorm := normalizeAngle(endAngle)
-
-	var totalAngle float64
-	if clockwise {
-		// for clockwise (decreasing angle): ensure start > end
-		if startAngleNorm <= endAngleNorm {
-			startAngleNorm += twoPi
-		}
-		totalAngle = startAngleNorm - endAngleNorm
-	} else {
-		// for counter-clockwise (increasing angle): ensure end > start
-		if endAngleNorm <= startAngleNorm {
-			endAngleNorm += twoPi
-		}
-		totalAngle = endAngleNorm - startAngleNorm
-	}
-
-	// if angles are equal, interpret as a complete circle
-	if totalAngle == 0 {
-		totalAngle = twoPi
-	}
+	arc := ArcHelper(clockwise, startX, startY, endX, endY, i, j)
+	startAngleNorm := arc.startAngleNorm
+	radius := arc.Radius
+	center := arc.center
+	totalAngle := arc.TotalAngle
 
 	// Use dynamic segment count based on physical arc length
 	arcLength := radius * totalAngle

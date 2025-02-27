@@ -150,6 +150,41 @@ func MaxFloat32(a, b float32) float32 {
 	return float32(math.Max(float64(a), float64(b)))
 }
 
+type ArcHelperResult struct {
+	startAngleNorm, endAngleNorm, TotalAngle, Radius float64
+	center                                           struct{ x, y float32 }
+}
+
+func ArcHelper(clockwise bool, startX, startY, endX, endY, i, j float32) ArcHelperResult {
+	center := struct{ x, y float32 }{startX + i, startY + j}
+	radius := getLineLength(startX, startY, center.x, center.y)
+	startAngle := math.Atan2(float64(startY-center.y), float64(startX-center.x))
+	endAngle := math.Atan2(float64(endY-center.y), float64(endX-center.x))
+	startAngleNorm := normalizeAngle(startAngle)
+	endAngleNorm := normalizeAngle(endAngle)
+	var totalAngle float64
+	if clockwise {
+		// for clockwise (decreasing angle): ensure start > end
+		if startAngleNorm <= endAngleNorm {
+			startAngleNorm += twoPi
+		}
+		totalAngle = startAngleNorm - endAngleNorm
+	} else {
+		// for counter-clockwise (increasing angle): ensure end > start
+		if endAngleNorm <= startAngleNorm {
+			endAngleNorm += twoPi
+		}
+		totalAngle = endAngleNorm - startAngleNorm
+	}
+	return ArcHelperResult{
+		startAngleNorm,
+		endAngleNorm,
+		totalAngle,
+		radius,
+		center,
+	}
+}
+
 const twoPi = 2 * (math.Pi)
 
 // normalize angles to [0, 2π)

@@ -7,10 +7,12 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"os"
 	"path"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
+	"mosaicmfg.com/ps-postprocess/ptp"
 )
 
 func roundTo(value float32, maxDecimalPlaces int) float32 {
@@ -67,10 +69,19 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
 	return float32(math.Sqrt(dx*dx + dy*dy))
 }
 
-func estimateMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
+func estimateLinerMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
 	lineLength := getLineLength(x1, y1, x2, y2)
 	mmPerS := feedrate / 60
 	return lineLength / mmPerS
+}
+
+func estimateArcMoveTime(startX, startY, endX, endY, i, j, feedrate float32) float32 {
+	arc := ptp.ArcHelper(false, startX, startY, endX, endY, i, j)
+	// Calculate the arc length
+	arcLength := float32(arc.TotalAngle * arc.Radius)
+	// Calculate the time
+	mmPerS := feedrate / 60
+	return arcLength / mmPerS
 }
 
 func estimateZMoveTime(z1, z2, feedrate float32) float32 {

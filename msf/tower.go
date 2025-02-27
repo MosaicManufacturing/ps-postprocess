@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+
 	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
@@ -560,7 +561,7 @@ func (t *Tower) moveToTower(state *State) (string, error) {
 	t.CurrentLayerCommandIndex++ // use up the command
 	sequence += travel.String() + EOL
 
-	state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, travel.Params["x"], travel.Params["y"], travel.Params["f"])
+	state.TimeEstimate += estimateLinerMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, travel.Params["x"], travel.Params["y"], travel.Params["f"])
 	state.XYZF.TrackInstruction(travel)
 
 	// z-lift down if needed
@@ -618,7 +619,7 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
 	currentY := state.XYZF.CurrentY
 	currentFeedrate := state.XYZF.CurrentFeedrate
 
-	state.TimeEstimate += estimateMoveTime(currentX, currentY, command.Params["x"], command.Params["y"], command.Params["f"])
+	state.TimeEstimate += estimateLinerMoveTime(currentX, currentY, command.Params["x"], command.Params["y"], command.Params["f"])
 	state.XYZF.TrackInstruction(command)
 	state.E.TrackInstruction(command)
 
