@@ -221,7 +221,6 @@ func generateToolpath(argv []string) error {
 	if err = writer.Initialize(); err != nil {
 		return err
 	}
-	seen := false
 	state := getStartingGeneratorState()
 	err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
 		if setExtrusionMode, relative := line.IsSetExtrusionMode(); setExtrusionMode {
@@ -327,9 +326,6 @@ func generateToolpath(argv []string) error {
 			currentX, currentY, _ := writer.GetCurrentPosition()
 			clockwise := line.Command == "G2"
 			segments := getArcMoveSegments(clockwise, currentX, currentY, x, y, i, j, z)
-			if !seen {
-				seen = true
-			}
 			if state.transitioning {
 				// TODO: Is this needed? transitions should never be arcs?
 				for _, segment := range segments {
