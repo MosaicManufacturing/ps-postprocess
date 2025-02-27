@@ -47,6 +47,9 @@ func getStartingGeneratorState() generatorState {
 
 var rePtpTowerComment = regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
 
+const twoPi = 2 * float32(math.Pi)
+const targetSegmentLength = 1.0
+
 func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
 	matches := rePtpTowerComment.FindStringSubmatch(comment)
 	if len(matches) < 5 {
@@ -122,7 +125,7 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
 
 // normalize angles to [0, 2π)
 func normalizeAngle(angle float32) float32 {
-	twoPi := 2 * float32(math.Pi)
+
 	for angle < 0 {
 		angle += twoPi
 	}
@@ -146,24 +149,23 @@ func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z floa
 	if clockwise {
 		// for clockwise (decreasing angle): ensure start > end
 		if startAngleNorm <= endAngleNorm {
-			startAngleNorm += 2 * float32(math.Pi)
+			startAngleNorm += twoPi
 		}
 		totalAngle = startAngleNorm - endAngleNorm
 	} else {
 		// for counter-clockwise (increasing angle): ensure end > start
 		if endAngleNorm <= startAngleNorm {
-			endAngleNorm += 2 * float32(math.Pi)
+			endAngleNorm += twoPi
 		}
 		totalAngle = endAngleNorm - startAngleNorm
 	}
 
 	// if angles are equal, interpret as a complete circle
 	if totalAngle == 0 {
-		totalAngle = 2 * float32(math.Pi)
+		totalAngle = twoPi
 	}
 
 	// Use dynamic segment count based on physical arc length
-	const targetSegmentLength = 1.0
 	arcLength := radius * totalAngle
 	numSegments := int(math.Ceil(float64(arcLength / targetSegmentLength)))
 	if numSegments < 1 {
