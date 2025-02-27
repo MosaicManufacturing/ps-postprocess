@@ -116,10 +116,6 @@ func parseArgvFloat32(arg string) (float32, error) {
 	}
 }
 
-func deg2rad(deg float32) float32 {
-	return deg * (math.Pi / 180.0)
-}
-
 func getLineLength(x1, y1, x2, y2 float32) float32 {
 	return float32(math.Sqrt(float64(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2))))
 }
