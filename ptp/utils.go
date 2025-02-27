@@ -149,3 +149,10 @@ func MinFloat32(a, b float32) float32 {
 func MaxFloat32(a, b float32) float32 {
 	return float32(math.Max(float64(a), float64(b)))
 }
+
+const twoPi = 2 * (math.Pi)
+
+// normalize angles to [0, 2π)
+func normalizeAngle(angle float64) float64 {
+	return float64(math.Mod(math.Mod(angle, twoPi)+twoPi, twoPi))
+}

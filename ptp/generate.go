@@ -47,7 +47,6 @@ func getStartingGeneratorState() generatorState {
 
 var rePtpTowerComment = regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
 
-const twoPi = 2 * float32(math.Pi)
 const targetSegmentLength = 1.0
 
 func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
@@ -119,33 +118,21 @@ func parseArgvFloat32(arg string) (float32, error) {
 	}
 }
 
-func getLineLength(x1, y1, x2, y2 float32) float32 {
-	return float32(math.Sqrt(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2)))
-}
-
-// normalize angles to [0, 2π)
-func normalizeAngle(angle float32) float32 {
-
-	for angle < 0 {
-		angle += twoPi
-	}
-	for angle >= twoPi {
-		angle -= twoPi
-	}
-	return angle
+func getLineLength(x1, y1, x2, y2 float32) float64 {
+	return math.Sqrt(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2))
 }
 
 // get a series of line segments approximating an arc move
 func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][2][3]float32 {
 	center := struct{ x, y float32 }{startX + i, startY + j}
 	radius := getLineLength(startX, startY, center.x, center.y)
-	startAngle := float32(math.Atan2(float64(startY-center.y), float64(startX-center.x)))
-	endAngle := float32(math.Atan2(float64(endY-center.y), float64(endX-center.x)))
+	startAngle := math.Atan2(float64(startY-center.y), float64(startX-center.x))
+	endAngle := math.Atan2(float64(endY-center.y), float64(endX-center.x))
 
 	startAngleNorm := normalizeAngle(startAngle)
 	endAngleNorm := normalizeAngle(endAngle)
 
-	var totalAngle float32
+	var totalAngle float64
 	if clockwise {
 		// for clockwise (decreasing angle): ensure start > end
 		if startAngleNorm <= endAngleNorm {
@@ -177,12 +164,12 @@ func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z floa
 	for seg := 1; seg <= numSegments; seg++ {
 		var currentAngle float32
 		if clockwise {
-			currentAngle = startAngleNorm - (totalAngle * float32(seg) / float32(numSegments))
+			currentAngle = float32(startAngleNorm - (totalAngle * float64(seg) / float64(numSegments)))
 		} else {
-			currentAngle = startAngleNorm + (totalAngle * float32(seg) / float32(numSegments))
+			currentAngle = float32(startAngleNorm + (totalAngle * float64(seg) / float64(numSegments)))
 		}
-		nextX := radius*float32(math.Cos(float64(currentAngle))) + center.x
-		nextY := radius*float32(math.Sin(float64(currentAngle))) + center.y
+		nextX := float32(radius*math.Cos(float64(currentAngle))) + center.x
+		nextY := float32(radius*math.Sin(float64(currentAngle))) + center.y
 
 		var prevX, prevY float32
 		if seg == 1 {
