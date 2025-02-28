@@ -185,9 +185,9 @@ func ArcHelper(clockwise bool, startX, startY, endX, endY, i, j float32) ArcHelp
 	}
 }
 
-const twoPi = 2 * (math.Pi)
+const twoPi = 2 * math.Pi
 
 // normalize angles to [0, 2π)
 func normalizeAngle(angle float64) float64 {
-	return float64(math.Mod(math.Mod(angle, twoPi)+twoPi, twoPi))
+	return math.Mod(math.Mod(angle, twoPi)+twoPi, twoPi)
 }

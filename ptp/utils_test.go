@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNormalizeAngle(t *testing.T) {
+func Test_normalizeAngle(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    float64

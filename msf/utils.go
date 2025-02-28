@@ -69,7 +69,7 @@ func getLineLength(x1, y1, x2, y2 float32) float32 {
 	return float32(math.Sqrt(dx*dx + dy*dy))
 }
 
-func estimateLinerMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
+func estimateLinearMoveTime(x1, y1, x2, y2, feedrate float32) float32 {
 	lineLength := getLineLength(x1, y1, x2, y2)
 	mmPerS := feedrate / 60
 	return lineLength / mmPerS

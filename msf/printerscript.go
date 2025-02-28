@@ -20,7 +20,7 @@ func getTimeEstimate(command gcode.Command, state *State) float32 {
 			nextY = y
 		}
 		if command.IsLinearMove() {
-			return estimateLinerMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, feedrate)
+			return estimateLinearMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, nextX, nextY, feedrate)
 		} else if command.IsArcMove() {
 			i := command.Params["i"]
 			j := command.Params["j"]
