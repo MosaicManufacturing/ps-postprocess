@@ -3,6 +3,7 @@ package ptp
 import (
 	"errors"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,6 +46,8 @@ func getStartingGeneratorState() generatorState {
 }
 
 var rePtpTowerComment = regexp.MustCompile("\\(purge=(.*),transition=(.*),offset=(.*),target=(.*)\\)")
+
+const targetSegmentLength = 1.0
 
 func parsePtpTowerComment(comment string) (error, float32, float32, float32, float32) {
 	matches := rePtpTowerComment.FindStringSubmatch(comment)
@@ -115,6 +118,43 @@ func parseArgvFloat32(arg string) (float32, error) {
 	}
 }
 
+func getLineLength(x1, y1, x2, y2 float32) float64 {
+	return math.Sqrt(math.Pow(float64(y2-y1), 2) + math.Pow(float64(x2-x1), 2))
+}
+
+// get a series of line segments approximating an arc move
+func getArcMoveSegments(clockwise bool, startX, startY, endX, endY, i, j, z float32) [][3]float32 {
+	arc := ArcHelper(clockwise, startX, startY, endX, endY, i, j)
+	startAngleNorm := arc.startAngleNorm
+	radius := arc.Radius
+	center := arc.center
+	totalAngle := arc.TotalAngle
+
+	// Use dynamic segment count based on physical arc length
+	arcLength := radius * totalAngle
+	numSegments := int(math.Ceil(float64(arcLength / targetSegmentLength)))
+	if numSegments < 1 {
+		numSegments = 1
+	}
+
+	segments := make([][3]float32, 0, numSegments)
+
+	for seg := 1; seg <= numSegments; seg++ {
+		var currentAngle float32
+		if clockwise {
+			currentAngle = float32(startAngleNorm - (totalAngle * float64(seg) / float64(numSegments)))
+		} else {
+			currentAngle = float32(startAngleNorm + (totalAngle * float64(seg) / float64(numSegments)))
+		}
+		nextX := float32(radius*math.Cos(float64(currentAngle))) + center.x
+		nextY := float32(radius*math.Sin(float64(currentAngle))) + center.y
+		segment := [3]float32{nextX, nextY, z}
+		segments = append(segments, segment)
+	}
+
+	return segments
+}
+
 func generateToolpath(argv []string) error {
 	argc := len(argv)
 
@@ -149,7 +189,6 @@ func generateToolpath(argv []string) error {
 	if err = writer.Initialize(); err != nil {
 		return err
 	}
-
 	state := getStartingGeneratorState()
 	err = gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
 		if setExtrusionMode, relative := line.IsSetExtrusionMode(); setExtrusionMode {
@@ -227,6 +266,44 @@ func generateToolpath(argv []string) error {
 					}
 				} else {
 					if err = writer.AddXYZTravelTo(x, y, z); err != nil {
+						return err
+					}
+				}
+			}
+		} else if line.IsArcMove() {
+			x, y, z := writer.GetCurrentPosition()
+			if lineX, ok := line.Params["x"]; ok {
+				x = lineX
+			}
+			if lineY, ok := line.Params["y"]; ok {
+				y = lineY
+			}
+			if lineZ, ok := line.Params["z"]; ok {
+				z = lineZ
+			}
+
+			i := float32(0)
+			j := float32(0)
+			if lineI, ok := line.Params["i"]; ok {
+				i = lineI
+			}
+			if lineJ, ok := line.Params["j"]; ok {
+				j = lineJ
+			}
+
+			currentX, currentY, _ := writer.GetCurrentPosition()
+			clockwise := line.Command == "G2"
+			segments := getArcMoveSegments(clockwise, currentX, currentY, x, y, i, j, z)
+			if state.transitioning {
+				for _, segment := range segments {
+					t := state.getT()
+					if err = writer.AddXYZTransitionLineTo(segment[0], segment[1], segment[2], state.lastTool, t); err != nil {
+						return err
+					}
+				}
+			} else {
+				for _, segment := range segments {
+					if err = writer.AddXYZPrintLineTo(segment[0], segment[1], segment[2]); err != nil {
 						return err
 					}
 				}

@@ -29,6 +29,10 @@ func NewCommand(raw, command, comment string, params Params, flags Flags) Comman
 	}
 }
 
+func (gcc Command) IsLinearOrArcMove() bool {
+	return gcc.IsLinearMove() || gcc.IsArcMove()
+}
+
 func (gcc Command) IsLinearMove() bool {
 	// slight optimization: G1 is much more common, so check for that first
 	return gcc.Command == "G1" || gcc.Command == "G0"

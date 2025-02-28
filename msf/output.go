@@ -120,7 +120,7 @@ func _paletteOutput(
 				return err
 			}
 		}
-		if upcomingDoubledSparseLayer && line.IsLinearMove() &&
+		if upcomingDoubledSparseLayer && line.IsLinearOrArcMove() &&
 			(line.Comment == "retract" || line.Comment == "lift Z") {
 			// filter out these commands as we've already included them as needed
 			return nil
@@ -128,7 +128,7 @@ func _paletteOutput(
 			line.Comment == "reset extrusion distance" {
 			// filter out these commands as we've already included them as needed
 			return nil
-		} else if line.IsLinearMove() && line.Comment == "retract" && state.E.LastExtrudeWasRetract {
+		} else if line.IsLinearOrArcMove() && line.Comment == "retract" && state.E.LastExtrudeWasRetract {
 			// avoid double-retraction after toolchange
 			return nil
 		} else if ptp.IsPathTypeComment(line) {
@@ -141,7 +141,7 @@ func _paletteOutput(
 			state.XYZF.TrackInstruction(line)
 			state.Temperature.TrackInstruction(line)
 		}
-		if state.NeedsPostTransitionZAdjust && line.IsLinearMove() {
+		if state.NeedsPostTransitionZAdjust && line.IsLinearOrArcMove() {
 			_, hasX := line.Params["x"]
 			_, hasY := line.Params["y"]
 			_, hasZ := line.Params["z"]
@@ -169,7 +169,7 @@ func _paletteOutput(
 			}
 		}
 
-		if line.IsLinearMove() {
+		if line.IsLinearOrArcMove() {
 			// handle doubled sparse layer by inserting it after layer change sequence,
 			// and when print settings have been restored but before the first linear move
 			if upcomingDoubledSparseLayer &&

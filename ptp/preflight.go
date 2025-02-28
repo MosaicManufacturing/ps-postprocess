@@ -2,9 +2,10 @@ package ptp
 
 import (
 	"math"
-	"mosaicmfg.com/ps-postprocess/gcode"
 	"strconv"
 	"strings"
+
+	"mosaicmfg.com/ps-postprocess/gcode"
 )
 
 type ptpPreflight struct {
@@ -26,7 +27,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 	currentFeedrate := float32(0)
 
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
-		if line.IsLinearMove() {
+		if line.IsLinearOrArcMove() {
 			// feedrates
 			if f, ok := line.Params["f"]; ok {
 				currentFeedrate = f

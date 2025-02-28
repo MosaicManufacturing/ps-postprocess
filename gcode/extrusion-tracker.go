@@ -15,7 +15,7 @@ func (et *ExtrusionTracker) TrackInstruction(instruction Command) {
 	if len(instruction.Command) == 0 {
 		return
 	}
-	if instruction.IsLinearMove() || instruction.IsArcMove() {
+	if instruction.IsLinearOrArcMove() {
 		if eValue, ok := instruction.Params["e"]; ok {
 			et.PreviousExtrusionValue = et.CurrentExtrusionValue
 			et.CurrentExtrusionValue = eValue

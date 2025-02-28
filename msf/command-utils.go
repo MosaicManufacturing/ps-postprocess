@@ -128,7 +128,7 @@ func getXYTravel(state *State, toX, toY, feedrate float32, comment string) strin
 			"f": feedrate,
 		},
 	}
-	state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
+	state.TimeEstimate += estimateLinearMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
 	state.XYZF.TrackInstruction(xyTravel)
 	return xyTravel.String() + EOL
 }
@@ -167,7 +167,7 @@ func getXYExtrusion(state *State, toX, toY, distance, feedrate float32) string {
 			"f": feedrate,
 		},
 	}
-	state.TimeEstimate += estimateMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
+	state.TimeEstimate += estimateLinearMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
 	state.XYZF.TrackInstruction(purge)
 	state.E.TrackInstruction(purge)
 	return purge.String() + EOL

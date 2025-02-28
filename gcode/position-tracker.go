@@ -11,7 +11,7 @@ func (pt *PositionTracker) TrackInstruction(instruction Command) {
 	if len(instruction.Command) == 0 {
 		return
 	}
-	if instruction.IsLinearMove() || instruction.IsArcMove() {
+	if instruction.IsLinearOrArcMove() {
 		if x, ok := instruction.Params["x"]; ok {
 			pt.CurrentX = x
 		}
