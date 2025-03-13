@@ -284,6 +284,10 @@ func _paletteOutput(
 						return err
 					}
 				} else if tool != state.CurrentTool && !palette.TreatAsSingleMaterial {
+					zLift := getZTravel(&state, state.XYZF.CurrentZ+state.Palette.ZLift[state.CurrentTool], "lift Z")
+					if err := writeLines(writer, zLift); err != nil {
+						return err
+					}
 					comment := fmt.Sprintf("; Printing with input %d", tool)
 					if err := writeLine(writer, comment); err != nil {
 						return err
