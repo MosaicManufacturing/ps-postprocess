@@ -53,6 +53,12 @@ func directionallyCollinear(ax, ay, az, bx, by, bz, cx, cy, cz float32) bool {
 }
 
 func floatsToHex(r, g, b float32) string {
+	// RGB values of (-1, -1, -1) are used as a special marker to indicate "any" color.
+	// When converting these values back to a hex code, we return the string "any"
+	// instead of attempting to create an invalid color code.
+	if r == -1 && g == -1 && b == -1 {
+		return "any"
+	}
 	rInt := uint8(r * 255)
 	gInt := uint8(g * 255)
 	bInt := uint8(b * 255)
