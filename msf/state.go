@@ -20,6 +20,8 @@ type State struct {
 	PastStartSequence          bool
 	FirstToolChange            bool // don't treat the first T command as a toolchange
 	CurrentTool                int
+	ToolChangeCount            int  // total number of tool changes seen
+	ToolChangeJustSeen         bool // track when a tool change has just occurred
 	CurrentlyTransitioning     bool
 	NeedsPostTransitionZAdjust bool
 	PostTransitionZ            float32

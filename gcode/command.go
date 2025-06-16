@@ -93,6 +93,23 @@ func (gcc Command) IsTravelToFirstLayerPoint() bool {
 	return gcc.Comment == "travel to first layer point"
 }
 
+func (gcc Command) IsUnretract() bool {
+	_, hasE := gcc.Params["e"]
+	_, hasX := gcc.Params["x"]
+	_, hasY := gcc.Params["y"]
+	_, hasZ := gcc.Params["z"]
+
+	// must be an E-only move
+	isEOnly := hasE && !hasX && !hasY && !hasZ
+
+	// comment must include the word 'unretract'
+	// note: Only matching the word "unretract" because comments can vary in format:
+	// e.g., "; unretract", "; or ; unretract"
+	hasUnretractComment := strings.Contains(strings.ToLower(gcc.Comment), "unretract")
+
+	return isEOnly && hasUnretractComment
+}
+
 func FormatFloat(value float64) string {
 	// round to 5 decimal places first
 	value = math.Round(value*10e5) / 10e5

@@ -170,6 +170,22 @@ func _paletteOutput(
 		}
 
 		if line.IsLinearOrArcMove() {
+			// check if this is an un-etract after a tool change and adjust the E value
+			if state.ToolChangeJustSeen && line.IsUnretract() &&
+				state.ToolChangeCount > 1 && // skip for the very first tool change
+				state.Palette.MaterialMeta[state.CurrentTool].ToolChangeRetractLength > 0 {
+				// unretract by ToolChangeRetractLength after tool change
+				eParam := line.Params["e"]
+				toolChangeRetractLength := state.Palette.MaterialMeta[state.CurrentTool].ToolChangeRetractLength
+				// replace only the E value in the command
+				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", toolChangeRetractLength))
+				state.ToolChangeJustSeen = false // reset the flag after use
+				if err := writeLine(writer, lineToWrite); err != nil {
+					return err
+				}
+				return nil
+			}
+
 			// handle doubled sparse layer by inserting it after layer change sequence,
 			// and when print settings have been restored but before the first linear move
 			if upcomingDoubledSparseLayer &&
@@ -196,6 +212,7 @@ func _paletteOutput(
 			if err := writeLine(writer, line.Raw); err != nil {
 				return err
 			}
+
 			if state.OnWipeTower && state.Palette.SupportsPings() {
 				// check for ping actions
 				if state.CurrentlyPinging {
@@ -260,6 +277,7 @@ func _paletteOutput(
 		} else if upcomingDoubledSparseLayer && line.IsSetPosition() {
 			return nil
 		} else if isToolChange, tool := line.IsToolChange(); isToolChange {
+			state.ToolChangeCount++
 			if state.PastStartSequence {
 				if state.FirstToolChange {
 					state.FirstToolChange = false
@@ -280,6 +298,7 @@ func _paletteOutput(
 						return err
 					}
 					state.CurrentTool = tool
+					state.ToolChangeJustSeen = true
 					if err := writeLine(writer, fmt.Sprintf("; Printing with input %d", state.CurrentTool)); err != nil {
 						return err
 					}
@@ -303,6 +322,7 @@ func _paletteOutput(
 							return err
 						}
 						state.CurrentTool = tool
+						state.ToolChangeJustSeen = true
 					} else {
 						if palette.TransitionMethod == CustomTower {
 							if err := writeLine(writer, "; Dense tower segment"); err != nil {
@@ -333,6 +353,7 @@ func _paletteOutput(
 								return err
 							}
 							state.CurrentTool = tool
+							state.ToolChangeJustSeen = true
 							state.CurrentlyTransitioning = true
 							ptpComment := getPtpStartComment(
 								ptpPurgeLength,
@@ -371,6 +392,7 @@ func _paletteOutput(
 								return err
 							}
 							state.CurrentTool = tool
+							state.ToolChangeJustSeen = true
 							state.CurrentlyTransitioning = true
 							if palette.TransitionMethod == SideTransitions {
 								transition, err := sideTransition(currentPurgeLength, &state)
