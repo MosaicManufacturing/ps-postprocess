@@ -170,15 +170,20 @@ func _paletteOutput(
 		}
 
 		if line.IsLinearOrArcMove() {
-			// check if this is an un-etract after a tool change and adjust the E value
-			if state.ToolChangeJustSeen && line.IsUnretract() &&
-				state.ToolChangeCount > 1 && // skip for the very first tool change
-				state.Palette.MaterialMeta[state.CurrentTool].ToolChangeRetractLength > 0 {
+			// check if this is an unretract after a tool change and adjust the E value
+			if state.ToolChangeJustSeen && line.IsUnretract() && state.ToolChangeCount > 1 {
+				var postToolChangeUnretract float32
+				if palette.Type == TypeElement && state.Palette.MaterialMeta[state.CurrentTool].RetractDistance > 0 {
+					// use material's desnifier's retract length for element
+					postToolChangeUnretract = state.Palette.MaterialMeta[state.CurrentTool].RetractDistance
+				} else {
+					// retract by project's retract length
+					postToolChangeUnretract = state.Palette.RetractDistance[state.CurrentTool]
+				}
 				// unretract by ToolChangeRetractLength after tool change
 				eParam := line.Params["e"]
-				toolChangeRetractLength := state.Palette.MaterialMeta[state.CurrentTool].ToolChangeRetractLength
 				// replace only the E value in the command
-				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", toolChangeRetractLength))
+				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", postToolChangeUnretract))
 				state.ToolChangeJustSeen = false // reset the flag after use
 				if err := writeLine(writer, lineToWrite); err != nil {
 					return err
