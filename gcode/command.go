@@ -104,7 +104,7 @@ func (gcc Command) IsUnretract() bool {
 
 	// comment must include the word 'unretract'
 	// note: Only matching the word "unretract" because comments can vary in format:
-	// e.g., "; unretract", "; or ; unretract"
+	// e.g., "; unretract", or "; ; unretract"
 	hasUnretractComment := strings.Contains(strings.ToLower(gcc.Comment), "unretract")
 
 	return isEOnly && hasUnretractComment
