@@ -174,10 +174,10 @@ func _paletteOutput(
 			if state.ToolChangeJustSeen && line.IsUnretract() && state.ToolChangeCount > 1 {
 				var postToolChangeUnretract float32
 				if palette.Type == TypeElement && state.Palette.MaterialMeta[state.CurrentTool].RetractDistance > 0 {
-					// use material's desnifier's retract length for element
+					// use material's densifier's retract length for element
 					postToolChangeUnretract = state.Palette.MaterialMeta[state.CurrentTool].RetractDistance
 				} else {
-					// retract by project's retract length
+					// unretract by project's retract length
 					postToolChangeUnretract = state.Palette.RetractDistance[state.CurrentTool]
 				}
 				// unretract by ToolChangeRetractLength after tool change
