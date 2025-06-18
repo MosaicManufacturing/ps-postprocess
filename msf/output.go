@@ -184,10 +184,7 @@ func _paletteOutput(
 				eParam := line.Params["e"]
 				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", postToolChangeUnretract))
 				state.ToolChangeJustSeen = false // reset the flag after use
-				if err := writeLine(writer, lineToWrite); err != nil {
-					return err
-				}
-				return nil
+				return writeLine(writer, lineToWrite)
 			}
 
 			// handle doubled sparse layer by inserting it after layer change sequence,
