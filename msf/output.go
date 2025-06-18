@@ -216,7 +216,6 @@ func _paletteOutput(
 			if err := writeLine(writer, line.Raw); err != nil {
 				return err
 			}
-
 			if state.OnWipeTower && state.Palette.SupportsPings() {
 				// check for ping actions
 				if state.CurrentlyPinging {
