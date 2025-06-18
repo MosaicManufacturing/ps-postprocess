@@ -11,12 +11,12 @@ import (
 )
 
 type Material struct {
-	ID              string  `json:"id"`
-	Index           int     `json:"index"`
-	FilamentID      int     `json:"filamentId"`
-	Name            string  `json:"name"`
-	Color           string  `json:"color"`
-	RetractDistance float32 `json:"retractDistance"`
+	ID                       string  `json:"id"`
+	Index                    int     `json:"index"`
+	FilamentID               int     `json:"filamentId"`
+	Name                     string  `json:"name"`
+	Color                    string  `json:"color"`
+	DensifierRetractDistance float32 `json:"densifierRetractDistance"`
 }
 
 type SpliceSettings struct {
