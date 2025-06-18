@@ -180,9 +180,8 @@ func _paletteOutput(
 					// unretract by project's retract length
 					postToolChangeUnretract = state.Palette.RetractDistance[state.CurrentTool]
 				}
-				// unretract by ToolChangeRetractLength after tool change
-				eParam := line.Params["e"]
 				// replace only the E value in the command
+				eParam := line.Params["e"]
 				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", postToolChangeUnretract))
 				state.ToolChangeJustSeen = false // reset the flag after use
 				if err := writeLine(writer, lineToWrite); err != nil {
