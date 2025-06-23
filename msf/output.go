@@ -137,9 +137,13 @@ func _paletteOutput(
 			state.CurrentWidthLine = line.Raw
 		} else {
 			// update state
-			state.E.TrackInstruction(line)
-			state.XYZF.TrackInstruction(line)
-			state.Temperature.TrackInstruction(line)
+			// Skip tracking for unretract commands after tool changes that will be replaced
+			skipTracking := state.ToolChangeJustSeen && line.IsUnretract() && state.ToolChangeCount > 1
+			if !skipTracking {
+				state.E.TrackInstruction(line)
+				state.XYZF.TrackInstruction(line)
+				state.Temperature.TrackInstruction(line)
+			}
 		}
 		if state.NeedsPostTransitionZAdjust && line.IsLinearOrArcMove() {
 			_, hasX := line.Params["x"]
@@ -172,17 +176,25 @@ func _paletteOutput(
 		if line.IsLinearOrArcMove() {
 			// check if this is an unretract after a tool change and adjust the E value
 			if state.ToolChangeJustSeen && line.IsUnretract() && state.ToolChangeCount > 1 {
-				var postToolChangeUnretract float32
-				if palette.Type == TypeElement && state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractDistance > 0 {
+				var postToolChangeUnretractLen float32
+				var postToolChangeUnretractSpeed float32
+				densifierDistance := state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractDistance
+				densifierSpeed := state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractSpeed
+					densifierDistance != nil && *densifierDistance > 0 {
 					// use material's densifier's retract length for element
-					postToolChangeUnretract = state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractDistance
+					postToolChangeUnretractLen = *densifierDistance
+					if densifierSpeed != nil && *densifierSpeed > 0 {
+						postToolChangeUnretractSpeed = *densifierSpeed
+					} else {
+						postToolChangeUnretractSpeed = state.Palette.RestartFeedrate[state.CurrentTool]
+					}
 				} else {
 					// unretract by project's retract length
-					postToolChangeUnretract = state.Palette.RetractDistance[state.CurrentTool]
+					postToolChangeUnretractLen = state.Palette.RetractDistance[state.CurrentTool]
+					postToolChangeUnretractSpeed = state.Palette.RestartFeedrate[state.CurrentTool]
 				}
-				// replace only the E value in the command
-				eParam := line.Params["e"]
-				lineToWrite := strings.ReplaceAll(line.Raw, fmt.Sprintf("E%g", eParam), fmt.Sprintf("E%g", postToolChangeUnretract))
+				// Use getRestart to generate proper unretract command with accurate state tracking
+				lineToWrite := getRestart(&state, postToolChangeUnretractLen, postToolChangeUnretractSpeed)
 				state.ToolChangeJustSeen = false // reset the flag after use
 				return writeLine(writer, lineToWrite)
 			}
