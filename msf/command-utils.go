@@ -66,12 +66,17 @@ func getRestart(state *State, distance, feedrate float32) string {
 	if !state.E.RelativeExtrusion {
 		eParam = state.E.CurrentExtrusionValue + distance
 	}
+
+	params := gcode.Params{
+		"e": eParam,
+	}
+	if feedrate != state.XYZF.CurrentFeedrate {
+		params["f"] = feedrate
+	}
+
 	restart := gcode.Command{
 		Command: "G1",
-		Params: map[string]float32{
-			"e": eParam,
-			"f": feedrate,
-		},
+		Params:  params,
 		Comment: "unretract",
 	}
 	state.TimeEstimate += estimatePurgeTime(distance, feedrate)
