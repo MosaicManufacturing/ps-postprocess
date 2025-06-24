@@ -180,18 +180,25 @@ func _paletteOutput(
 				var postToolChangeUnretractSpeed float32
 				densifierDistance := state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractDistance
 				densifierSpeed := state.Palette.MaterialMeta[state.CurrentTool].DensifierRetractSpeed
+				feedRateCurrLine, hasF := line.Params["f"]
+				if !hasF {
+					// If the original command has no feedrate, set to 0 so getRestart() won't include
+					// a feedrate parameter in the generated command (preserves original behavior)
+					feedRateCurrLine = 0
+				}
+				if palette.Type == TypeElement &&
 					densifierDistance != nil && *densifierDistance > 0 {
 					// use material's densifier's retract length for element
 					postToolChangeUnretractLen = *densifierDistance
 					if densifierSpeed != nil && *densifierSpeed > 0 {
 						postToolChangeUnretractSpeed = *densifierSpeed
 					} else {
-						postToolChangeUnretractSpeed = state.Palette.RestartFeedrate[state.CurrentTool]
+						postToolChangeUnretractSpeed = feedRateCurrLine
 					}
 				} else {
 					// unretract by project's retract length
 					postToolChangeUnretractLen = state.Palette.RetractDistance[state.CurrentTool]
-					postToolChangeUnretractSpeed = state.Palette.RestartFeedrate[state.CurrentTool]
+					postToolChangeUnretractSpeed = feedRateCurrLine
 				}
 				// Use getRestart to generate proper unretract command with accurate state tracking
 				lineToWrite := getRestart(&state, postToolChangeUnretractLen, postToolChangeUnretractSpeed)
