@@ -36,15 +36,12 @@ func getRetract(state *State, distance, feedrate float32) string {
 	if !state.E.RelativeExtrusion {
 		eParam = state.E.CurrentExtrusionValue - distance
 	}
-	params := map[string]float32{
-		"e": eParam,
-	}
-	if feedrate > 0 {
-		params["f"] = feedrate
-	}
 	retract := gcode.Command{
 		Command: "G1",
-		Params:  params,
+		Params: map[string]float32{
+			"e": eParam,
+			"f": feedrate,
+		},
 		Comment: "retract",
 	}
 	state.TimeEstimate += estimatePurgeTime(distance, feedrate)
@@ -69,15 +66,12 @@ func getRestart(state *State, distance, feedrate float32) string {
 	if !state.E.RelativeExtrusion {
 		eParam = state.E.CurrentExtrusionValue + distance
 	}
-	params := map[string]float32{
-		"e": eParam,
-	}
-	if feedrate > 0 {
-		params["f"] = feedrate
-	}
 	restart := gcode.Command{
 		Command: "G1",
-		Params:  params,
+		Params: map[string]float32{
+			"e": eParam,
+			"f": feedrate,
+		},
 		Comment: "unretract",
 	}
 	state.TimeEstimate += estimatePurgeTime(distance, feedrate)
@@ -147,15 +141,12 @@ func getPurge(state *State, distance, feedrate float32) string {
 	if !state.E.RelativeExtrusion {
 		eValue += state.E.CurrentExtrusionValue
 	}
-	params := map[string]float32{
-		"e": eValue,
-	}
-	if feedrate > 0 {
-		params["f"] = feedrate
-	}
 	purge := gcode.Command{
 		Command: "G1",
-		Params:  params,
+		Params: map[string]float32{
+			"e": eValue,
+			"f": feedrate,
+		},
 	}
 	state.TimeEstimate += estimatePurgeTime(distance, feedrate)
 	state.E.TrackInstruction(purge)
@@ -167,17 +158,14 @@ func getXYExtrusion(state *State, toX, toY, distance, feedrate float32) string {
 	if !state.E.RelativeExtrusion {
 		eValue += state.E.CurrentExtrusionValue
 	}
-	params := map[string]float32{
-		"x": toX,
-		"y": toY,
-		"e": eValue,
-	}
-	if feedrate > 0 {
-		params["f"] = feedrate
-	}
 	purge := gcode.Command{
 		Command: "G1",
-		Params:  params,
+		Params: map[string]float32{
+			"x": toX,
+			"y": toY,
+			"e": eValue,
+			"f": feedrate,
+		},
 	}
 	state.TimeEstimate += estimateLinearMoveTime(state.XYZF.CurrentX, state.XYZF.CurrentY, toX, toY, feedrate)
 	state.XYZF.TrackInstruction(purge)
