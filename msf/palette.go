@@ -16,6 +16,9 @@ type Material struct {
 	FilamentID int    `json:"filamentId"`
 	Name       string `json:"name"`
 	Color      string `json:"color"`
+	// densifier retraction values are only available for element
+	DensifierRetractDistance float32 `json:"densifierRetractDistance"`
+	DensifierRetractSpeed    float32 `json:"densifierRetractSpeed"`
 }
 
 type SpliceSettings struct {
