@@ -163,9 +163,14 @@ func (w *Writer) getPathTypeLegend() []legendEntry {
 func (w *Writer) getFeedrateLegend() []legendEntry {
 	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(feedratesSeen))
+	if len(feedratesSeen) == 0 {
+		return legend
+	}
 	if len(feedratesSeen) <= 6 {
+		minFeedrate := feedratesSeen[0]
+		maxFeedrate := feedratesSeen[len(feedratesSeen)-1]
 		for _, feedrate := range feedratesSeen {
-			t := (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
+			t := (feedrate - minFeedrate) / (maxFeedrate - minFeedrate)
 			r := lerp(feedrateColorMin[0], feedrateColorMax[0], t)
 			g := lerp(feedrateColorMin[1], feedrateColorMax[1], t)
 			b := lerp(feedrateColorMin[2], feedrateColorMax[2], t)
@@ -175,9 +180,11 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / 6))
+		minFeedrate := feedratesSeen[0]
+		maxFeedrate := feedratesSeen[len(feedratesSeen)-1]
+		step := float32(math.Round(float64(maxFeedrate-minFeedrate) / 6))
 		for i := 0; i < 6; i++ {
-			feedrate := (float32(i) * step) + w.minFeedrate
+			feedrate := (float32(i) * step) + minFeedrate
 			t := float32(i) / 5
 			r := lerp(feedrateColorMin[0], feedrateColorMax[0], t)
 			g := lerp(feedrateColorMin[1], feedrateColorMax[1], t)
@@ -188,7 +195,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 		legend = append(legend, legendEntry{
-			Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(w.maxFeedrate, maxDecimalsFeedrate)),
+			Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(maxFeedrate, maxDecimalsFeedrate)),
 			Color: floatsToHex(feedrateColorMax[0], feedrateColorMax[1], feedrateColorMax[2]),
 		})
 	}
