@@ -20,7 +20,7 @@ func trackCommands(lines []string) ExtrusionTracker {
 	return et
 }
 
-func expectTotalExtrusion(t *testing.T, et *ExtrusionTracker, totalExtrusion float32) {
+func expectTotalExtrusion(t *testing.T, et *ExtrusionTracker, totalExtrusion float64) {
 	if et.TotalExtrusion != totalExtrusion {
 		t.Logf("expected TotalExtrusion = %f, got %f", totalExtrusion, et.TotalExtrusion)
 		t.Fail()

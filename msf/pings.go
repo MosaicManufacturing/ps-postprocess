@@ -179,7 +179,7 @@ func doSideTransitionInPlaceAccessoryPing(state *State) (string, float32) {
 	state.TimeEstimate += float32(Ping1PauseLength / 1000)
 
 	// extrusion between pauses
-	pingStartExtrusion := state.E.TotalExtrusion
+	pingStartExtrusion := float32(state.E.TotalExtrusion)
 	purgeLength := state.PingExtrusion
 	sequence += getPurge(state, purgeLength, state.Palette.SideTransitionPurgeSpeed*60)
 
@@ -230,7 +230,7 @@ func doSideTransitionOnEdgeAccessoryPing(state *State) (string, float32) {
 	state.TimeEstimate += float32(Ping1PauseLength / 1000)
 
 	// extrusion between pauses
-	pingStartExtrusion := state.E.TotalExtrusion
+	pingStartExtrusion := float32(state.E.TotalExtrusion)
 	currentX := state.XYZF.CurrentX
 	currentY := state.XYZF.CurrentY
 	nextX := currentX
