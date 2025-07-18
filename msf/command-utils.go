@@ -34,7 +34,7 @@ func getRetract(state *State, distance, feedrate float32) string {
 
 	eParam := -distance
 	if !state.E.RelativeExtrusion {
-		eParam = state.E.CurrentExtrusionValue - distance
+		eParam = float32(state.E.CurrentExtrusionValue) - distance
 	}
 	retract := gcode.Command{
 		Command: "G1",
@@ -64,7 +64,7 @@ func getRestart(state *State, distance, feedrate float32) string {
 
 	eParam := distance
 	if !state.E.RelativeExtrusion {
-		eParam = state.E.CurrentExtrusionValue + distance
+		eParam = float32(state.E.CurrentExtrusionValue) + distance
 	}
 
 	params := gcode.Params{
@@ -144,7 +144,7 @@ func getPurge(state *State, distance, feedrate float32) string {
 	}
 	eValue := distance
 	if !state.E.RelativeExtrusion {
-		eValue += state.E.CurrentExtrusionValue
+		eValue += float32(state.E.CurrentExtrusionValue)
 	}
 	purge := gcode.Command{
 		Command: "G1",
@@ -161,7 +161,7 @@ func getPurge(state *State, distance, feedrate float32) string {
 func getXYExtrusion(state *State, toX, toY, distance, feedrate float32) string {
 	eValue := distance
 	if !state.E.RelativeExtrusion {
-		eValue += state.E.CurrentExtrusionValue
+		eValue += float32(state.E.CurrentExtrusionValue)
 	}
 	purge := gcode.Command{
 		Command: "G1",
