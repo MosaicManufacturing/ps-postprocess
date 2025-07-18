@@ -201,6 +201,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 						spliceOffset = transitionLength * (palette.TransitionTarget / 100)
 						purgeLength = transitionLength
 						spliceLength = float32(state.E.TotalExtrusion) + spliceOffset
+						// start by subtracting usable infill from splice and purge length
 						if currentInfillStartE >= 0 && palette.InfillTransitioning {
 							usableInfill = float32(state.E.TotalExtrusion) - currentInfillStartE
 							if usableInfill < 0 {
