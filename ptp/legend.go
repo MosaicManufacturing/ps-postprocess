@@ -164,7 +164,8 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 	// max feedrate first (top of legend)
 	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32SliceDescending)
 	legend := make([]legendEntry, 0, len(feedratesSeen))
-	if len(feedratesSeen) <= 6 {
+	const feedrateLegendSteps = 6
+	if len(feedratesSeen) <= feedrateLegendSteps {
 		for _, feedrate := range feedratesSeen {
 			t := (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
 			r := lerp(feedrateColorMin[0], feedrateColorMax[0], t)
@@ -176,7 +177,6 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 	} else {
-		const feedrateLegendSteps = 6
 		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / feedrateLegendSteps))
 		for i := 0; i <= feedrateLegendSteps; i++ {
 			feedrate := w.maxFeedrate - (float32(i) * step)
