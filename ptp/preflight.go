@@ -25,6 +25,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 	minLayerHeight := float32(math.Inf(1))
 	maxLayerHeight := float32(math.Inf(-1))
 	currentFeedrate := float32(0)
+	inWipe := false
 
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
 		if line.IsLinearOrArcMove() {
@@ -40,7 +41,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 				if _, ok := line.Params["y"]; ok {
 					hasMovement = true
 				}
-				if hasMovement {
+				if hasMovement && !inWipe {
 					if currentFeedrate < minFeedrate {
 						minFeedrate = currentFeedrate
 					}
@@ -89,6 +90,10 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 			if height32 > maxLayerHeight {
 				maxLayerHeight = height32
 			}
+		} else if line.Comment == "WIPE_START" {
+			inWipe = true
+		} else if line.Comment == "WIPE_END" {
+			inWipe = false
 		}
 		return nil
 	})
