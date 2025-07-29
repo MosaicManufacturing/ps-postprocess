@@ -508,13 +508,8 @@ func (w *Writer) writePathTypeColor(pathType PathType) error {
 
 func (w *Writer) writeFeedrateColor(feedrate float32) error {
 	t := float32(1)
-	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32Slice)
-	if len(feedratesSeen) > 0 {
-		minFeedrate := feedratesSeen[0]
-		maxFeedrate := feedratesSeen[len(feedratesSeen)-1]
-		if maxFeedrate > minFeedrate {
-			t = (feedrate - minFeedrate) / (maxFeedrate - minFeedrate)
-		}
+	if w.maxFeedrate > w.minFeedrate {
+		t = (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
 	}
 	if err := writeFloat32LE(w.writers["feedrateColor"], t); err != nil {
 		return err
@@ -534,13 +529,8 @@ func (w *Writer) writeFanSpeedColor(pwmValue int) error {
 
 func (w *Writer) writeTemperatureColor(temperature float32) error {
 	t := float32(1)
-	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32Slice)
-	if len(temperaturesSeen) > 0 {
-		minTemperature := temperaturesSeen[0]
-		maxTemperature := temperaturesSeen[len(temperaturesSeen)-1]
-		if maxTemperature > minTemperature {
-			t = (temperature - minTemperature) / (maxTemperature - minTemperature)
-		}
+	if w.maxTemperature > w.minTemperature {
+		t = (temperature - w.minTemperature) / (w.maxTemperature - w.minTemperature)
 	}
 	if err := writeFloat32LE(w.writers["temperatureColor"], t); err != nil {
 		return err
@@ -551,13 +541,8 @@ func (w *Writer) writeTemperatureColor(temperature float32) error {
 
 func (w *Writer) writeLayerHeightColor(layerHeight float32) error {
 	t := float32(1)
-	layerHeightsSeen := setToSlice(w.state.layerHeightsSeen, sortFloat32Slice)
-	if len(layerHeightsSeen) > 0 {
-		minLayerHeight := layerHeightsSeen[0]
-		maxLayerHeight := layerHeightsSeen[len(layerHeightsSeen)-1]
-		if maxLayerHeight > minLayerHeight {
-			t = (layerHeight - minLayerHeight) / (maxLayerHeight - minLayerHeight)
-		}
+	if w.maxLayerHeight > w.minLayerHeight {
+		t = (layerHeight - w.minLayerHeight) / (w.maxLayerHeight - w.minLayerHeight)
 	}
 	if err := writeFloat32LE(w.writers["layerHeightColor"], t); err != nil {
 		return err
