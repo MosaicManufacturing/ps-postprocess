@@ -176,10 +176,11 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / 6))
-		for i := 0; i < 6; i++ {
+		const feedrateLegendSteps = 6
+		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / feedrateLegendSteps))
+		for i := 0; i <= feedrateLegendSteps; i++ {
 			feedrate := w.maxFeedrate - (float32(i) * step)
-			t := float32(i) / 6
+			t := float32(i) / feedrateLegendSteps
 			r := lerp(feedrateColorMax[0], feedrateColorMin[0], t)
 			g := lerp(feedrateColorMax[1], feedrateColorMin[1], t)
 			b := lerp(feedrateColorMax[2], feedrateColorMin[2], t)
@@ -188,10 +189,6 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 				Color: floatsToHex(r, g, b),
 			})
 		}
-		legend = append(legend, legendEntry{
-			Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(w.minFeedrate, maxDecimalsFeedrate)),
-			Color: floatsToHex(feedrateColorMin[0], feedrateColorMin[1], feedrateColorMin[2]),
-		})
 	}
 	// de-duplicate legend entries with labels that are identical after rounding
 	return removeDuplicateLegendEntries(legend)
