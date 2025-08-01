@@ -25,9 +25,10 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 	minLayerHeight := float32(math.Inf(1))
 	maxLayerHeight := float32(math.Inf(-1))
 	currentFeedrate := float32(0)
-	inWipe := false
+	var et gcode.ExtrusionTracker
 
 	err := gcode.ReadByLine(inpath, func(line gcode.Command, _ int) error {
+		et.TrackInstruction(line)
 		if line.IsLinearOrArcMove() {
 			// feedrates
 			if f, ok := line.Params["f"]; ok {
@@ -41,7 +42,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 				if _, ok := line.Params["y"]; ok {
 					hasMovement = true
 				}
-				if hasMovement && !inWipe {
+				if hasMovement && !et.LastExtrudeWasRetract {
 					if currentFeedrate < minFeedrate {
 						minFeedrate = currentFeedrate
 					}
@@ -52,7 +53,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 			}
 		} else if line.Command == "M104" {
 			// temperatures
-			if temp, ok := line.Params["s"]; ok {
+			if temp, ok := line.Params["s"]; ok && temp > 0 {
 				if temp < minTemperature {
 					minTemperature = temp
 				}
@@ -62,7 +63,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 			}
 		} else if line.Command == "M109" {
 			// temperatures
-			if temp, ok := line.Params["s"]; ok {
+			if temp, ok := line.Params["s"]; ok && temp > 0 {
 				if temp < minTemperature {
 					minTemperature = temp
 				}
@@ -90,10 +91,6 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 			if height32 > maxLayerHeight {
 				maxLayerHeight = height32
 			}
-		} else if line.Comment == "WIPE_START" {
-			inWipe = true
-		} else if line.Comment == "WIPE_END" {
-			inWipe = false
 		}
 		return nil
 	})
