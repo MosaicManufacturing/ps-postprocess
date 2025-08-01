@@ -12,6 +12,7 @@ const (
 	maxDecimalsFanSpeed    = 0
 	maxDecimalsTemperature = 1
 	maxDecimalsLayerHeight = 4
+	legendSteps            = 7
 )
 
 type bufferData struct {
@@ -164,8 +165,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 	// max feedrate first (top of legend)
 	feedratesSeen := setToSlice(w.state.feedratesSeen, sortFloat32SliceDescending)
 	legend := make([]legendEntry, 0, len(feedratesSeen))
-	const feedrateLegendSteps = 6
-	if len(feedratesSeen) <= feedrateLegendSteps {
+	if len(feedratesSeen) <= legendSteps {
 		for _, feedrate := range feedratesSeen {
 			t := (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
 			r := lerp(feedrateColorMin[0], feedrateColorMax[0], t)
@@ -177,10 +177,16 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / feedrateLegendSteps))
-		for i := 0; i <= feedrateLegendSteps; i++ {
-			feedrate := w.maxFeedrate - (float32(i) * step)
-			t := float32(i) / feedrateLegendSteps
+		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / float64(legendSteps-1)))
+		for i := 0; i < legendSteps; i++ {
+			var feedrate float32
+			if i == legendSteps-1 {
+				// Ensure the last entry is exactly the minimum feedrate
+				feedrate = w.minFeedrate
+			} else {
+				feedrate = w.maxFeedrate - (float32(i) * step)
+			}
+			t := float32(i) / float32(legendSteps-1)
 			r := lerp(feedrateColorMax[0], feedrateColorMin[0], t)
 			g := lerp(feedrateColorMax[1], feedrateColorMin[1], t)
 			b := lerp(feedrateColorMax[2], feedrateColorMin[2], t)
@@ -255,7 +261,7 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 func (w *Writer) getTemperatureLegend() []legendEntry {
 	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32Slice)
 	legend := make([]legendEntry, 0, len(temperaturesSeen))
-	if len(temperaturesSeen) <= 6 {
+	if len(temperaturesSeen) <= legendSteps {
 		for _, temperature := range temperaturesSeen {
 			var r, g, b float32
 			if w.maxTemperature == w.minTemperature {
@@ -274,22 +280,24 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxTemperature-w.minTemperature) / 6))
-		for i := 0; i < 6; i++ {
-			temperature := (float32(i) * step) + w.minTemperature
-			t := float32(i) / 5
-			r := lerp(temperatureColorMin[0], temperatureColorMax[0], t)
-			g := lerp(temperatureColorMin[1], temperatureColorMax[1], t)
-			b := lerp(temperatureColorMin[2], temperatureColorMax[2], t)
+		step := float32(math.Round(float64(w.maxTemperature-w.minTemperature) / float64(legendSteps-1)))
+		for i := 0; i < legendSteps; i++ {
+			var temperature float32
+			if i == legendSteps-1 {
+				// Ensure the last entry is exactly the minimum temperature
+				temperature = w.minTemperature
+			} else {
+				temperature = w.maxTemperature - (float32(i) * step)
+			}
+			t := float32(i) / float32(legendSteps-1)
+			r := lerp(temperatureColorMax[0], temperatureColorMin[0], t)
+			g := lerp(temperatureColorMax[1], temperatureColorMin[1], t)
+			b := lerp(temperatureColorMax[2], temperatureColorMin[2], t)
 			legend = append(legend, legendEntry{
 				Label: fmt.Sprintf("%s °C", prepareFloatForJSON(temperature, maxDecimalsTemperature)),
 				Color: floatsToHex(r, g, b),
 			})
 		}
-		legend = append(legend, legendEntry{
-			Label: fmt.Sprintf("%s °C", prepareFloatForJSON(w.maxTemperature, maxDecimalsTemperature)),
-			Color: floatsToHex(temperatureColorMax[0], temperatureColorMax[1], temperatureColorMax[2]),
-		})
 	}
 	// de-duplicate legend entries with labels that are identical after rounding
 	return removeDuplicateLegendEntries(legend)
