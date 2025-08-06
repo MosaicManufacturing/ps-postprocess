@@ -70,7 +70,7 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 				if temp > maxTemperature {
 					maxTemperature = temp
 				}
-			} else if temp, ok = line.Params["r"]; ok {
+			} else if temp, ok = line.Params["r"]; ok && temp > 0 {
 				if temp < minTemperature {
 					minTemperature = temp
 				}
