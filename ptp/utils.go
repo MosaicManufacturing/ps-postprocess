@@ -65,12 +65,6 @@ func floatsToHex(r, g, b float32) string {
 	return fmt.Sprintf("#%02x%02x%02x", rInt, gInt, bInt)
 }
 
-func sortFloat32Slice(floats []float32) {
-	sort.Slice(floats, func(i, j int) bool {
-		return floats[i] < floats[j]
-	})
-}
-
 func sortFloat32SliceDescending(floats []float32) {
 	sort.Slice(floats, func(i, j int) bool {
 		return floats[i] > floats[j]
