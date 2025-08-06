@@ -12,7 +12,7 @@ const (
 	maxDecimalsFanSpeed    = 0
 	maxDecimalsTemperature = 1
 	maxDecimalsLayerHeight = 4
-	legendSteps            = 7
+	legendSteps            = 6
 )
 
 type bufferData struct {
@@ -177,16 +177,16 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / float64(legendSteps-1)))
-		for i := 0; i < legendSteps; i++ {
+		step := float32(math.Round(float64(w.maxFeedrate-w.minFeedrate) / float64(legendSteps)))
+		for i := 0; i <= legendSteps; i++ {
 			var feedrate float32
-			if i == legendSteps-1 {
-				// Ensure the last entry is exactly the minimum feedrate
+			if i == legendSteps {
+				// ensure the last entry is exactly the minimum feedrate
 				feedrate = w.minFeedrate
 			} else {
 				feedrate = w.maxFeedrate - (float32(i) * step)
 			}
-			t := float32(i) / float32(legendSteps-1)
+			t := float32(i) / float32(legendSteps)
 			r := lerp(feedrateColorMax[0], feedrateColorMin[0], t)
 			g := lerp(feedrateColorMax[1], feedrateColorMin[1], t)
 			b := lerp(feedrateColorMax[2], feedrateColorMin[2], t)
@@ -201,7 +201,7 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 }
 
 func (w *Writer) getFanSpeedLegend() []legendEntry {
-	fanSpeedsSeen := setToSlice(w.state.fanSpeedsSeen, sort.Ints)
+	fanSpeedsSeen := setToSlice(w.state.fanSpeedsSeen, sortIntSliceDescending)
 	legend := make([]legendEntry, 0, len(fanSpeedsSeen))
 	if len(fanSpeedsSeen) == 1 && fanSpeedsSeen[0] == 0 {
 		legend = append(legend, legendEntry{
@@ -223,9 +223,9 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 			Label: "On",
 			Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
 		})
-	} else if len(fanSpeedsSeen) <= 6 {
+	} else if len(fanSpeedsSeen) <= legendSteps {
 		for _, pwmValue := range fanSpeedsSeen {
-			t := float32(pwmValue) / 255
+			t := (float32(pwmValue) - w.minFanSpeed) / (w.maxFanSpeed - w.minFanSpeed)
 			percent := float32(math.Max(0, math.Min(100, math.Round(float64(pwmValue)*100)/255)))
 			r := lerp(fanColorMin[0], fanColorMax[0], t)
 			g := lerp(fanColorMin[1], fanColorMax[1], t)
@@ -236,30 +236,32 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(255 / 6))
-		for i := 0; i < 6; i++ {
-			pwmValue := float32(i) * step
-			t := float32(i) / 5
+		step := float32(math.Round(float64(w.maxFanSpeed-w.minFanSpeed) / float64(legendSteps)))
+		for i := 0; i <= legendSteps; i++ {
+			var pwmValue float32
+			if i == legendSteps {
+				// ensure the last entry is exactly the minimum fan speed
+				pwmValue = w.minFanSpeed
+			} else {
+				pwmValue = w.maxFanSpeed - float32(i)*step
+			}
+			t := float32(i) / float32(legendSteps)
 			percent := float32(math.Round(float64(pwmValue)*100*10/255) / 10)
-			r := lerp(fanColorMin[0], fanColorMax[0], t)
-			g := lerp(fanColorMin[1], fanColorMax[1], t)
-			b := lerp(fanColorMin[2], fanColorMax[2], t)
+			r := lerp(fanColorMax[0], fanColorMin[0], t)
+			g := lerp(fanColorMax[1], fanColorMin[1], t)
+			b := lerp(fanColorMax[2], fanColorMin[2], t)
 			legend = append(legend, legendEntry{
 				Label: fmt.Sprintf("%s%%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
 				Color: floatsToHex(r, g, b),
 			})
 		}
-		legend = append(legend, legendEntry{
-			Label: "100%",
-			Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
-		})
 	}
 	// de-duplicate legend entries with labels that are identical after rounding
 	return removeDuplicateLegendEntries(legend)
 }
 
 func (w *Writer) getTemperatureLegend() []legendEntry {
-	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32Slice)
+	temperaturesSeen := setToSlice(w.state.temperaturesSeen, sortFloat32SliceDescending)
 	legend := make([]legendEntry, 0, len(temperaturesSeen))
 	if len(temperaturesSeen) <= legendSteps {
 		for _, temperature := range temperaturesSeen {
@@ -280,16 +282,16 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxTemperature-w.minTemperature) / float64(legendSteps-1)))
-		for i := 0; i < legendSteps; i++ {
+		step := float32(math.Round(float64(w.maxTemperature-w.minTemperature) / float64(legendSteps)))
+		for i := 0; i <= legendSteps; i++ {
 			var temperature float32
-			if i == legendSteps-1 {
-				// Ensure the last entry is exactly the minimum temperature
+			if i == legendSteps {
+				// ensure the last entry is exactly the minimum temperature
 				temperature = w.minTemperature
 			} else {
 				temperature = w.maxTemperature - (float32(i) * step)
 			}
-			t := float32(i) / float32(legendSteps-1)
+			t := float32(i) / float32(legendSteps)
 			r := lerp(temperatureColorMax[0], temperatureColorMin[0], t)
 			g := lerp(temperatureColorMax[1], temperatureColorMin[1], t)
 			b := lerp(temperatureColorMax[2], temperatureColorMin[2], t)
@@ -304,7 +306,7 @@ func (w *Writer) getTemperatureLegend() []legendEntry {
 }
 
 func (w *Writer) getLayerHeightLegend() []legendEntry {
-	layerHeightsSeen := setToSlice(w.state.layerHeightsSeen, sortFloat32Slice)
+	layerHeightsSeen := setToSlice(w.state.layerHeightsSeen, sortFloat32SliceDescending)
 	legend := make([]legendEntry, 0, len(layerHeightsSeen))
 	if len(layerHeightsSeen) == 1 {
 		legend = []legendEntry{
@@ -313,7 +315,7 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
 				Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
 			},
 		}
-	} else if len(layerHeightsSeen) <= 6 {
+	} else if len(layerHeightsSeen) <= legendSteps {
 		for _, layerHeight := range layerHeightsSeen {
 			t := (layerHeight - w.minLayerHeight) / (w.maxLayerHeight - w.minLayerHeight)
 			r := lerp(layerHeightColorMin[0], layerHeightColorMax[0], t)
@@ -325,22 +327,24 @@ func (w *Writer) getLayerHeightLegend() []legendEntry {
 			})
 		}
 	} else {
-		step := float32(math.Round(float64(w.maxLayerHeight-w.minLayerHeight)*1000/6) / 1000)
-		for i := 0; i < 6; i++ {
-			layerHeight := (float32(i) * step) + w.minLayerHeight
-			t := float32(i) / 5
-			r := lerp(layerHeightColorMin[0], layerHeightColorMax[0], t)
-			g := lerp(layerHeightColorMin[1], layerHeightColorMax[1], t)
-			b := lerp(layerHeightColorMin[2], layerHeightColorMax[2], t)
+		step := float32(math.Round(float64(w.maxLayerHeight-w.minLayerHeight)*1000/float64(legendSteps)) / 1000)
+		for i := 0; i <= legendSteps; i++ {
+			var layerHeight float32
+			if i == legendSteps {
+				// ensure the last entry is exactly the smallest layer height value
+				layerHeight = w.minLayerHeight
+			} else {
+				layerHeight = w.maxLayerHeight - (float32(i) * step)
+			}
+			t := float32(i) / float32(legendSteps)
+			r := lerp(layerHeightColorMax[0], layerHeightColorMin[0], t)
+			g := lerp(layerHeightColorMax[1], layerHeightColorMin[1], t)
+			b := lerp(layerHeightColorMax[2], layerHeightColorMin[2], t)
 			legend = append(legend, legendEntry{
 				Label: fmt.Sprintf("%s mm", prepareFloatForJSON(layerHeight, maxDecimalsLayerHeight)),
 				Color: floatsToHex(r, g, b),
 			})
 		}
-		legend = append(legend, legendEntry{
-			Label: fmt.Sprintf("%s mm", prepareFloatForJSON(w.maxLayerHeight, maxDecimalsLayerHeight)),
-			Color: floatsToHex(layerHeightColorMax[0], layerHeightColorMax[1], layerHeightColorMax[2]),
-		})
 	}
 	// de-duplicate legend entries with labels that are identical after rounding
 	return removeDuplicateLegendEntries(legend)

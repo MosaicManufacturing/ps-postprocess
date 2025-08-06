@@ -94,6 +94,8 @@ type Writer struct {
 	maxTemperature float32
 	minLayerHeight float32
 	maxLayerHeight float32
+	minFanSpeed    float32
+	maxFanSpeed    float32
 
 	brimIsSkirt bool         // if true, PathTypeBrim will be referred to as Skirt
 	toolColors  [][3]float32 // array of [r, g, b] floats in range 0..1
@@ -206,6 +208,11 @@ func (w *Writer) SetTemperatureBounds(min, max float32) {
 	w.maxTemperature = max
 }
 
+func (w *Writer) SetFanSpeedBounds(min, max float32) {
+	w.minFanSpeed = min
+	w.maxFanSpeed = max
+}
+
 func (w *Writer) SetLayerHeightBounds(min, max float32) {
 	w.minLayerHeight = min
 	w.maxLayerHeight = max
@@ -217,6 +224,9 @@ func (w *Writer) Initialize() error {
 	}
 	if w.maxTemperature < w.minTemperature || w.minTemperature < 0 {
 		return errors.New("invalid temperature bounds for creating legend")
+	}
+	if w.maxFanSpeed < w.minFanSpeed || w.minFanSpeed < 0 || w.maxFanSpeed > 255 {
+		return errors.New("invalid fan speed bounds for creating legend")
 	}
 	if w.maxLayerHeight < w.minLayerHeight || w.minLayerHeight < 0 || w.maxLayerHeight <= 0 {
 		return errors.New("invalid layer height bounds for creating legend")
@@ -519,7 +529,10 @@ func (w *Writer) writeFeedrateColor(feedrate float32) error {
 }
 
 func (w *Writer) writeFanSpeedColor(pwmValue int) error {
-	t := float32(pwmValue) / 255
+	t := float32(1)
+	if w.maxFanSpeed > w.minFanSpeed {
+		t = (float32(pwmValue) - w.minFanSpeed) / (w.maxFanSpeed - w.minFanSpeed)
+	}
 	if err := writeFloat32LE(w.writers["fanSpeedColor"], t); err != nil {
 		return err
 	}

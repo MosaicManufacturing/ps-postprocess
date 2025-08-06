@@ -77,6 +77,12 @@ func sortFloat32SliceDescending(floats []float32) {
 	})
 }
 
+func sortIntSliceDescending(ints []int) {
+	sort.Slice(ints, func(i, j int) bool {
+		return ints[i] > ints[j]
+	})
+}
+
 func openForWrite(w *Writer, name string) error {
 	path, ok := w.paths[name]
 	if !ok {
