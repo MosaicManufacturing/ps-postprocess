@@ -571,7 +571,7 @@ func (t *Tower) moveToTower(state *State) (string, error) {
 
 	if state.E.CurrentRetraction < 0 {
 		// un-retract
-		sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+		sequence += getRestart(state, float32(state.E.CurrentRetraction), state.Palette.RestartFeedrate[state.CurrentTool])
 	} else if state.Palette.UseFirmwareRetraction {
 		sequence += getFirmwareRestart()
 	}
@@ -610,7 +610,7 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
 		if state.E.RelativeExtrusion {
 			command.Params["e"] = commandExtrusion
 		} else {
-			command.Params["e"] = state.E.CurrentExtrusionValue + commandExtrusion
+			command.Params["e"] = float32(state.E.CurrentExtrusionValue) + commandExtrusion
 		}
 	} else {
 		// travel command
@@ -637,7 +637,7 @@ func (t *Tower) getNextPath(state *State, printFeedrate float32) (string, float3
 
 func (t *Tower) isAccessoryPingStartConditionMet(state *State, segmentExtrusionSoFar, totalSegmentExtrusion float32) bool {
 	// have we extruded enough since the last ping to warrant starting the next one?
-	if state.E.TotalExtrusion < state.NextPingStart {
+	if state.E.TotalExtrusion < float64(state.NextPingStart) {
 		return false
 	}
 
@@ -655,11 +655,11 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
 	totalExtrusion := state.E.TotalExtrusion
 	sequence := ""
 	if state.Palette.ConnectedMode {
-		if totalExtrusion >= state.NextPingStart {
+		if totalExtrusion >= float64(state.NextPingStart) {
 			// connected pings
-			state.NextPingStart = totalExtrusion + PingMinSpacing
+			state.NextPingStart = float32(totalExtrusion + PingMinSpacing)
 			sequence += fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList)+1, EOL)
-			state.MSF.AddPing(totalExtrusion)
+			state.MSF.AddPing(float32(totalExtrusion))
 			sequence += state.Palette.ClearBufferCommand + EOL
 			sequence += state.MSF.GetConnectedPingLine()
 		}
@@ -668,8 +668,8 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
 			// start the accessory ping sequence
 			sequence += fmt.Sprintf("; Ping %d pause 1%s", len(state.MSF.PingList)+1, EOL)
 			sequence += getTowerPause(Ping1PauseLength, state)
-			state.CurrentPingStart = totalExtrusion
-			state.NextPingStart = totalExtrusion + PingMinSpacing
+			state.CurrentPingStart = float32(totalExtrusion)
+			state.NextPingStart = float32(totalExtrusion) + PingMinSpacing
 			state.CurrentlyPinging = true
 		}
 	}
@@ -678,15 +678,15 @@ func (t *Tower) checkTowerPingStart(state *State, segmentExtrusionSoFar, totalSe
 
 func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
 	totalExtrusion := state.E.TotalExtrusion
-	nextPingEnd := state.CurrentPingStart + state.PingExtrusion
+	nextPingEnd := float64(state.CurrentPingStart + state.PingExtrusion)
 	finish := force || totalExtrusion >= nextPingEnd
 	if !finish {
 		// tower segment is not finished, and we haven't extruded PingExtrusion yet,
 		// but we may be better off finishing the ping anyway
 		if t.CurrentLayerCommandIndex+1 < len(t.CurrentLayerPaths) {
 			nextPathExtrusion := t.CurrentLayerPaths[t.CurrentLayerCommandIndex+1].extrusion
-			if math.Abs(float64(nextPingEnd+0.5-totalExtrusion)) <
-				math.Abs(float64(totalExtrusion+nextPathExtrusion-nextPingEnd-0.5)) {
+			if math.Abs(float64(nextPingEnd)+0.5-totalExtrusion) <
+				math.Abs(totalExtrusion+float64(nextPathExtrusion)-float64(nextPingEnd)-0.5) {
 				// the next path would put us further from PingExtrusion (in absolute value)
 				// than we currently are -- finish the ping now to increase chance of detection
 				finish = true
@@ -698,7 +698,7 @@ func (t *Tower) checkTowerPingEnd(state *State, force bool) string {
 		// finish the accessory ping sequence
 		sequence += fmt.Sprintf("; Ping %d pause 2%s", len(state.MSF.PingList)+1, EOL)
 		sequence += getTowerPause(Ping2PauseLength, state)
-		state.MSF.AddPingWithExtrusion(state.CurrentPingStart, totalExtrusion-state.CurrentPingStart)
+		state.MSF.AddPingWithExtrusion(state.CurrentPingStart, float32(totalExtrusion)-state.CurrentPingStart)
 		state.LastPingStart = state.CurrentPingStart
 		state.NextPingStart = state.CurrentPingStart + PingMinSpacing
 		state.CurrentlyPinging = false
@@ -802,7 +802,7 @@ func (t *Tower) GetNextSegment(state *State, expectingDense bool) (string, error
 		}
 	}
 
-	currentRetraction := state.E.CurrentRetraction
+	currentRetraction := float32(state.E.CurrentRetraction)
 
 	sequence, err := t.moveToTower(state)
 	if err != nil {

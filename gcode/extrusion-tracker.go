@@ -2,12 +2,12 @@ package gcode
 
 type ExtrusionTracker struct {
 	RelativeExtrusion      bool    // true == relative, false == absolute
-	TotalExtrusion         float32 // total filament consumption -- never decreases
-	CurrentExtrusionValue  float32 // current position of the E axis
-	PreviousExtrusionValue float32 // last position of the E axis
+	TotalExtrusion         float64 // total filament consumption -- never decreases
+	CurrentExtrusionValue  float64 // current position of the E axis
+	PreviousExtrusionValue float64 // last position of the E axis
 	LastExtrudeWasRetract  bool    // true == last E movement was negative, false == positive E
-	LastRetractDistance    float32 // most recent E axis value of negative E
-	CurrentRetraction      float32 // current total retraction (negative, need this much positive E to be primed)
+	LastRetractDistance    float64 // most recent E axis value of negative E
+	CurrentRetraction      float64 // current total retraction (negative, need this much positive E to be primed)
 	LastCommandWasG92      bool    // true if the last E modification was a manual position being set
 }
 
@@ -17,42 +17,43 @@ func (et *ExtrusionTracker) TrackInstruction(instruction Command) {
 	}
 	if instruction.IsLinearOrArcMove() {
 		if eValue, ok := instruction.Params["e"]; ok {
+			eValue64 := float64(eValue)
 			et.PreviousExtrusionValue = et.CurrentExtrusionValue
-			et.CurrentExtrusionValue = eValue
+			et.CurrentExtrusionValue = eValue64
 			if et.RelativeExtrusion {
 				// relative extrusion
-				et.TotalExtrusion += eValue
+				et.TotalExtrusion += eValue64
 				if eValue < 0 {
 					// retraction
 					et.LastExtrudeWasRetract = true
-					et.LastRetractDistance = eValue
-					et.CurrentRetraction += eValue
+					et.LastRetractDistance = eValue64
+					et.CurrentRetraction += eValue64
 				} else if eValue > 0 {
 					et.LastExtrudeWasRetract = false
-					if et.CurrentRetraction+eValue >= 0 {
+					if et.CurrentRetraction+eValue64 >= 0 {
 						// normal extrusion
 						et.CurrentRetraction = 0
 					} else {
 						// restart
-						et.CurrentRetraction += eValue
+						et.CurrentRetraction += eValue64
 					}
 				}
 			} else {
 				// absolute extrusion
-				et.TotalExtrusion += eValue - et.PreviousExtrusionValue
+				et.TotalExtrusion += eValue64 - et.PreviousExtrusionValue
 				if et.CurrentExtrusionValue < et.PreviousExtrusionValue {
 					// retraction
 					et.LastExtrudeWasRetract = true
-					et.LastRetractDistance = eValue - et.PreviousExtrusionValue
+					et.LastRetractDistance = eValue64 - et.PreviousExtrusionValue
 					et.CurrentRetraction += et.LastRetractDistance
 				} else if et.CurrentExtrusionValue > et.PreviousExtrusionValue {
 					et.LastExtrudeWasRetract = false
-					if et.CurrentRetraction+(eValue-et.PreviousExtrusionValue) >= 0 {
+					if et.CurrentRetraction+(eValue64-et.PreviousExtrusionValue) >= 0 {
 						// normal extrusion
 						et.CurrentRetraction = 0
 					} else {
 						// restart
-						et.CurrentRetraction += eValue - et.PreviousExtrusionValue
+						et.CurrentRetraction += eValue64 - et.PreviousExtrusionValue
 					}
 				}
 			}
@@ -64,13 +65,13 @@ func (et *ExtrusionTracker) TrackInstruction(instruction Command) {
 		if hasParamsOrFlags {
 			if eValue, ok := instruction.Params["e"]; ok {
 				et.LastCommandWasG92 = true
-				et.CurrentExtrusionValue = eValue
+				et.CurrentExtrusionValue = float64(eValue)
 			} else if aValue, ok := instruction.Params["a"]; ok {
 				et.LastCommandWasG92 = true
-				et.CurrentExtrusionValue = aValue
+				et.CurrentExtrusionValue = float64(aValue)
 			} else if bValue, ok := instruction.Params["b"]; ok {
 				et.LastCommandWasG92 = true
-				et.CurrentExtrusionValue = bValue
+				et.CurrentExtrusionValue = float64(bValue)
 			}
 		} else {
 			et.LastCommandWasG92 = true

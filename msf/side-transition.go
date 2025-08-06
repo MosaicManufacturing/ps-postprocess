@@ -52,7 +52,7 @@ func moveToSideTransition(transitionLength float32, state *State, startX, startY
 
 	if state.E.CurrentRetraction < 0 {
 		// un-retract
-		sequence += getRestart(state, state.E.CurrentRetraction, state.Palette.RestartFeedrate[state.CurrentTool])
+		sequence += getRestart(state, float32(state.E.CurrentRetraction), state.Palette.RestartFeedrate[state.CurrentTool])
 	} else if state.Palette.UseFirmwareRetraction {
 		sequence += getFirmwareRestart()
 	}
@@ -114,7 +114,7 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 	if !state.Palette.SupportsPings() {
 		return false, "", 0
 	}
-	if state.E.TotalExtrusion < state.LastPingStart+PingMinSpacing {
+	if state.E.TotalExtrusion < float64(state.LastPingStart+PingMinSpacing) {
 		// not time for a ping yet
 		return false, "", 0
 	}
@@ -122,8 +122,8 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 	if state.Palette.ConnectedMode {
 		// connected pings can happen anywhere during the transition,
 		// even at the very end
-		state.MSF.AddPing(state.E.TotalExtrusion)
-		state.LastPingStart = state.E.TotalExtrusion
+		state.MSF.AddPing(float32(state.E.TotalExtrusion))
+		state.LastPingStart = float32(state.E.TotalExtrusion)
 		sequence := fmt.Sprintf("; Ping %d%s", len(state.MSF.PingList), EOL)
 		sequence += state.Palette.ClearBufferCommand + EOL
 		sequence += state.MSF.GetConnectedPingLine()
@@ -143,7 +143,7 @@ func checkSideTransitionPings(state *State) (bool, string, float32) {
 func sideTransitionInPlace(transitionLength float32, state *State) (string, error) {
 	transitionSoFar := float32(0)
 	startX, startY := getSideTransitionStartPosition(state)
-	currentRetraction := state.E.CurrentRetraction
+	currentRetraction := float32(state.E.CurrentRetraction)
 	sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
 	if err != nil {
 		return sequence, err
@@ -208,7 +208,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
 	}
 
 	// move to starting position
-	currentRetraction := state.E.CurrentRetraction
+	currentRetraction := float32(state.E.CurrentRetraction)
 	sequence, err := moveToSideTransition(transitionLength, state, nextX, nextY)
 	if err != nil {
 		return sequence, err
@@ -283,7 +283,7 @@ func sideTransitionOnEdge(transitionLength float32, state *State) (string, error
 
 func sideTransitionCustom(transitionLength float32, state *State) (string, error) {
 	startX, startY := getSideTransitionStartPosition(state)
-	currentRetraction := state.E.CurrentRetraction
+	currentRetraction := float32(state.E.CurrentRetraction)
 	sequence, err := moveToSideTransition(transitionLength, state, startX, startY)
 	if err != nil {
 		return sequence, err

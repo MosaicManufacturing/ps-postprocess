@@ -91,7 +91,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 	// initialize state
 	state := NewState(palette)
 	// account for a firmware purge (not part of G-code) once
-	state.E.TotalExtrusion += palette.FirmwarePurge
+	state.E.TotalExtrusion += float64(palette.FirmwarePurge)
 	// prepare to collect lookahead positions
 	transitionNextPosition := SideTransitionLookahead{}
 
@@ -161,21 +161,21 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					// check for ping actions
 					if state.CurrentlyPinging {
 						// currentlyPinging == true implies accessory mode
-						if state.E.TotalExtrusion >= state.CurrentPingStart+state.PingExtrusion {
+						if state.E.TotalExtrusion >= float64(state.CurrentPingStart+state.PingExtrusion) {
 							// commit to the accessory ping sequence
 							results.pingStarts = append(results.pingStarts, state.CurrentPingStart)
 							state.LastPingStart = state.CurrentPingStart
 							state.CurrentlyPinging = false
 						}
-					} else if state.E.TotalExtrusion >= state.LastPingStart+PingMinSpacing {
+					} else if state.E.TotalExtrusion >= float64(state.LastPingStart+PingMinSpacing) {
 						// attempt to start a ping sequence
 						//  - connected pings: guaranteed to finish
 						//  - accessory pings: may be "cancelled" if near the end of the transition
 						if palette.ConnectedMode {
-							results.pingStarts = append(results.pingStarts, state.E.TotalExtrusion)
-							state.LastPingStart = state.E.TotalExtrusion
+							results.pingStarts = append(results.pingStarts, float32(state.E.TotalExtrusion))
+							state.LastPingStart = float32(state.E.TotalExtrusion)
 						} else {
-							state.CurrentPingStart = state.E.TotalExtrusion
+							state.CurrentPingStart = float32(state.E.TotalExtrusion)
 							state.CurrentlyPinging = true
 						}
 					}
@@ -195,15 +195,15 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 					var usableInfill float32
 
 					if palette.Type == TypeElement {
-						spliceLength = state.E.TotalExtrusion
+						spliceLength = float32(state.E.TotalExtrusion)
 					} else {
 						transitionLength = palette.GetTransitionLength(tool, state.CurrentTool)
 						spliceOffset = transitionLength * (palette.TransitionTarget / 100)
 						purgeLength = transitionLength
-						spliceLength = state.E.TotalExtrusion + spliceOffset
+						spliceLength = float32(state.E.TotalExtrusion) + spliceOffset
 						// start by subtracting usable infill from splice and purge length
 						if currentInfillStartE >= 0 && palette.InfillTransitioning {
-							usableInfill = state.E.TotalExtrusion - currentInfillStartE
+							usableInfill = float32(state.E.TotalExtrusion) - currentInfillStartE
 							if usableInfill < 0 {
 								usableInfill = 0
 							}
@@ -238,7 +238,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 						Layer:            results.totalLayers,
 						From:             state.CurrentTool,
 						To:               tool,
-						TotalExtrusion:   state.E.TotalExtrusion,
+						TotalExtrusion:   float32(state.E.TotalExtrusion),
 						TransitionLength: transitionLength,
 						PurgeLength:      purgeLength,
 						UsableInfill:     usableInfill,
@@ -291,7 +291,7 @@ func _preflight(readerFn func(callback gcode.LineCallback) error, palette *Palet
 			strings.HasPrefix(line.Comment, "TYPE:") {
 			if line.Comment == "TYPE:Internal infill" {
 				// changed to infill -- initialize accumulated value
-				currentInfillStartE = state.E.TotalExtrusion
+				currentInfillStartE = float32(state.E.TotalExtrusion)
 			} else {
 				// changed to non-infill -- reset accumulated value
 				currentInfillStartE = -1

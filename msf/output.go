@@ -32,7 +32,7 @@ func _paletteOutput(
 
 	state.Locals = locals
 	// account for a firmware purge (not part of G-code) once
-	state.E.TotalExtrusion += palette.FirmwarePurge
+	state.E.TotalExtrusion += float64(palette.FirmwarePurge)
 	state.TimeEstimate = preflight.timeEstimate
 
 	if len(preflight.pingStarts) > 0 {
@@ -110,7 +110,7 @@ func _paletteOutput(
 
 	err := readerFn(func(line gcode.Command, lineNumber int) error {
 		if lineNumber == preflight.printSummaryStart {
-			if err := msfOut.AddLastSplice(state.CurrentTool, state.E.TotalExtrusion); err != nil {
+			if err := msfOut.AddLastSplice(state.CurrentTool, float32(state.E.TotalExtrusion)); err != nil {
 				return err
 			}
 			didFinalSplice = true // make sure not to do this again at EOF
@@ -151,7 +151,7 @@ func _paletteOutput(
 			_, hasZ := line.Params["z"]
 			eParam, hasE := line.Params["e"]
 			isPrintLine := (hasX || hasY) && hasE
-			isRestart := !(hasX || hasY || hasZ) && hasE && state.E.CurrentRetraction+eParam == 0
+			isRestart := !(hasX || hasY || hasZ) && hasE && state.E.CurrentRetraction+float64(eParam) == 0
 			if isPrintLine || isRestart {
 				// restore pre-transition Z height immediately before doing a print line
 				currentF := state.XYZF.CurrentFeedrate
@@ -220,7 +220,7 @@ func _paletteOutput(
 				// check for ping actions
 				if state.CurrentlyPinging {
 					// currentlyPinging == true implies accessory mode
-					if state.E.TotalExtrusion >= state.LastPingStart+state.PingExtrusion {
+					if state.E.TotalExtrusion >= float64(state.LastPingStart+state.PingExtrusion) {
 						// finish the accessory ping sequence
 						comment := fmt.Sprintf("; Ping %d pause 2%s", len(msfOut.PingList)+1, EOL)
 						if err := writeLine(writer, comment); err != nil {
@@ -230,7 +230,7 @@ func _paletteOutput(
 						if err := writeLines(writer, pauseSequence); err != nil {
 							return err
 						}
-						actualPingExtrusion := state.E.TotalExtrusion - state.LastPingStart
+						actualPingExtrusion := float32(state.E.TotalExtrusion) - state.LastPingStart
 						msfOut.AddPingWithExtrusion(state.LastPingStart, actualPingExtrusion)
 						if len(msfOut.PingList) < len(preflight.pingStarts) {
 							state.NextPingStart = preflight.pingStarts[len(msfOut.PingList)]
@@ -239,7 +239,7 @@ func _paletteOutput(
 						}
 						state.CurrentlyPinging = false
 					}
-				} else if state.E.TotalExtrusion >= state.NextPingStart {
+				} else if state.E.TotalExtrusion >= float64(state.NextPingStart) {
 					// attempt to start a ping sequence
 					//  - connected pings: guaranteed to finish
 					//  - accessory pings: may be "cancelled" if near the end of the transition
@@ -248,7 +248,7 @@ func _paletteOutput(
 						if err := writeLine(writer, comment); err != nil {
 							return err
 						}
-						msfOut.AddPing(state.E.TotalExtrusion)
+						msfOut.AddPing(float32(state.E.TotalExtrusion))
 						if err := writeLine(writer, palette.ClearBufferCommand); err != nil {
 							return err
 						}
@@ -261,7 +261,7 @@ func _paletteOutput(
 						} else {
 							state.NextPingStart = posInf
 						}
-						state.LastPingStart = state.E.TotalExtrusion
+						state.LastPingStart = float32(state.E.TotalExtrusion)
 					} else {
 						// start the accessory ping sequence
 						comment := fmt.Sprintf("; Ping %d pause 1%s", len(msfOut.PingList)+1, EOL)
@@ -272,7 +272,7 @@ func _paletteOutput(
 						if err := writeLines(writer, pauseSequence); err != nil {
 							return err
 						}
-						state.LastPingStart = state.E.TotalExtrusion
+						state.LastPingStart = float32(state.E.TotalExtrusion)
 						state.CurrentlyPinging = true
 					}
 				}
@@ -320,7 +320,7 @@ func _paletteOutput(
 						if err := writeLine(writer, toolChangeLine); err != nil {
 							return err
 						}
-						spliceLength := state.E.TotalExtrusion
+						spliceLength := float32(state.E.TotalExtrusion)
 						if err := msfOut.AddSplice(state.CurrentTool, spliceLength); err != nil {
 							return err
 						}
@@ -341,7 +341,7 @@ func _paletteOutput(
 								preTransitionAdd = 0
 							}
 							spliceOffset += preTransitionAdd
-							spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+							spliceLength := float32(state.E.TotalExtrusion) + spliceOffset - currentTransition.UsableInfill
 
 							ptpPurgeLength := currentTransition.PurgeLength
 							ptpTransitionLength := currentTransition.TransitionLength
@@ -383,7 +383,7 @@ func _paletteOutput(
 							currentTransition := preflight.transitions[len(msfOut.SpliceList)]
 							currentPurgeLength := currentTransition.PurgeLength
 							spliceOffset := currentTransition.TransitionLength * (palette.TransitionTarget / 100)
-							spliceLength := state.E.TotalExtrusion + spliceOffset - currentTransition.UsableInfill
+							spliceLength := float32(state.E.TotalExtrusion) + spliceOffset - currentTransition.UsableInfill
 							if palette.TransitionMethod == SideTransitions {
 								extra := msfOut.GetRequiredExtraSpliceLength(spliceLength)
 								if extra > 0 {
@@ -505,7 +505,7 @@ func _paletteOutput(
 		if palette.TreatAsSingleMaterial {
 			lastSpliceTool = palette.PrintExtruder
 		}
-		if err := msfOut.AddLastSplice(lastSpliceTool, state.E.TotalExtrusion); err != nil {
+		if err := msfOut.AddLastSplice(lastSpliceTool, float32(state.E.TotalExtrusion)); err != nil {
 			return err
 		}
 		didFinalSplice = true
