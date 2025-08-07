@@ -117,8 +117,8 @@ var pathTypeColorStrings = map[PathType]string{
 	PathTypeTransition:       "#d1d1d1",
 }
 
-var feedrateColorMin = colorRed
-var feedrateColorMax = colorTeal
+var feedrateColorMin = colorTeal
+var feedrateColorMax = colorRed
 
 var fanColorMin = colorRed
 var fanColorMax = colorGreen

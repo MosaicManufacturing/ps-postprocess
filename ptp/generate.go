@@ -185,6 +185,7 @@ func generateToolpath(argv []string) error {
 	writer := NewWriter(outpath, initialExtrusionWidth, initialLayerHeight, zOffset, brimIsSkirt, toolColors)
 	writer.SetFeedrateBounds(preflight.minFeedrate, preflight.maxFeedrate)
 	writer.SetTemperatureBounds(preflight.minTemperature, preflight.maxTemperature)
+	writer.SetFanSpeedBounds(preflight.minFanSpeed, preflight.maxFanSpeed)
 	writer.SetLayerHeightBounds(preflight.minLayerHeight, preflight.maxLayerHeight)
 	if err = writer.Initialize(); err != nil {
 		return err
