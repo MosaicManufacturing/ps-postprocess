@@ -209,8 +209,15 @@ func (w *Writer) SetTemperatureBounds(min, max float32) {
 }
 
 func (w *Writer) SetFanSpeedBounds(min, max float32) {
-	w.minFanSpeed = min
-	w.maxFanSpeed = max
+	if math.IsInf((float64(max)), -1) && math.IsInf(float64(min), 1) {
+		// no fan commands were seen
+		// set max and min to 0 to indicate fan is off
+		w.minFanSpeed = 0
+		w.maxFanSpeed = 0
+	} else {
+		w.minFanSpeed = min
+		w.maxFanSpeed = max
+	}
 }
 
 func (w *Writer) SetLayerHeightBounds(min, max float32) {
