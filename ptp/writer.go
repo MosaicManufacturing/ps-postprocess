@@ -536,9 +536,11 @@ func (w *Writer) writeFeedrateColor(feedrate float32) error {
 }
 
 func (w *Writer) writeFanSpeedColor(pwmValue int) error {
-	t := float32(1)
+	t := float32(0)
 	if w.maxFanSpeed > w.minFanSpeed {
 		t = (float32(pwmValue) - w.minFanSpeed) / (w.maxFanSpeed - w.minFanSpeed)
+	} else if w.maxFanSpeed > 0 {
+		t = 1
 	}
 	if err := writeFloat32LE(w.writers["fanSpeedColor"], t); err != nil {
 		return err
