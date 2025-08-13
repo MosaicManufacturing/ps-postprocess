@@ -101,6 +101,9 @@ func toolpathPreflight(inpath string) (ptpPreflight, error) {
 			// ignore P10, which is specifically assigned to the cooling module
 			if fanIndex, ok := line.Params["p"]; !ok || fanIndex != 10 {
 				minFanSpeed = 0
+				if maxFanSpeed < 0 {
+					maxFanSpeed = 0
+				}
 			}
 		} else if line.Comment != "" && strings.HasPrefix(line.Comment, "HEIGHT:") {
 			// layer heights
