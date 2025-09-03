@@ -7,6 +7,23 @@ import (
 	"testing"
 )
 
+var customStartGCode = `;TYPE:Custom
+M115 U3.1.0 ; use the latest firmware version
+G28 W ; home all axes without mesh bed leveling
+M140 S60 ; start heating the bed
+M190 S60 ; wait until bed heated
+M104 S220 ; start heating extruder
+G80 ; run mesh bed leveling routine
+M109 S220 ; wait for extruder temperature
+G1 Y-3.0 F1800 ; prepare to prime
+G92 E0 ; reset extrusion distance
+G1 X60.0 E9.0  F1800 ; priming
+G1 X100.0 E12.5  F1800 ; priming
+M900 K30; K45 for PET, K30 for PLA/ABS
+G92 E0 ; reset extrusion distance
+;START_OF_PRINT
+`
+
 func testFanSpeed(t *testing.T, name string, gcodeContent string, expectedFanSpeed []legendEntry) {
 	t.Run(name, func(t *testing.T) {
 		// create a temporary directory for test files
@@ -17,7 +34,7 @@ func testFanSpeed(t *testing.T, name string, gcodeContent string, expectedFanSpe
 		defer os.RemoveAll(tempDir)
 
 		gcodePath := filepath.Join(tempDir, "test.gcode")
-		err = os.WriteFile(gcodePath, []byte(gcodeContent), 0644)
+		err = os.WriteFile(gcodePath, []byte(customStartGCode+gcodeContent), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -78,7 +95,10 @@ G90 ; use absolute coordinates
 M83 ; extruder relative mode
 M104 S200 ; set extruder temp
 M109 S200 ; wait for extruder temp
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0 ; print move
@@ -86,7 +106,7 @@ G1 X30 Y30 Z0.2 F1800 E2.0 ; print move
 ;LAYER_CHANGE
 ;Z:0.4
 ;HEIGHT:0.2
-G1 Z0.4 F720
+G1 Z0.4 F720 ; move to second layer point
 G1 X10 Y10 Z0.4 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.4 F1800 E3.0 ; print move
@@ -99,13 +119,15 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 M107 ; fan off
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{Label: "Off", Color: offColor}})
 
 	// test case 3: Only fan on (M106 S255)
@@ -114,13 +136,15 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 M106 S255 ; fan on
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{Label: "Off", Color: offColor}, {Label: "On", Color: onColor}})
 
 	// test case 4: Mix of off and on
@@ -129,7 +153,10 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
@@ -137,7 +164,6 @@ M106 S0 ; fan off
 G1 X25 Y25 Z0.2 F1800 E1.5
 M106 S255 ; fan on
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{Label: "Off", Color: offColor}, {Label: "On", Color: onColor}})
 
 	// test case 5: Single percentage (M106 S128)
@@ -146,13 +172,15 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 M106 S128 ; 50% fan
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{
 		Label: "50%",
 		Color: onColor,
@@ -164,7 +192,10 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X10 Y10 Z0.2 F1800 E1.0
@@ -186,7 +217,6 @@ M106 S204 ; 80%
 G1 X50 Y50 Z0.2 F1800 E5.0
 M106 S229 ; 90%
 G1 X55 Y55 Z0.2 F1800 E5.5
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "90%", Color: onColor},
 		{Label: "77%", Color: floatsToHex(lerp(fanColorMax[0], fanColorMin[0], 1.0/6.0), lerp(fanColorMax[1], fanColorMin[1], 1.0/6.0), lerp(fanColorMax[2], fanColorMin[2], 1.0/6.0))},
@@ -208,7 +238,7 @@ func testTemperature(t *testing.T, name string, gcodeContent string, expectedTem
 		defer os.RemoveAll(tempDir)
 
 		gcodePath := filepath.Join(tempDir, "test.gcode")
-		err = os.WriteFile(gcodePath, []byte(gcodeContent), 0644)
+		err = os.WriteFile(gcodePath, []byte(customStartGCode+gcodeContent), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -263,20 +293,26 @@ func TestTemperatureEdgeCases(t *testing.T) {
 	minColor := floatsToHex(temperatureColorMin[0], temperatureColorMin[1], temperatureColorMin[2])
 	maxColor := floatsToHex(temperatureColorMax[0], temperatureColorMax[1], temperatureColorMax[2])
 
+	// Note: These tests use 220°C extruder temperature which matches the temperature
+	// in the customStartGCode to keep the test data simple and consistent with
+	// the temperature value already seen in the priming code
+
 	// test case 1: Single temperature
 	testTemperature(t, "SingleTemperature", `; Test G-code with single temperature
 G90
 M83
-M104 S200
-M109 S200
-G1 Z0.2 F720
+M104 S220
+M109 S220
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{
-		Label: "200 °C",
+		Label: "220 °C",
 		Color: maxColor,
 	}})
 
@@ -284,19 +320,21 @@ G1 X30 Y30 Z0.2 F1800 E2.0
 	testTemperature(t, "TwoTemperatures", `; Test G-code with two temperatures
 G90
 M83
-M104 S200
-M109 S200
-G1 Z0.2 F720
+M104 S220
+M109 S220
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
-M104 S220
-M109 S220
+M104 S230
+M109 S230
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{
-		{Label: "220 °C", Color: maxColor},
-		{Label: "200 °C", Color: minColor},
+		{Label: "230 °C", Color: maxColor},
+		{Label: "220 °C", Color: minColor},
 	})
 
 	// test case 3: Three different temperatures
@@ -304,7 +342,10 @@ G1 X30 Y30 Z0.2 F1800 E2.0
 G90
 M83
 M104 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
@@ -312,7 +353,6 @@ M109 S210
 G1 X25 Y25 Z0.2 F1800 E1.5
 M104 S220
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "220 °C", Color: maxColor},
 		{Label: "210 °C", Color: floatsToHex(lerp(temperatureColorMax[0], temperatureColorMin[0], 0.5), lerp(temperatureColorMax[1], temperatureColorMin[1], 0.5), lerp(temperatureColorMax[2], temperatureColorMin[2], 0.5))},
@@ -325,7 +365,10 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X10 Y10 Z0.2 F1800 E1.0
@@ -356,7 +399,6 @@ G1 X50 Y50 Z0.2 F1800 E5.0
 M104 S290
 M109 S290
 G1 X55 Y55 Z0.2 F1800 E5.5
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "290 °C", Color: maxColor},
 		{Label: "275 °C", Color: floatsToHex(lerp(temperatureColorMax[0], temperatureColorMin[0], 1.0/6.0), lerp(temperatureColorMax[1], temperatureColorMin[1], 1.0/6.0), lerp(temperatureColorMax[2], temperatureColorMin[2], 1.0/6.0))},
@@ -378,7 +420,7 @@ func testFeedrate(t *testing.T, name string, gcodeContent string, expectedFeedra
 		defer os.RemoveAll(tempDir)
 
 		gcodePath := filepath.Join(tempDir, "test.gcode")
-		err = os.WriteFile(gcodePath, []byte(gcodeContent), 0644)
+		err = os.WriteFile(gcodePath, []byte(customStartGCode+gcodeContent), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -433,18 +475,24 @@ func TestFeedrateEdgeCases(t *testing.T) {
 	minColor := floatsToHex(feedrateColorMin[0], feedrateColorMin[1], feedrateColorMin[2])
 	maxColor := floatsToHex(feedrateColorMax[0], feedrateColorMax[1], feedrateColorMax[2])
 
+	// Note: These tests use 1800 mm/min feed rate which matches the feed rate
+	// in the customStartGCode to keep the test data simple and consistent with
+	// the feed rate value already seen in the priming code
+
 	// test case 1: Single feedrate
 	testFeedrate(t, "SingleFeedrate", `; Test G-code with single feedrate
 G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 G1 X30 Y30 Z0.2 F1800 E2.0
-;HEIGHT:0.2
 `, []legendEntry{{
 		Label: "1800 mm/min",
 		Color: maxColor,
@@ -456,12 +504,14 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 G1 X30 Y30 Z0.2 F2400 E2.0
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "2400 mm/min", Color: maxColor},
 		{Label: "1800 mm/min", Color: minColor},
@@ -473,13 +523,15 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 G1 X25 Y25 Z0.2 F2100 E1.5
 G1 X30 Y30 Z0.2 F2400 E2.0
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "2400 mm/min", Color: maxColor},
 		{Label: "2100 mm/min", Color: floatsToHex(lerp(feedrateColorMin[0], feedrateColorMax[0], 0.5), lerp(feedrateColorMin[1], feedrateColorMax[1], 0.5), lerp(feedrateColorMin[2], feedrateColorMax[2], 0.5))},
@@ -492,7 +544,10 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X10 Y10 Z0.2 F1800 E1.0
@@ -503,7 +558,6 @@ G1 X30 Y30 Z0.2 F2400 E3.0
 G1 X35 Y35 Z0.2 F2550 E3.5
 G1 X40 Y40 Z0.2 F2700 E4.0
 G1 X45 Y45 Z0.2 F2850 E4.5
-;HEIGHT:0.2
 `, []legendEntry{
 		{Label: "2850 mm/min", Color: maxColor},
 		{Label: "2675 mm/min", Color: floatsToHex(lerp(feedrateColorMax[0], feedrateColorMin[0], 1.0/6.0), lerp(feedrateColorMax[1], feedrateColorMin[1], 1.0/6.0), lerp(feedrateColorMax[2], feedrateColorMin[2], 1.0/6.0))},
@@ -525,7 +579,7 @@ func testLayerHeight(t *testing.T, name string, gcodeContent string, expectedLay
 		defer os.RemoveAll(tempDir)
 
 		gcodePath := filepath.Join(tempDir, "test.gcode")
-		err = os.WriteFile(gcodePath, []byte(gcodeContent), 0644)
+		err = os.WriteFile(gcodePath, []byte(customStartGCode+gcodeContent), 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -586,7 +640,10 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
@@ -594,7 +651,7 @@ G1 X30 Y30 Z0.2 F1800 E2.0
 ;LAYER_CHANGE
 ;Z:0.4
 ;HEIGHT:0.2
-G1 Z0.4 F720
+G1 Z0.4 F720 ; move to first layer point
 G1 X10 Y10 Z0.4 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.4 F1800 E3.0
@@ -610,24 +667,27 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.0 
-G1 X10 Y10 Z0.0 F1800
-;TYPE:Internal infill
-G1 X20 Y20 Z0.0 F1800 E0.5
 ;LAYER_CHANGE
 ;Z:0.2
 ;HEIGHT:0.2
-G1 Z0.2 F720
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
-G1 X20 Y20 Z0.2 F1800 E1.0
+G1 X20 Y20 Z0.2 F1800 E0.5
 ;LAYER_CHANGE
-;Z:0.35
-;HEIGHT:0.15
-G1 Z0.35 F720
-G1 X10 Y10 Z0.35 F1800
+;Z:0.4
+;HEIGHT:0.2
+G1 Z0.4 F720 ; move to first layer point
+G1 X10 Y10 Z0.4 F1800
 ;TYPE:Internal infill
-G1 X20 Y20 Z0.35 F1800 E2.0
+G1 X20 Y20 Z0.4 F1800 E1.0
+;LAYER_CHANGE
+;Z:0.55
+;HEIGHT:0.15
+G1 Z0.55 F720 ; move to first layer point
+G1 X10 Y10 Z0.55 F1800
+;TYPE:Internal infill
+G1 X20 Y20 Z0.55 F1800 E2.0
 `, []legendEntry{
 		{Label: "0.2 mm", Color: maxColor},
 		{Label: "0.15 mm", Color: minColor},
@@ -639,28 +699,31 @@ G90
 M83
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.2 F1800 E1.0
 ;LAYER_CHANGE
 ;Z:0.35
 ;HEIGHT:0.15
-G1 Z0.35 F720
+G1 Z0.35 F720 ; move to first layer point
 G1 X10 Y10 Z0.35 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.35 F1800 E1.5
 ;LAYER_CHANGE
 ;Z:0.45
 ;HEIGHT:0.10
-G1 Z0.45 F720
+G1 Z0.45 F720 ; move to first layer point
 G1 X10 Y10 Z0.45 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.45 F1800 E2.0
 ;LAYER_CHANGE
 ;Z:0.65
 ;HEIGHT:0.2
-G1 Z0.65 F720
+G1 Z0.65 F720 ; move to first layer point
 G1 X10 Y10 Z0.65 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.65 F1800 E2.5
@@ -674,61 +737,58 @@ G1 X20 Y20 Z0.65 F1800 E2.5
 	testLayerHeight(t, "EightLayerHeights", `; Test G-code with eight layer heights
 G90
 M83
+G1 X60.0 E9.0  F1000.0 ; priming
 M104 S200
 M109 S200
-G1 Z0.2 F720
+;LAYER_CHANGE
+;Z:0.2
+;HEIGHT:0.2
+G1 Z0.2 F720 ; move to first layer point
 G1 X10 Y10 Z0.2 F1800
 ;TYPE:Internal infill
 G1 X10 Y10 Z0.2 F1800 E1.0
 ;LAYER_CHANGE
 ;Z:0.3
 ;HEIGHT:0.1
-G1 Z0.3 F720
+G1 Z0.3 F720 ; move to first layer point
 G1 X10 Y10 Z0.3 F1800
 ;TYPE:Internal infill
 G1 X15 Y15 Z0.3 F1800 E1.5
 ;LAYER_CHANGE
 ;Z:0.38
 ;HEIGHT:0.08
-G1 Z0.38 F720
+G1 Z0.38 F720 ; move to first layer point
 G1 X10 Y10 Z0.38 F1800
 ;TYPE:Internal infill
 G1 X20 Y20 Z0.38 F1800 E2.0
 ;LAYER_CHANGE
 ;Z:0.44
 ;HEIGHT:0.06
-G1 Z0.44 F720
+G1 Z0.44 F720 ; move to first layer point
 G1 X10 Y10 Z0.44 F1800
 ;TYPE:Internal infill
 G1 X25 Y25 Z0.44 F1800 E2.5
 ;LAYER_CHANGE
 ;Z:0.48
 ;HEIGHT:0.04
-G1 Z0.48 F720
+G1 Z0.48 F720 ; move to first layer point
 G1 X10 Y10 Z0.48 F1800
 ;TYPE:Internal infill
 G1 X30 Y30 Z0.48 F1800 E3.0
 ;LAYER_CHANGE
 ;Z:0.5
 ;HEIGHT:0.02
-G1 Z0.5 F720
+G1 Z0.5 F720 ; move to first layer point
 G1 X10 Y10 Z0.5 F1800
 ;TYPE:Internal infill
 G1 X35 Y35 Z0.5 F1800 E3.5
 ;LAYER_CHANGE
 ;Z:0.51
 ;HEIGHT:0.01
-G1 Z0.51 F720
+G1 Z0.51 F720 ; move to first layer point
 G1 X10 Y10 Z0.51 F1800
 ;TYPE:Internal infill
 G1 X40 Y40 Z0.51 F1800 E4.0
-;LAYER_CHANGE
-;Z:0.71
-;HEIGHT:0.2
-G1 Z0.71 F720
-G1 X10 Y10 Z0.71 F1800
-;TYPE:Internal infill
-G1 X45 Y45 Z0.71 F1800 E4.5
 `, []legendEntry{
 		{Label: "0.2 mm", Color: maxColor},
 		{Label: "0.168 mm", Color: floatsToHex(lerp(layerHeightColorMax[0], layerHeightColorMin[0], 1.0/6.0), lerp(layerHeightColorMax[1], layerHeightColorMin[1], 1.0/6.0), lerp(layerHeightColorMax[2], layerHeightColorMin[2], 1.0/6.0))},
