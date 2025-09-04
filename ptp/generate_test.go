@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var customStartGCode = `;TYPE:Custom
+const customStartGCode = `;TYPE:Custom
 M115 U3.1.0 ; use the latest firmware version
 G28 W ; home all axes without mesh bed leveling
 M140 S60 ; start heating the bed
