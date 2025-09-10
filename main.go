@@ -9,7 +9,6 @@ import (
 	"mosaicmfg.com/ps-postprocess/firstlayer"
 	"mosaicmfg.com/ps-postprocess/flashforge"
 	"mosaicmfg.com/ps-postprocess/msf"
-	"mosaicmfg.com/ps-postprocess/omitmachinelimits"
 	"mosaicmfg.com/ps-postprocess/ptp"
 	"mosaicmfg.com/ps-postprocess/sequences"
 	"mosaicmfg.com/ps-postprocess/ultimaker"
@@ -38,8 +37,6 @@ func main() {
 		sequences.ConvertSequences(argv[1:])
 	case "firstlayer":
 		firstlayer.UseFirstLayerSettings(argv[1:])
-	case "omitdefaultmotionparams":
-		omitmachinelimits.RemoveDefaultMotionParameterCommands(argv[1:])
 	default:
 		log.Fatalln(fmt.Sprintf("unknown command '%s'", argv[0]))
 	}
