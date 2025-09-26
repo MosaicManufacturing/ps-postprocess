@@ -15,6 +15,11 @@ const (
 	legendSteps            = 6
 )
 
+// converts a PWM value (0-255) to a percentage (0-100)
+func pwmToPercentage(pwmValue int) float32 {
+	return float32(math.Max(0, math.Min(100, math.Round(float64(pwmValue)*100)/255)))
+}
+
 type bufferData struct {
 	Offset uint32 `json:"offset"`
 	Size   uint32 `json:"size"`
@@ -101,6 +106,27 @@ func (l *legendEntry) MarshalJSON() ([]byte, error) {
 	return json.Marshal(arr)
 }
 
+func (l *legendEntry) UnmarshalJSON(data []byte) error {
+	var arr []any
+	if err := json.Unmarshal(data, &arr); err != nil {
+		return err
+	}
+	if len(arr) != 2 {
+		return fmt.Errorf("expected array of length 2, got %d", len(arr))
+	}
+	label, ok := arr[0].(string)
+	if !ok {
+		return fmt.Errorf("expected string for label, got %T", arr[0])
+	}
+	color, ok := arr[1].(string)
+	if !ok {
+		return fmt.Errorf("expected string for color, got %T", arr[1])
+	}
+	l.Label = label
+	l.Color = color
+	return nil
+}
+
 type ptpLegend struct {
 	Header                  legendHeader  `json:"header"`                  // header data (version, buffer offsets and sizes)
 	Colors                  legendColors  `json:"colors"`                  // max/min colors for interpolated coloring
@@ -167,10 +193,18 @@ func (w *Writer) getFeedrateLegend() []legendEntry {
 	legend := make([]legendEntry, 0, len(feedratesSeen))
 	if len(feedratesSeen) <= legendSteps {
 		for _, feedrate := range feedratesSeen {
-			t := (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
-			r := lerp(feedrateColorMin[0], feedrateColorMax[0], t)
-			g := lerp(feedrateColorMin[1], feedrateColorMax[1], t)
-			b := lerp(feedrateColorMin[2], feedrateColorMax[2], t)
+			var r, g, b float32
+			// only one feedrate is seen
+			if w.maxFeedrate == w.minFeedrate {
+				r = feedrateColorMax[0]
+				g = feedrateColorMax[1]
+				b = feedrateColorMax[2]
+			} else {
+				t := (feedrate - w.minFeedrate) / (w.maxFeedrate - w.minFeedrate)
+				r = lerp(feedrateColorMin[0], feedrateColorMax[0], t)
+				g = lerp(feedrateColorMin[1], feedrateColorMax[1], t)
+				b = lerp(feedrateColorMin[2], feedrateColorMax[2], t)
+			}
 			legend = append(legend, legendEntry{
 				Label: fmt.Sprintf("%s mm/min", prepareFloatForJSON(feedrate, maxDecimalsFeedrate)),
 				Color: floatsToHex(r, g, b),
@@ -223,10 +257,17 @@ func (w *Writer) getFanSpeedLegend() []legendEntry {
 			Label: "On",
 			Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
 		})
+	} else if w.minFanSpeed == w.maxFanSpeed {
+		// only one fan speed is seen
+		percent := pwmToPercentage(fanSpeedsSeen[0])
+		legend = append(legend, legendEntry{
+			Label: fmt.Sprintf("%s%%", prepareFloatForJSON(percent, maxDecimalsFanSpeed)),
+			Color: floatsToHex(fanColorMax[0], fanColorMax[1], fanColorMax[2]),
+		})
 	} else if len(fanSpeedsSeen) <= legendSteps {
 		for _, pwmValue := range fanSpeedsSeen {
 			t := (float32(pwmValue) - w.minFanSpeed) / (w.maxFanSpeed - w.minFanSpeed)
-			percent := float32(math.Max(0, math.Min(100, math.Round(float64(pwmValue)*100)/255)))
+			percent := pwmToPercentage(pwmValue)
 			r := lerp(fanColorMin[0], fanColorMax[0], t)
 			g := lerp(fanColorMin[1], fanColorMax[1], t)
 			b := lerp(fanColorMin[2], fanColorMax[2], t)
